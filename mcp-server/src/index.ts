@@ -374,7 +374,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             cwd: scraperPath,
             env: {
               ...process.env,
-              OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY || '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'
+              OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY
             }
           });
 
