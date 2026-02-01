@@ -25,6 +25,7 @@
 - [Beispiele](#beispiele)
 - [Entwicklung](#entwicklung)
 - [Troubleshooting](#troubleshooting)
+- [Roadmap](#roadmap)
 - [Beiträge](#beiträge)
 - [Lizenz](#lizenz)
 
@@ -862,6 +863,30 @@ python cli.py add --url <URL> --name <NAME> --verbose
 - Manuell Config erstellen
 - Delay zwischen Requests erhöhen
 - Andere Start-URL versuchen
+
+---
+
+## 🗺️ Roadmap
+
+### Version 2.0 (In Planung)
+
+- [ ] **Async Scraping** - Lange Scraping-Jobs im Hintergrund
+- [ ] **Progress Tracking** - Live-Status von Scraping-Jobs
+- [ ] **Vector Search** - Semantische Suche mit Embeddings
+- [ ] **Multi-Language** - Bessere Unterstützung für mehrsprachige Docs
+- [ ] **Web UI** - Browser-Interface zur Verwaltung
+- [ ] **Docker Support** - Container-basierte Deployment
+- [ ] **Cloud Storage** - S3/Azure Blob Support
+- [ ] **Collaborative Libraries** - Geteilte Doc-Libraries für Teams
+
+### Version 1.5 (Nächste)
+
+- [x] MCP Scraping-Endpoint
+- [x] Hot-Swap Dokumentationen
+- [ ] Auto-Update Scheduler
+- [ ] Incremental Re-Scraping
+- [ ] Better Error Recovery
+- [ ] Rate Limiting Config
 
 ---
 
