@@ -92,6 +92,43 @@ npm start
 
 3. **Restart Windsurf** and the MCP server will be available in your AI assistant.
 
+## ⚙️ Configuration
+
+### Environment Variables
+
+Configure the MCP server behavior using environment variables in your MCP configuration:
+
+```json
+{
+  "mcpServers": {
+    "anydocs": {
+      "command": "node",
+      "args": ["C:/Path/to/AnyDocsMCP/mcp-server/dist/index.js"],
+      "env": {
+        "OPENROUTER_API_KEY": "sk-or-v1-your-key-here",
+        "ANYDOCS_ACTIVE": "python3",
+        "ANYDOCS_STORAGE_ROOT": "C:/Custom/Path/docs",
+        "ANYDOCS_REFRESH_DAYS": "7"
+      }
+    }
+  }
+}
+```
+
+**Available Variables:**
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `OPENROUTER_API_KEY` | **Yes** | - | OpenRouter API key for LLM-powered site analysis |
+| `ANYDOCS_ACTIVE` | No | `""` | Default documentation set to load on startup (e.g., `"python3"`) |
+| `ANYDOCS_STORAGE_ROOT` | No | `%APPDATA%/AnyDocsMCP/docs` | Custom storage location for scraped documentation |
+| `ANYDOCS_REFRESH_DAYS` | No | `30` | Number of days before documentation needs refresh |
+
+**Notes:**
+- If `ANYDOCS_ACTIVE` is not set, use `list_documentation_sets` and `switch_documentation` to select a doc set
+- Storage root defaults to OS-specific application data directory
+- Refresh interval prevents unnecessary re-scraping; use `force: true` in `update_documentation` to override
+
 ## ✅ Verified Documentation Sites (49/49)
 
 Successfully tested with 100% success rate using automatic WebDriver escalation for bot-protected sites.
