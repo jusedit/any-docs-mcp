@@ -621,7 +621,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           return {
             content: [{
               type: 'text',
-              text: `⏳ Documentation "${docName}" is already being scraped.\n\n**Job ID:** ${existingJob.id}\n**Status:** ${existingJob.status}\n**Progress:** ${existingJob.progress.current}/${existingJob.progress.total}\n\nUse \`get_scrape_status\` with this job ID to check progress.`
+              text: `[PENDING] Documentation "${docName}" is already being scraped.\n\n**Job ID:** ${existingJob.id}\n**Status:** ${existingJob.status}\n**Progress:** ${existingJob.progress.current}/${existingJob.progress.total}\n\nUse \`get_scrape_status\` with this job ID to check progress.`
             }]
           };
         }
@@ -633,7 +633,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return {
           content: [{
             type: 'text',
-            text: `🚀 Started scraping documentation asynchronously!\n\n**Job ID:** ${jobId}\n**Name:** ${docName}\n**Display Name:** ${displayName}\n**URL:** ${url}\n\nThe scraping is running in the background. Use \`get_scrape_status\` with the job ID to check progress.\n\n**Next steps:**\n1. Call \`get_scrape_status\` with jobId "${jobId}" to monitor progress\n2. Once completed, use \`switch_documentation\` to switch to the new docs\n3. Or use \`list_documentation_sets\` to see all available docs`
+            text: `[STARTED] Started scraping documentation asynchronously!\n\n**Job ID:** ${jobId}\n**Name:** ${docName}\n**Display Name:** ${displayName}\n**URL:** ${url}\n\nThe scraping is running in the background. Use \`get_scrape_status\` with the job ID to check progress.\n\n**Next steps:**\n1. Call \`get_scrape_status\` with jobId "${jobId}" to monitor progress\n2. Once completed, use \`switch_documentation\` to switch to the new docs\n3. Or use \`list_documentation_sets\` to see all available docs`
           }]
         };
       }
@@ -646,17 +646,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           return {
             content: [{
               type: 'text',
-              text: `❌ Job not found: ${jobId}\n\nThe job may have expired or the ID is incorrect.`
+              text: `[ERROR] Job not found: ${jobId}\n\nThe job may have expired or the ID is incorrect.`
             }],
             isError: true
           };
         }
 
-        let statusEmoji = '⏳';
-        if (job.status === 'completed') statusEmoji = '✅';
-        else if (job.status === 'failed') statusEmoji = '❌';
-        else if (job.status === 'scraping') statusEmoji = '📥';
-        else if (job.status === 'analyzing') statusEmoji = '🔍';
+        let statusEmoji = '[PENDING]';
+        if (job.status === 'completed') statusEmoji = '[DONE]';
+        else if (job.status === 'failed') statusEmoji = '[FAILED]';
+        else if (job.status === 'scraping') statusEmoji = '[SCRAPING]';
+        else if (job.status === 'analyzing') statusEmoji = '[ANALYZING]';
 
         let output = `${statusEmoji} **Scrape Job Status**\n\n`;
         output += `**Job ID:** ${job.id}\n`;
@@ -706,7 +706,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           return {
             content: [{
               type: 'text',
-              text: `❌ Documentation "${docName}" not found. Use \`list_documentation_sets\` to see available sets.`
+              text: `[ERROR] Documentation "${docName}" not found. Use \`list_documentation_sets\` to see available sets.`
             }],
             isError: true
           };
@@ -720,7 +720,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             return {
               content: [{
                 type: 'text',
-                text: `ℹ️ Documentation "${docName}" does not need refresh yet.\n\n**Last scraped:** ${metadata.last_scraped}\n**Refresh after:** ${metadata.refresh_after}\n**Content hash:** ${metadata.content_hash?.substring(0, 12)}...\n\nUse \`force: true\` to update anyway.`
+                text: `[INFO] Documentation "${docName}" does not need refresh yet.\n\n**Last scraped:** ${metadata.last_scraped}\n**Refresh after:** ${metadata.refresh_after}\n**Content hash:** ${metadata.content_hash?.substring(0, 12)}...\n\nUse \`force: true\` to update anyway.`
               }]
             };
           }
@@ -732,7 +732,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           return {
             content: [{
               type: 'text',
-              text: `⏳ Documentation "${docName}" is already being updated.\n\n**Job ID:** ${existingJob.id}\n**Status:** ${existingJob.status}`
+              text: `[PENDING] Documentation "${docName}" is already being updated.\n\n**Job ID:** ${existingJob.id}\n**Status:** ${existingJob.status}`
             }]
           };
         }
@@ -744,7 +744,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return {
           content: [{
             type: 'text',
-            text: `🔄 Started updating documentation asynchronously!\n\n**Job ID:** ${jobId}\n**Name:** ${docName}\n**Previous hash:** ${metadata?.content_hash?.substring(0, 12) || 'N/A'}...\n\nThe old version remains available while updating. Use \`get_scrape_status\` to monitor progress.`
+            text: `[UPDATE] Started updating documentation asynchronously!\n\n**Job ID:** ${jobId}\n**Name:** ${docName}\n**Previous hash:** ${metadata?.content_hash?.substring(0, 12) || 'N/A'}...\n\nThe old version remains available while updating. Use \`get_scrape_status\` to monitor progress.`
           }]
         };
       }
@@ -767,7 +767,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
         // Show active jobs first
         if (activeJobs.length > 0) {
-          output += `## 🔄 In Progress\n\n`;
+          output += `## [IN PROGRESS]\n\n`;
           for (const job of activeJobs) {
             const percent = job.progress.total > 0 
               ? Math.round((job.progress.current / job.progress.total) * 100) 
@@ -781,13 +781,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
         // Show existing docs
         if (allDocs.length > 0) {
-          output += `## 📚 Available\n\n`;
+          output += `## Available\n\n`;
           for (const docName of allDocs) {
             const docConfig = getDocConfig(config, docName);
             const metadata = getDocMetadata(config, docName);
             const isActive = docName === currentDocName;
             
-            output += `- **${docConfig?.display_name || docName}** (${docName})${isActive ? ' ✓ ACTIVE' : ''}\n`;
+            output += `- **${docConfig?.display_name || docName}** (${docName})${isActive ? ' [ACTIVE]' : ''}\n`;
             if (docConfig?.start_url) {
               output += `  - URL: ${docConfig.start_url}\n`;
             }
@@ -799,7 +799,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               }
               if (metadata.refresh_after) {
                 const needsRefresh = new Date(metadata.refresh_after) < new Date();
-                output += `  - Refresh: ${needsRefresh ? '⚠️ NEEDS REFRESH' : 'OK'} (after ${metadata.refresh_after.substring(0, 10)})\n`;
+                output += `  - Refresh: ${needsRefresh ? '[NEEDS REFRESH]' : 'OK'} (after ${metadata.refresh_after.substring(0, 10)})\n`;
               }
             }
             output += '\n';
@@ -825,7 +825,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             return {
               content: [{
                 type: 'text',
-                text: `❌ Documentation set "${newDocName}" not found. Use \`list_documentation_sets\` to see available sets.`
+                text: `[ERROR] Documentation set "${newDocName}" not found. Use \`list_documentation_sets\` to see available sets.`
               }],
               isError: true
             };
@@ -839,7 +839,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             return {
               content: [{
                 type: 'text',
-                text: `❌ No versions found for "${newDocName}". The documentation may be incomplete.`
+                text: `[ERROR] No versions found for "${newDocName}". The documentation may be incomplete.`
               }],
               isError: true
             };
@@ -865,14 +865,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           return {
             content: [{
               type: 'text',
-              text: `✅ Successfully switched to documentation set: **${newDocName}**\n\nVersion: ${latestVersion}\nPath: ${newDocsPath}\n\nYou can now search this documentation using the search tools.`
+              text: `[SUCCESS] Successfully switched to documentation set: **${newDocName}**\n\nVersion: ${latestVersion}\nPath: ${newDocsPath}\n\nYou can now search this documentation using the search tools.`
             }]
           };
         } catch (error) {
           return {
             content: [{
               type: 'text',
-              text: `❌ Error switching documentation: ${error instanceof Error ? error.message : String(error)}`
+              text: `[ERROR] Error switching documentation: ${error instanceof Error ? error.message : String(error)}`
             }],
             isError: true
           };
@@ -889,7 +889,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           return {
             content: [{
               type: 'text',
-              text: `❌ No logs found for job ID: ${jobId}\n\nThe job may not exist or may have expired.`
+              text: `[ERROR] No logs found for job ID: ${jobId}\n\nThe job may not exist or may have expired.`
             }],
             isError: true
           };
