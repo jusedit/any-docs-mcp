@@ -6,6 +6,11 @@ from bs4 import BeautifulSoup
 from openai import OpenAI
 from models import SiteAnalysis
 
+# Load .env from parent directory if present
+from dotenv import load_dotenv
+import os as os_module
+load_dotenv(os_module.path.join(os_module.path.dirname(__file__), '..', '.env'))
+
 
 class SiteAnalyzer:
     def __init__(self, api_key: Optional[str] = None):
