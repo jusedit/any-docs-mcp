@@ -55,10 +55,18 @@ npm run build
 
 ### Add Documentation
 
+**Recommended: Use the CLI directly for scraping**
+
 ```bash
 cd scraper
-python doc_manager.py scrape https://docs.python.org/3/ --name python3
+python cli.py add --url "https://docs.python.org/3/" --name python3 --display-name "Python 3"
 ```
+
+**Alternative: Via MCP Tool (returns CLI command for you to execute)**
+
+The MCP tool `scrape_documentation` will provide you with the exact CLI command to run, avoiding background process issues.
+
+> **Note:** Direct CLI usage is more reliable and gives you full control over the scraping process with live output.
 
 ### Start MCP Server
 
@@ -259,28 +267,32 @@ python doc_manager.py use <name>
 
 ## MCP Tools
 
+> **Important:** The MCP server is designed for **searching and navigating** already-scraped documentation. For scraping new documentation, use the CLI directly (see [Add Documentation](#add-documentation) above).
+
 ### Documentation Management
 
 **`scrape_documentation`**
-- Scrape a new documentation site asynchronously
+- Returns the CLI command to scrape a new documentation site
+- **Note:** This does NOT run the scrape itself - execute the returned command in your terminal
 - Parameters:
   - `url` (required): Start URL of the documentation site
   - `name` (required): Unique identifier for this documentation set
   - `displayName` (optional): Human-readable name
-- Returns: Job ID to track progress
+- Returns: CLI command to execute
 
 **`get_scrape_status`**
-- Check the status of a scraping job
+- Check the status of a scraping job (for jobs started via CLI)
 - Parameters:
   - `jobId` (required): Job ID returned by scrape_documentation
 - Returns: Progress, phase, current URL, completion status
 
 **`update_documentation`**
-- Re-scrape existing documentation to get latest content
+- Returns the CLI command to re-scrape existing documentation
+- **Note:** This does NOT run the update itself - execute the returned command in your terminal
 - Parameters:
   - `name` (required): Name of documentation set to update
   - `force` (optional): Force update even if refresh timeout not reached
-- Returns: Job ID to track progress
+- Returns: CLI command to execute
 
 **`list_documentation_sets`**
 - List all available documentation sets with metadata
