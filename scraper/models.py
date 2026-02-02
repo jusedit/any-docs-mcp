@@ -51,3 +51,22 @@ class ScrapedPage(BaseModel):
     group: str
     markdown: str
     source_url: str
+
+
+class ScrapeProgress(BaseModel):
+    phase: str = Field(description="Current phase: analyzing, discovering, scraping, completed, failed")
+    current: int = Field(default=0, description="Current item number")
+    total: int = Field(default=0, description="Total items to process")
+    current_url: Optional[str] = Field(default=None, description="Currently processing URL")
+    message: Optional[str] = Field(default=None, description="Status message")
+
+
+class DocumentationMetadata(BaseModel):
+    total_pages: int = Field(default=0)
+    total_files: int = Field(default=0)
+    last_scraped: str = Field(default_factory=lambda: datetime.now().isoformat())
+    content_hash: Optional[str] = Field(default=None, description="Hash of all content for change detection")
+    detected_version: Optional[str] = Field(default=None, description="Detected version from documentation site")
+    refresh_after: Optional[str] = Field(default=None, description="ISO timestamp when auto-refresh should occur")
+    discovery_mode: Optional[str] = Field(default=None, description="URL discovery mode used: sitemap, navigation, or crawl")
+    url_scope: Optional[str] = Field(default=None, description="URL scope/path prefix used for filtering")

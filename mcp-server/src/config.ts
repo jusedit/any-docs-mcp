@@ -5,6 +5,7 @@ export interface ServerConfig {
   activeDocs: string;
   storageRoot?: string;
   serverName?: string;
+  refreshDays?: number;
 }
 
 export function loadConfig(): ServerConfig {
@@ -12,17 +13,20 @@ export function loadConfig(): ServerConfig {
   
   if (existsSync(configPath)) {
     const configData = readFileSync(configPath, 'utf-8');
-    return JSON.parse(configData);
+    const config = JSON.parse(configData);
+    return {
+      ...config,
+      storageRoot: config.storageRoot || process.env.ANYDOCS_STORAGE_ROOT,
+      refreshDays: config.refreshDays || parseInt(process.env.ANYDOCS_REFRESH_DAYS || '30', 10)
+    };
   }
   
   const activeDocs = process.env.ANYDOCS_ACTIVE || '';
-  if (!activeDocs) {
-    throw new Error('No configuration found. Create config.json or set ANYDOCS_ACTIVE environment variable.');
-  }
   
   return {
     activeDocs,
-    storageRoot: process.env.ANYDOCS_STORAGE_ROOT
+    storageRoot: process.env.ANYDOCS_STORAGE_ROOT,
+    refreshDays: parseInt(process.env.ANYDOCS_REFRESH_DAYS || '30', 10)
   };
 }
 
@@ -35,17 +39,24 @@ export function getStorageRoot(config: ServerConfig): string {
   return join(appdata, 'AnyDocsMCP', 'docs');
 }
 
-export function getDocsPath(config: ServerConfig): string {
+export function getDocsPath(config: ServerConfig): string | null {
+  if (!config.activeDocs) {
+    return null;
+  }
+  
   const storageRoot = getStorageRoot(config);
   const docName = config.activeDocs;
   
   const docDir = join(storageRoot, docName);
-  const versions = existsSync(docDir) ? 
-    readdirSync(docDir).filter((d: string) => d.startsWith('v') && 
-      statSync(join(docDir, d)).isDirectory()) : [];
+  if (!existsSync(docDir)) {
+    return null;
+  }
+  
+  const versions = readdirSync(docDir).filter((d: string) => d.startsWith('v') && 
+    statSync(join(docDir, d)).isDirectory());
   
   if (versions.length === 0) {
-    throw new Error(`No versions found for documentation: ${docName}`);
+    return null;
   }
   
   const latestVersion = versions
@@ -54,4 +65,47 @@ export function getDocsPath(config: ServerConfig): string {
     .sort((a: any, b: any) => b.num - a.num)[0].name;
   
   return join(docDir, latestVersion);
+}
+
+export function listAllDocs(config: ServerConfig): string[] {
+  const storageRoot = getStorageRoot(config);
+  if (!existsSync(storageRoot)) {
+    return [];
+  }
+  
+  return readdirSync(storageRoot).filter((d: string) => {
+    const docDir = join(storageRoot, d);
+    const configPath = join(docDir, 'config.json');
+    return statSync(docDir).isDirectory() && existsSync(configPath);
+  });
+}
+
+export function getDocMetadata(config: ServerConfig, docName: string): any | null {
+  const storageRoot = getStorageRoot(config);
+  const metadataPath = join(storageRoot, docName, 'metadata.json');
+  
+  if (!existsSync(metadataPath)) {
+    return null;
+  }
+  
+  try {
+    return JSON.parse(readFileSync(metadataPath, 'utf-8'));
+  } catch {
+    return null;
+  }
+}
+
+export function getDocConfig(config: ServerConfig, docName: string): any | null {
+  const storageRoot = getStorageRoot(config);
+  const configPath = join(storageRoot, docName, 'config.json');
+  
+  if (!existsSync(configPath)) {
+    return null;
+  }
+  
+  try {
+    return JSON.parse(readFileSync(configPath, 'utf-8'));
+  } catch {
+    return null;
+  }
 }

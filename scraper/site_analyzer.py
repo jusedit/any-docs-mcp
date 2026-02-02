@@ -142,3 +142,194 @@ Return ONLY valid JSON, no other text."""
                 break
         
         return links
+    
+    def _llm_analyze_continuation(self, start_url: str, main_html: str, sample_htmls: list[str]) -> SiteAnalysis:
+
+        response = self.client.chat.completions.create(
+            model="anthropic/claude-haiku-4.5",
+            messages=[
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.1,
+            max_tokens=2000
+        )
+        
+        result_text = response.choices[0].message.content.strip()
+        
+        if result_text.startswith("```json"):
+            result_text = result_text[7:]
+        if result_text.startswith("```"):
+            result_text = result_text[3:]
+        if result_text.endswith("```"):
+            result_text = result_text[:-3]
+        result_text = result_text.strip()
+        
+        import json
+        analysis_dict = json.loads(result_text)
+        
+        return SiteAnalysis(**analysis_dict)
+    
+    def discover_navigation_links(self, start_url: str, nav_selectors: list[str]) -> list[dict]:
+        html = self.fetch_page_html(start_url)
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        links = []
+        seen_urls = set()
+        
+        for selector in nav_selectors:
+            nav_element = soup.select_one(selector)
+            if nav_element:
+                for a in nav_element.find_all('a', href=True):
+                    href = a.get('href', '')
+                    
+                    if href.startswith('#'):
+                        continue
+                    
+                    from urllib.parse import urljoin
+                    full_url = urljoin(start_url, href)
+                    full_url = full_url.split('#')[0]
+                    
+                    if full_url not in seen_urls:
+                        seen_urls.add(full_url)
+                        title = a.get_text(strip=True)
+                        links.append({'url': full_url, 'title': title})
+                
+                break
+        
+        return links
+    
+    def filter_sitemap_urls(self, start_url: str, sitemap_urls: List[Dict[str, str]]) -> List[Dict[str, str]]:
+        """
+        Use LLM to intelligently filter sitemap URLs to only include relevant documentation pages.
+        Excludes: blog posts, release notes, other languages, old versions, etc.
+        """
+        if len(sitemap_urls) <= 50:
+            # Small sitemap, no need to filter
+            return sitemap_urls
+        
+        # Sample URLs for LLM analysis
+        sample_size = min(100, len(sitemap_urls))
+        step = len(sitemap_urls) // sample_size
+        sample_urls = [sitemap_urls[i]['url'] for i in range(0, len(sitemap_urls), max(1, step))][:100]
+        
+        parsed_start = urlparse(start_url)
+        start_path = parsed_start.path.rstrip('/')
+        
+        prompt = f"""You are filtering a sitemap to find only relevant documentation URLs.
+
+**Target Documentation:** {start_url}
+**Start Path:** {start_path}
+**Total URLs in Sitemap:** {len(sitemap_urls)}
+
+**Sample URLs from Sitemap (showing {len(sample_urls)} of {len(sitemap_urls)}):**
+{chr(10).join(sample_urls[:50])}
+{'...' if len(sample_urls) > 50 else ''}
+{chr(10).join(sample_urls[-20:]) if len(sample_urls) > 50 else ''}
+
+Create SIMPLE string patterns to filter URLs. The patterns will be used with Python `in` operator (substring match).
+
+**CRITICAL RULES:**
+1. Use SIMPLE substring patterns like "/docs/" or "/api/" - NOT regex
+2. If start_url has a language code like "/en/", the include pattern MUST contain that language
+3. If start_url has a version like "/stable/" or "/current/", include that OR the latest version number
+4. Keep patterns as LITERAL SUBSTRINGS that must appear in the URL
+
+**EXAMPLES:**
+- Start URL: https://docs.djangoproject.com/en/stable/
+  → include_patterns: ["/en/5.", "/en/stable/"] (English + latest version)
+  → exclude_patterns: ["/de/", "/fr/", "/ja/", "/es/", "/pt/", "/ko/", "/zh/"]
+
+- Start URL: https://nodejs.org/api/
+  → include_patterns: ["/api/"]
+  → exclude_patterns: ["/blog/", "/learn/"]
+
+- Start URL: https://kubernetes.io/docs/home/
+  → include_patterns: ["/docs/"]
+  → exclude_patterns: ["/blog/", "/zh/", "/ko/", "/ja/", "/de/", "/fr/"]
+
+Return JSON:
+{{
+  "include_patterns": ["/path/substring/"],
+  "exclude_patterns": ["/blog/", "/other-lang/"],
+  "reasoning": "brief explanation"
+}}
+
+Return ONLY valid JSON, no markdown."""
+
+        try:
+            response = self.client.chat.completions.create(
+                model="anthropic/claude-haiku-4.5",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.1,
+                max_tokens=1000
+            )
+            
+            result_text = response.choices[0].message.content.strip()
+            
+            # Clean JSON
+            if result_text.startswith("```json"):
+                result_text = result_text[7:]
+            if result_text.startswith("```"):
+                result_text = result_text[3:]
+            if result_text.endswith("```"):
+                result_text = result_text[:-3]
+            result_text = result_text.strip()
+            
+            filters = json.loads(result_text)
+            print(f"  LLM URL Filter: {filters.get('reasoning', 'No reasoning')}")
+            
+            # Apply filters using simple substring matching
+            filtered = []
+            include_patterns = filters.get('include_patterns', [])
+            exclude_patterns = filters.get('exclude_patterns', [])
+            
+            for url_dict in sitemap_urls:
+                url = url_dict['url']
+                
+                # Check excludes first (substring match)
+                excluded = False
+                for pattern in exclude_patterns:
+                    if pattern in url:
+                        excluded = True
+                        break
+                
+                if excluded:
+                    continue
+                
+                # Check includes (if any patterns specified, URL must match at least one)
+                if include_patterns:
+                    included = False
+                    for pattern in include_patterns:
+                        if pattern in url:
+                            included = True
+                            break
+                    if not included:
+                        continue
+                
+                filtered.append(url_dict)
+            
+            print(f"  Filtered {len(sitemap_urls)} -> {len(filtered)} URLs")
+            
+            # If filter removed too many (>95%) or left too few, use path-based fallback
+            if len(filtered) < 10:
+                print(f"  Warning: Filter too aggressive ({len(filtered)} URLs), using path-based fallback")
+                # Fallback: filter by start_path
+                if start_path:
+                    filtered = [u for u in sitemap_urls if f'/{start_path}' in u['url'] or u['url'].endswith(f'/{start_path}')]
+                    print(f"  Path fallback: {len(filtered)} URLs matching '/{start_path}'")
+                
+                # If still too few, try the full start URL path
+                if len(filtered) < 10:
+                    full_path = parsed_start.path.rstrip('/')
+                    if full_path and full_path != f'/{start_path}':
+                        filtered = [u for u in sitemap_urls if full_path in u['url']]
+                        print(f"  Full path fallback: {len(filtered)} URLs matching '{full_path}'")
+                
+                if not filtered:
+                    return sitemap_urls
+            
+            return filtered
+            
+        except Exception as e:
+            print(f"  Warning: LLM URL filtering failed: {e}")
+            return sitemap_urls  # Return unfiltered on error

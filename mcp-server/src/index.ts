@@ -9,20 +9,27 @@ import {
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { MarkdownParser, Section } from './markdown-parser.js';
-import { loadConfig, getDocsPath } from './config.js';
+import { loadConfig, getDocsPath, listAllDocs, getDocMetadata, getDocConfig, getStorageRoot } from './config.js';
+import { jobManager, ScrapeJob } from './job-manager.js';
 
 const config = loadConfig();
 const docsPath = getDocsPath(config);
-const serverName = config.serverName || `${config.activeDocs}-mcp`;
+const serverName = config.serverName || (config.activeDocs ? `${config.activeDocs}-mcp` : 'anydocs-mcp');
 
-console.error(`[${serverName}] Loading documentation from: ${docsPath}`);
-console.error(`[${serverName}] Active documentation: ${config.activeDocs}`);
+console.error(`[${serverName}] Loading documentation from: ${docsPath || '(no active docs)'}`);
+console.error(`[${serverName}] Active documentation: ${config.activeDocs || '(none - all docs available)'}`);
 
-const parser = new MarkdownParser(docsPath, config.activeDocs);
+let parser: MarkdownParser | null = null;
+let currentDocName = config.activeDocs || '';
 
-console.error(`[${serverName}] Building index...`);
-parser.buildIndex();
-console.error(`[${serverName}] Index ready.`);
+if (docsPath) {
+  parser = new MarkdownParser(docsPath, config.activeDocs);
+  console.error(`[${serverName}] Building index...`);
+  parser.buildIndex();
+  console.error(`[${serverName}] Index ready.`);
+} else {
+  console.error(`[${serverName}] No active documentation set. Use list_documentation_sets and switch_documentation to select one.`);
+}
 
 const server = new Server(
   {
@@ -65,17 +72,22 @@ function formatSection(section: Section, includeContent: boolean = true): string
 }
 
 server.setRequestHandler(ListToolsRequestSchema, async () => {
+  const docDescription = currentDocName ? `the ${currentDocName} documentation` : 'the currently active documentation';
   return {
     tools: [
       {
         name: 'search',
-        description: `Search the ${config.activeDocs} documentation. Returns relevant sections with content and code examples. Use this for finding specific topics, APIs, or code patterns.`,
+        description: `Search ${docDescription}. Returns relevant sections with content and code examples. Use this for finding specific topics, APIs, or code patterns.`,
         inputSchema: {
           type: 'object',
           properties: {
             query: {
               type: 'string',
               description: 'Search query (e.g., "getting started", "API reference", "configuration")'
+            },
+            docs: {
+              type: 'string',
+              description: 'Optional: Name of specific documentation set to search in. If not provided, searches the currently active documentation.'
             },
             maxResults: {
               type: 'number',
@@ -100,7 +112,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         description: 'Get a high-level overview of all documentation files and their main sections. Use this to understand what documentation is available.',
         inputSchema: {
           type: 'object',
-          properties: {}
+          properties: {
+            docs: {
+              type: 'string',
+              description: 'Optional: Name of specific documentation set. If not provided, uses the currently active documentation.'
+            }
+          }
         }
       },
       {
@@ -112,6 +129,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             fileName: {
               type: 'string',
               description: 'Name of the file without .md extension'
+            },
+            docs: {
+              type: 'string',
+              description: 'Optional: Name of specific documentation set.'
             }
           },
           required: ['fileName']
@@ -130,6 +151,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             fileName: {
               type: 'string',
               description: 'Optional: filter by filename'
+            },
+            docs: {
+              type: 'string',
+              description: 'Optional: Name of specific documentation set.'
             }
           },
           required: ['title']
@@ -137,10 +162,15 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'list_files',
-        description: 'List all available documentation files.',
+        description: 'List all available documentation files in the current or specified documentation set.',
         inputSchema: {
           type: 'object',
-          properties: {}
+          properties: {
+            docs: {
+              type: 'string',
+              description: 'Optional: Name of specific documentation set.'
+            }
+          }
         }
       },
       {
@@ -161,6 +191,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               type: 'number',
               description: 'Maximum number of results',
               default: 5
+            },
+            docs: {
+              type: 'string',
+              description: 'Optional: Name of specific documentation set.'
             }
           },
           required: ['query']
@@ -168,7 +202,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'scrape_documentation',
-        description: 'Scrape a new documentation site and add it to the available documentation sets. This uses LLM-powered analysis to automatically extract content. Returns a job ID to track progress.',
+        description: 'Start scraping a new documentation site asynchronously. Returns a job ID to track progress. The scraping runs in the background - use get_scrape_status to check progress.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -189,8 +223,41 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         }
       },
       {
+        name: 'get_scrape_status',
+        description: 'Get the status of a scraping job by its job ID. Shows progress including current phase, pages scraped, and any errors.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            jobId: {
+              type: 'string',
+              description: 'The job ID returned by scrape_documentation'
+            }
+          },
+          required: ['jobId']
+        }
+      },
+      {
+        name: 'update_documentation',
+        description: 'Re-scrape an existing documentation set to get the latest content. Runs asynchronously and returns a job ID. The old version remains available until the new scrape completes.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            name: {
+              type: 'string',
+              description: 'Name of the documentation set to update'
+            },
+            force: {
+              type: 'boolean',
+              description: 'Force update even if the refresh timeout has not been reached',
+              default: false
+            }
+          },
+          required: ['name']
+        }
+      },
+      {
         name: 'list_documentation_sets',
-        description: 'List all available documentation sets that have been scraped and are available for querying.',
+        description: 'List all available documentation sets with their status, including scrape progress for active jobs, content hash, last update time, and whether refresh is needed.',
         inputSchema: {
           type: 'object',
           properties: {}
@@ -214,6 +281,127 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   };
 });
 
+// Helper function to get parser for a specific docs set
+async function getParserForDocs(docsName?: string): Promise<{ parser: MarkdownParser; docName: string } | null> {
+  const targetDoc = docsName || currentDocName;
+  
+  if (!targetDoc) {
+    return null;
+  }
+  
+  // If requesting current doc and parser exists, return it
+  if (targetDoc === currentDocName && parser) {
+    return { parser, docName: currentDocName };
+  }
+  
+  // Otherwise, create a temporary parser for the requested docs
+  const path = await import('path');
+  const { existsSync, readdirSync, statSync } = await import('fs');
+  
+  const storageRoot = getStorageRoot(config);
+  const docDir = path.join(storageRoot, targetDoc);
+  
+  if (!existsSync(docDir)) {
+    return null;
+  }
+  
+  const versions = readdirSync(docDir).filter((d: string) => 
+    d.startsWith('v') && statSync(path.join(docDir, d)).isDirectory()
+  );
+  
+  if (versions.length === 0) {
+    return null;
+  }
+  
+  const latestVersion = versions
+    .map((v: string) => ({ name: v, num: parseInt(v.substring(1)) }))
+    .filter((v: { name: string; num: number }) => !isNaN(v.num))
+    .sort((a: { num: number }, b: { num: number }) => b.num - a.num)[0].name;
+  
+  const docsPath = path.join(docDir, latestVersion);
+  const tempParser = new MarkdownParser(docsPath, targetDoc);
+  tempParser.buildIndex();
+  
+  return { parser: tempParser, docName: targetDoc };
+}
+
+// Helper to run async scraping
+function startAsyncScrape(jobId: string, url: string, name: string, displayName: string, isUpdate: boolean = false) {
+  import('child_process').then(({ spawn }) => {
+    import('path').then((path) => {
+      import('url').then(({ fileURLToPath }) => {
+        const __filename = fileURLToPath(import.meta.url);
+        const __dirname = path.dirname(__filename);
+        const scraperPath = path.join(__dirname, '..', '..', 'scraper');
+        
+        const command = isUpdate ? 'update' : 'add';
+        const args = isUpdate 
+          ? ['cli.py', command, '--name', name, '--json-progress']
+          : ['cli.py', command, '--url', url, '--name', name, '--display-name', displayName, '--json-progress'];
+        
+        jobManager.updateJob(jobId, { status: 'analyzing' });
+        
+        const pythonProcess = spawn('python', args, {
+          cwd: scraperPath,
+          env: {
+            ...process.env,
+            OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
+            ANYDOCS_REFRESH_DAYS: String(config.refreshDays || 30)
+          }
+        });
+        
+        pythonProcess.stdout.on('data', (data: Buffer) => {
+          const lines = data.toString().split('\n');
+          for (const line of lines) {
+            if (line.startsWith('PROGRESS:')) {
+              try {
+                const progress = JSON.parse(line.substring(9));
+                if (progress.phase === 'completed') {
+                  jobManager.completeJob(jobId, {
+                    totalPages: progress.result?.total_pages || 0,
+                    totalFiles: progress.result?.total_files || 0,
+                    version: progress.result?.version || 'v1'
+                  });
+                } else if (progress.phase === 'failed') {
+                  jobManager.failJob(jobId, progress.message || 'Unknown error');
+                } else {
+                  jobManager.updateJob(jobId, { 
+                    status: progress.phase === 'scraping' ? 'scraping' : 'analyzing' 
+                  });
+                  jobManager.updateProgress(
+                    jobId, 
+                    progress.phase, 
+                    progress.current || 0, 
+                    progress.total || 0, 
+                    progress.current_url
+                  );
+                }
+              } catch (e) {
+                console.error('[scraper] Failed to parse progress:', line);
+              }
+            }
+          }
+        });
+        
+        pythonProcess.stderr.on('data', (data: Buffer) => {
+          console.error('[scraper]', data.toString());
+        });
+        
+        pythonProcess.on('close', (code: number) => {
+          const job = jobManager.getJob(jobId);
+          if (job && job.status !== 'completed' && job.status !== 'failed') {
+            if (code === 0) {
+              jobManager.completeJob(jobId, { totalPages: 0, totalFiles: 0, version: 'v1' });
+            } else {
+              jobManager.failJob(jobId, `Process exited with code ${code}`);
+            }
+          }
+        });
+      });
+    });
+  });
+}
+
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
@@ -221,15 +409,23 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     switch (name) {
       case 'search': {
         const query = args?.query as string;
+        const docsName = args?.docs as string | undefined;
         const maxResults = (args?.maxResults as number) || 10;
         const fileFilter = args?.fileFilter as string | undefined;
         const titlesOnly = args?.titlesOnly as boolean || false;
 
-        const results = parser.search(query, { maxResults, fileFilter });
+        const parserInfo = await getParserForDocs(docsName);
+        if (!parserInfo) {
+          return {
+            content: [{ type: 'text', text: `No documentation set active. Use \`list_documentation_sets\` to see available sets and \`switch_documentation\` to select one.` }]
+          };
+        }
+
+        const results = parserInfo.parser.search(query, { maxResults, fileFilter });
         
         if (results.length === 0) {
           return {
-            content: [{ type: 'text', text: `No results found for "${query}".` }]
+            content: [{ type: 'text', text: `No results found for "${query}" in ${parserInfo.docName} documentation.` }]
           };
         }
 
@@ -237,13 +433,20 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return {
           content: [{ 
             type: 'text', 
-            text: `Found ${results.length} results for "${query}":\n\n${formatted}` 
+            text: `Found ${results.length} results for "${query}" in **${parserInfo.docName}**:\n\n${formatted}` 
           }]
         };
       }
 
       case 'get_overview': {
-        const overview = parser.getOverview();
+        const docsName = args?.docs as string | undefined;
+        const parserInfo = await getParserForDocs(docsName);
+        if (!parserInfo) {
+          return {
+            content: [{ type: 'text', text: `No documentation set active. Use \`list_documentation_sets\` to see available sets.` }]
+          };
+        }
+        const overview = parserInfo.parser.getOverview();
         return {
           content: [{ type: 'text', text: overview }]
         };
@@ -251,25 +454,39 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'get_file_toc': {
         const fileName = args?.fileName as string;
-        const toc = parser.getFileToc(fileName);
+        const docsName = args?.docs as string | undefined;
+        const parserInfo = await getParserForDocs(docsName);
+        if (!parserInfo) {
+          return {
+            content: [{ type: 'text', text: `No documentation set active.` }]
+          };
+        }
+        const toc = parserInfo.parser.getFileToc(fileName);
         if (!toc) {
           return {
-            content: [{ type: 'text', text: `File "${fileName}" not found. Use list_files to see available files.` }]
+            content: [{ type: 'text', text: `File "${fileName}" not found in ${parserInfo.docName}. Use list_files to see available files.` }]
           };
         }
         return {
-          content: [{ type: 'text', text: `# Table of Contents: ${fileName}\n\n${toc}` }]
+          content: [{ type: 'text', text: `# Table of Contents: ${fileName} (${parserInfo.docName})\n\n${toc}` }]
         };
       }
 
       case 'get_section': {
         const title = args?.title as string;
         const fileName = args?.fileName as string | undefined;
-        const sections = parser.getSectionByTitle(title, fileName);
+        const docsName = args?.docs as string | undefined;
+        const parserInfo = await getParserForDocs(docsName);
+        if (!parserInfo) {
+          return {
+            content: [{ type: 'text', text: `No documentation set active.` }]
+          };
+        }
+        const sections = parserInfo.parser.getSectionByTitle(title, fileName);
         
         if (sections.length === 0) {
           return {
-            content: [{ type: 'text', text: `No section found with title "${title}".` }]
+            content: [{ type: 'text', text: `No section found with title "${title}" in ${parserInfo.docName}.` }]
           };
         }
 
@@ -280,7 +497,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'list_files': {
-        const files = parser.getFileList();
+        const docsName = args?.docs as string | undefined;
+        const parserInfo = await getParserForDocs(docsName);
+        if (!parserInfo) {
+          return {
+            content: [{ type: 'text', text: `No documentation set active.` }]
+          };
+        }
+        const files = parserInfo.parser.getFileList();
         const grouped: Record<string, string[]> = {};
         
         for (const file of files) {
@@ -289,7 +513,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           grouped[prefix].push(file);
         }
         
-        let output = '# Available Documentation Files\n\n';
+        let output = `# Available Documentation Files (${parserInfo.docName})\n\n`;
         for (const [category, fileList] of Object.entries(grouped)) {
           output += `## ${category}\n`;
           for (const f of fileList) {
@@ -307,8 +531,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const query = args?.query as string;
         const language = args?.language as string | undefined;
         const maxResults = (args?.maxResults as number) || 5;
+        const docsName = args?.docs as string | undefined;
 
-        const index = parser.getIndex();
+        const parserInfo = await getParserForDocs(docsName);
+        if (!parserInfo) {
+          return {
+            content: [{ type: 'text', text: `No documentation set active.` }]
+          };
+        }
+
+        const index = parserInfo.parser.getIndex();
         const queryLower = query.toLowerCase();
         
         const matches: { section: Section; block: { language: string; code: string }; score: number }[] = [];
@@ -332,11 +564,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
         if (topMatches.length === 0) {
           return {
-            content: [{ type: 'text', text: `No code examples found for "${query}".` }]
+            content: [{ type: 'text', text: `No code examples found for "${query}" in ${parserInfo.docName}.` }]
           };
         }
 
-        let output = `Found ${topMatches.length} code examples for "${query}":\n\n`;
+        let output = `Found ${topMatches.length} code examples for "${query}" in **${parserInfo.docName}**:\n\n`;
         for (const { section, block } of topMatches) {
           output += `### ${section.title}\n`;
           output += `**File:** ${section.file}.md\n`;
@@ -353,112 +585,211 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'scrape_documentation': {
         const url = args?.url as string;
-        const name = args?.name as string;
-        const displayName = (args?.displayName as string) || name;
+        const docName = args?.name as string;
+        const displayName = (args?.displayName as string) || docName;
 
-        const { spawn } = await import('child_process');
-        const path = await import('path');
-        const { fileURLToPath } = await import('url');
-        const __filename = fileURLToPath(import.meta.url);
-        const __dirname = path.dirname(__filename);
-        const scraperPath = path.join(__dirname, '..', '..', 'scraper');
+        // Check if already scraping this doc
+        const existingJob = jobManager.getJobByName(docName);
+        if (existingJob) {
+          return {
+            content: [{
+              type: 'text',
+              text: `⏳ Documentation "${docName}" is already being scraped.\n\n**Job ID:** ${existingJob.id}\n**Status:** ${existingJob.status}\n**Progress:** ${existingJob.progress.current}/${existingJob.progress.total}\n\nUse \`get_scrape_status\` with this job ID to check progress.`
+            }]
+          };
+        }
 
-        return new Promise((resolve) => {
-          const pythonProcess = spawn('python', [
-            'cli.py',
-            'add',
-            '--url', url,
-            '--name', name,
-            '--display-name', displayName
-          ], {
-            cwd: scraperPath,
-            env: {
-              ...process.env,
-              OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY
-            }
-          });
+        // Create job and start async scraping
+        const jobId = jobManager.createJob(docName, displayName, url);
+        startAsyncScrape(jobId, url, docName, displayName, false);
 
-          let output = '';
-          let errorOutput = '';
+        return {
+          content: [{
+            type: 'text',
+            text: `🚀 Started scraping documentation asynchronously!\n\n**Job ID:** ${jobId}\n**Name:** ${docName}\n**Display Name:** ${displayName}\n**URL:** ${url}\n\nThe scraping is running in the background. Use \`get_scrape_status\` with the job ID to check progress.\n\n**Next steps:**\n1. Call \`get_scrape_status\` with jobId "${jobId}" to monitor progress\n2. Once completed, use \`switch_documentation\` to switch to the new docs\n3. Or use \`list_documentation_sets\` to see all available docs`
+          }]
+        };
+      }
 
-          pythonProcess.stdout.on('data', (data: Buffer) => {
-            output += data.toString();
-            console.error('[scraper]', data.toString());
-          });
+      case 'get_scrape_status': {
+        const jobId = args?.jobId as string;
+        const job = jobManager.getJob(jobId);
 
-          pythonProcess.stderr.on('data', (data: Buffer) => {
-            errorOutput += data.toString();
-            console.error('[scraper-error]', data.toString());
-          });
+        if (!job) {
+          return {
+            content: [{
+              type: 'text',
+              text: `❌ Job not found: ${jobId}\n\nThe job may have expired or the ID is incorrect.`
+            }],
+            isError: true
+          };
+        }
 
-          pythonProcess.on('close', (code: number) => {
-            if (code === 0) {
-              resolve({
-                content: [{
-                  type: 'text',
-                  text: `✅ Successfully scraped documentation!\n\n**Name:** ${name}\n**Display Name:** ${displayName}\n**URL:** ${url}\n\nThe documentation is now available. Use \`switch_documentation\` to switch to it, or restart the server with this documentation set active.\n\n**Output:**\n${output.substring(0, 1000)}${output.length > 1000 ? '...\n\n(truncated)' : ''}`
-                }]
-              });
-            } else {
-              resolve({
-                content: [{
-                  type: 'text',
-                  text: `❌ Failed to scrape documentation.\n\n**Error Code:** ${code}\n**Error Output:**\n${errorOutput}\n\n**Output:**\n${output}`
-                }],
-                isError: true
-              });
-            }
-          });
-        });
+        let statusEmoji = '⏳';
+        if (job.status === 'completed') statusEmoji = '✅';
+        else if (job.status === 'failed') statusEmoji = '❌';
+        else if (job.status === 'scraping') statusEmoji = '📥';
+        else if (job.status === 'analyzing') statusEmoji = '🔍';
+
+        let output = `${statusEmoji} **Scrape Job Status**\n\n`;
+        output += `**Job ID:** ${job.id}\n`;
+        output += `**Documentation:** ${job.displayName} (${job.name})\n`;
+        output += `**URL:** ${job.url}\n`;
+        output += `**Status:** ${job.status}\n`;
+        output += `**Started:** ${job.startedAt}\n`;
+        
+        if (job.completedAt) {
+          output += `**Completed:** ${job.completedAt}\n`;
+        }
+
+        output += `\n**Progress:**\n`;
+        output += `- Phase: ${job.progress.phase}\n`;
+        if (job.progress.total > 0) {
+          const percent = Math.round((job.progress.current / job.progress.total) * 100);
+          output += `- Progress: ${job.progress.current}/${job.progress.total} (${percent}%)\n`;
+        }
+        if (job.progress.currentUrl) {
+          output += `- Current URL: ${job.progress.currentUrl}\n`;
+        }
+
+        if (job.error) {
+          output += `\n**Error:** ${job.error}\n`;
+        }
+
+        if (job.result) {
+          output += `\n**Result:**\n`;
+          output += `- Total Pages: ${job.result.totalPages}\n`;
+          output += `- Total Files: ${job.result.totalFiles}\n`;
+          output += `- Version: ${job.result.version}\n`;
+          output += `\nThe documentation is ready! Use \`switch_documentation\` to switch to "${job.name}".`;
+        }
+
+        return {
+          content: [{ type: 'text', text: output }]
+        };
+      }
+
+      case 'update_documentation': {
+        const docName = args?.name as string;
+        const force = args?.force as boolean || false;
+
+        // Check if doc exists
+        const docConfig = getDocConfig(config, docName);
+        if (!docConfig) {
+          return {
+            content: [{
+              type: 'text',
+              text: `❌ Documentation "${docName}" not found. Use \`list_documentation_sets\` to see available sets.`
+            }],
+            isError: true
+          };
+        }
+
+        // Check if refresh is needed
+        const metadata = getDocMetadata(config, docName);
+        if (!force && metadata?.refresh_after) {
+          const refreshDate = new Date(metadata.refresh_after);
+          if (refreshDate > new Date()) {
+            return {
+              content: [{
+                type: 'text',
+                text: `ℹ️ Documentation "${docName}" does not need refresh yet.\n\n**Last scraped:** ${metadata.last_scraped}\n**Refresh after:** ${metadata.refresh_after}\n**Content hash:** ${metadata.content_hash?.substring(0, 12)}...\n\nUse \`force: true\` to update anyway.`
+              }]
+            };
+          }
+        }
+
+        // Check if already updating
+        const existingJob = jobManager.getJobByName(docName);
+        if (existingJob) {
+          return {
+            content: [{
+              type: 'text',
+              text: `⏳ Documentation "${docName}" is already being updated.\n\n**Job ID:** ${existingJob.id}\n**Status:** ${existingJob.status}`
+            }]
+          };
+        }
+
+        // Create job and start async update
+        const jobId = jobManager.createJob(docName, docConfig.display_name || docName, docConfig.start_url);
+        startAsyncScrape(jobId, docConfig.start_url, docName, docConfig.display_name || docName, true);
+
+        return {
+          content: [{
+            type: 'text',
+            text: `🔄 Started updating documentation asynchronously!\n\n**Job ID:** ${jobId}\n**Name:** ${docName}\n**Previous hash:** ${metadata?.content_hash?.substring(0, 12) || 'N/A'}...\n\nThe old version remains available while updating. Use \`get_scrape_status\` to monitor progress.`
+          }]
+        };
       }
 
       case 'list_documentation_sets': {
-        const { spawn } = await import('child_process');
-        const path = await import('path');
-        const { fileURLToPath } = await import('url');
-        const __filename = fileURLToPath(import.meta.url);
-        const __dirname = path.dirname(__filename);
-        const scraperPath = path.join(__dirname, '..', '..', 'scraper');
+        const allDocs = listAllDocs(config);
+        const activeJobs = jobManager.getActiveJobs();
+        
+        if (allDocs.length === 0 && activeJobs.length === 0) {
+          return {
+            content: [{
+              type: 'text',
+              text: `# Available Documentation Sets\n\nNo documentation sets found.\n\nUse \`scrape_documentation\` to add a new documentation site.`
+            }]
+          };
+        }
 
-        return new Promise((resolve) => {
-          const pythonProcess = spawn('python', ['cli.py', 'list'], {
-            cwd: scraperPath
-          });
+        let output = `# Available Documentation Sets\n\n`;
+        output += `**Currently Active:** ${currentDocName || '(none)'}\n\n`;
 
-          let output = '';
+        // Show active jobs first
+        if (activeJobs.length > 0) {
+          output += `## 🔄 In Progress\n\n`;
+          for (const job of activeJobs) {
+            const percent = job.progress.total > 0 
+              ? Math.round((job.progress.current / job.progress.total) * 100) 
+              : 0;
+            output += `- **${job.displayName}** (${job.name})\n`;
+            output += `  - Status: ${job.status}\n`;
+            output += `  - Progress: ${percent}% (${job.progress.current}/${job.progress.total})\n`;
+            output += `  - Job ID: ${job.id}\n\n`;
+          }
+        }
 
-          pythonProcess.stdout.on('data', (data: Buffer) => {
-            output += data.toString();
-          });
-
-          pythonProcess.on('close', (code: number) => {
-            if (code === 0) {
-              resolve({
-                content: [{
-                  type: 'text',
-                  text: `# Available Documentation Sets\n\n${output}\n\n**Currently Active:** ${config.activeDocs}`
-                }]
-              });
-            } else {
-              resolve({
-                content: [{
-                  type: 'text',
-                  text: `Error listing documentation sets.`
-                }],
-                isError: true
-              });
+        // Show existing docs
+        if (allDocs.length > 0) {
+          output += `## 📚 Available\n\n`;
+          for (const docName of allDocs) {
+            const docConfig = getDocConfig(config, docName);
+            const metadata = getDocMetadata(config, docName);
+            const isActive = docName === currentDocName;
+            
+            output += `- **${docConfig?.display_name || docName}** (${docName})${isActive ? ' ✓ ACTIVE' : ''}\n`;
+            if (docConfig?.start_url) {
+              output += `  - URL: ${docConfig.start_url}\n`;
             }
-          });
-        });
+            if (metadata) {
+              output += `  - Pages: ${metadata.total_pages || 'N/A'}, Files: ${metadata.total_files || 'N/A'}\n`;
+              output += `  - Last scraped: ${metadata.last_scraped || 'N/A'}\n`;
+              if (metadata.content_hash) {
+                output += `  - Content hash: ${metadata.content_hash.substring(0, 12)}...\n`;
+              }
+              if (metadata.refresh_after) {
+                const needsRefresh = new Date(metadata.refresh_after) < new Date();
+                output += `  - Refresh: ${needsRefresh ? '⚠️ NEEDS REFRESH' : 'OK'} (after ${metadata.refresh_after.substring(0, 10)})\n`;
+              }
+            }
+            output += '\n';
+          }
+        }
+
+        return {
+          content: [{ type: 'text', text: output }]
+        };
       }
 
       case 'switch_documentation': {
         const newDocName = args?.name as string;
         
         try {
-          const { getStorageRoot } = await import('./config.js');
           const path = await import('path');
-          const { existsSync, readdirSync } = await import('fs');
+          const { existsSync, readdirSync, statSync } = await import('fs');
           
           const storageRoot = getStorageRoot(config);
           const docDir = path.join(storageRoot, newDocName);
@@ -474,7 +805,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           }
 
           const versions = readdirSync(docDir).filter((d: string) => 
-            d.startsWith('v') && existsSync(path.join(docDir, d))
+            d.startsWith('v') && statSync(path.join(docDir, d)).isDirectory()
           );
 
           if (versions.length === 0) {
@@ -500,8 +831,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           newParser.buildIndex();
           console.error(`[switch] Index ready.`);
 
-          // Replace global parser
-          Object.assign(parser, newParser);
+          // Update global state
+          parser = newParser;
+          currentDocName = newDocName;
 
           return {
             content: [{
@@ -535,20 +867,26 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 });
 
 server.setRequestHandler(ListResourcesRequestSchema, async () => {
+  if (!parser) {
+    return { resources: [] };
+  }
   const files = parser.getFileList();
   return {
     resources: files.map(f => ({
-      uri: `${config.activeDocs}://${f}`,
+      uri: `${currentDocName}://${f}`,
       name: f,
       mimeType: 'text/markdown',
-      description: `${config.activeDocs} documentation: ${f}`
+      description: `${currentDocName} documentation: ${f}`
     }))
   };
 });
 
 server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+  if (!parser) {
+    throw new Error('No documentation set active');
+  }
   const uri = request.params.uri;
-  const fileName = uri.replace(`${config.activeDocs}://`, '');
+  const fileName = uri.replace(`${currentDocName}://`, '');
   const toc = parser.getFileToc(fileName);
   
   if (!toc) {

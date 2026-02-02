@@ -1,0 +1,256 @@
+"""
+Content cleaner for post-processing scraped markdown content.
+Removes UI artifacts, fixes code blocks, and cleans up common issues.
+"""
+import re
+from typing import List, Tuple
+
+
+class ContentCleaner:
+    """Clean scraped markdown content by removing artifacts and fixing issues."""
+    
+    # Known bad code block language tags
+    BAD_LANGUAGES = [
+        'sp-pre-placeholder',
+        'shiki', 
+        'index-module__DOXIJG__content',
+        'language-undefined',
+        'highlight',
+        'code-block',
+    ]
+    
+    # UI artifacts to remove (regex patterns)
+    UI_ARTIFACT_PATTERNS = [
+        # CodeSandbox/playground buttons
+        r'ReloadClear\[Fork\]\([^)]*\)',
+        r'\[Fork\]\(https://codesandbox\.io[^)]*\)',
+        r'\[Open in CodeSandbox\]\([^)]*\)',
+        r'\[Open in StackBlitz\]\([^)]*\)',
+        r'\[Try it\]\([^)]*\)',
+        
+        # Copy buttons
+        r'Copy to clipboard',
+        r'Copy code',
+        r'Copied!',
+        r'TypeScriptCopy to clipboard',
+        r'JavaScriptCopy to clipboard',
+        r'ShellCopy to clipboard',
+        r'BashCopy to clipboard',
+        
+        # Navigation artifacts
+        r'\[Previous[^\]]*\]\[Next[^\]]*\]',
+        r'\[Previous[^\]]*\]\([^)]*\)\[Next[^\]]*\]\([^)]*\)',
+        r'PreviousNext',
+        
+        # Show more/less buttons
+        r'Show more',
+        r'Show less',
+        r'Expand',
+        r'Collapse',
+        
+        # Edit page links
+        r'\[Edit this page[^\]]*\]\([^)]*\)',
+        r'\[Edit on GitHub\]\([^)]*\)',
+        r'\[View source\]\([^)]*\)',
+        
+        # Version badges
+        r'Latest Version\s*\n\s*[\d.]+',
+        
+        # Feedback buttons
+        r'Was this page helpful\?',
+        r'\[Yes\]\([^)]*\)\s*\[No\]\([^)]*\)',
+    ]
+    
+    # Navigation menu patterns (at start of content)
+    NAV_MENU_PATTERNS = [
+        r'^Menu\s*\n',
+        r'^Using App Router\s*\n',
+        r'^Features available in /\w+\s*\n',
+    ]
+    
+    # Duplicate header patterns
+    DUPLICATE_HEADER_PATTERN = r'^(#{1,6})\s+(.+)\n\1\s+\2'
+    
+    def __init__(self):
+        # Compile patterns for efficiency
+        self.ui_patterns = [re.compile(p, re.IGNORECASE | re.MULTILINE) for p in self.UI_ARTIFACT_PATTERNS]
+        self.nav_patterns = [re.compile(p, re.MULTILINE) for p in self.NAV_MENU_PATTERNS]
+    
+    def clean(self, content: str) -> str:
+        """Apply all cleaning operations to content."""
+        content = self.fix_code_block_languages(content)
+        content = self.remove_ui_artifacts(content)
+        content = self.remove_navigation_menus(content)
+        content = self.fix_duplicate_headers(content)
+        content = self.fix_encoding_issues(content)
+        content = self.clean_empty_code_blocks(content)
+        content = self.normalize_whitespace(content)
+        return content
+    
+    def fix_code_block_languages(self, content: str) -> str:
+        """Fix or remove bad code block language tags."""
+        for bad_lang in self.BAD_LANGUAGES:
+            content = content.replace(f'```{bad_lang}', '```')
+        
+        # Detect and fix common language mismatches
+        content = self._auto_detect_code_language(content)
+        return content
+    
+    def _auto_detect_code_language(self, content: str) -> str:
+        """Auto-detect code block languages based on content."""
+        def detect_language(code: str) -> str:
+            code_lower = code.lower().strip()
+            
+            # JavaScript/TypeScript
+            if any(x in code for x in ['import React', 'useState', 'useEffect', 'export default function', 'const Component']):
+                return 'jsx'
+            if any(x in code for x in ['interface ', 'type ', ': string', ': number', ': boolean']):
+                return 'typescript'
+            if any(x in code for x in ['const ', 'let ', 'function ', '=>', 'async ', 'await ']):
+                return 'javascript'
+            
+            # Python
+            if any(x in code for x in ['def ', 'import ', 'from ', 'class ', 'if __name__']):
+                return 'python'
+            
+            # Shell/Bash
+            if code_lower.startswith('$') or code_lower.startswith('npm ') or code_lower.startswith('yarn '):
+                return 'bash'
+            if any(x in code_lower for x in ['apt-get', 'brew install', 'pip install', 'curl ', 'wget ']):
+                return 'bash'
+            
+            # HTML/CSS
+            if any(x in code for x in ['<div', '<span', '<p>', '<html', '<!DOCTYPE']):
+                return 'html'
+            if any(x in code for x in ['{', '}']) and any(x in code for x in ['color:', 'margin:', 'padding:', 'display:']):
+                return 'css'
+            
+            # JSON
+            if code.strip().startswith('{') and code.strip().endswith('}'):
+                try:
+                    import json
+                    json.loads(code)
+                    return 'json'
+                except:
+                    pass
+            
+            # SQL
+            if any(x in code_lower for x in ['select ', 'insert ', 'update ', 'delete ', 'create table']):
+                return 'sql'
+            
+            return ''  # Unknown
+        
+        # Find code blocks without language and try to detect
+        pattern = r'```\n(.*?)```'
+        
+        def replace_with_language(match):
+            code = match.group(1)
+            lang = detect_language(code)
+            if lang:
+                return f'```{lang}\n{code}```'
+            return match.group(0)
+        
+        return re.sub(pattern, replace_with_language, content, flags=re.DOTALL)
+    
+    def remove_ui_artifacts(self, content: str) -> str:
+        """Remove known UI artifacts from content."""
+        for pattern in self.ui_patterns:
+            content = pattern.sub('', content)
+        return content
+    
+    def remove_navigation_menus(self, content: str) -> str:
+        """Remove navigation menu blocks from start of content."""
+        # Check for navigation at start
+        for pattern in self.nav_patterns:
+            if pattern.match(content):
+                # Find the end of navigation (usually marked by ---)
+                lines = content.split('\n')
+                nav_end = 0
+                in_nav = True
+                bullet_count = 0
+                
+                for i, line in enumerate(lines):
+                    if line.strip().startswith('* ') or line.strip().startswith('+ ') or line.strip().startswith('- '):
+                        bullet_count += 1
+                    elif line.strip() == '---' and bullet_count > 5:
+                        nav_end = i + 1
+                        break
+                    elif line.strip().startswith('#') and bullet_count > 5:
+                        nav_end = i
+                        break
+                
+                if nav_end > 0:
+                    content = '\n'.join(lines[nav_end:])
+                break
+        
+        return content
+    
+    def fix_duplicate_headers(self, content: str) -> str:
+        """Remove duplicate consecutive headers."""
+        # Pattern: same header appearing twice in a row
+        lines = content.split('\n')
+        result = []
+        prev_line = ''
+        
+        for line in lines:
+            # Check if this is a header
+            if line.strip().startswith('#'):
+                # Normalize for comparison
+                normalized = re.sub(r'^#+\s*', '', line.strip()).lower()
+                prev_normalized = re.sub(r'^#+\s*', '', prev_line.strip()).lower()
+                
+                if normalized == prev_normalized and normalized:
+                    continue  # Skip duplicate
+            
+            result.append(line)
+            prev_line = line
+        
+        return '\n'.join(result)
+    
+    def fix_encoding_issues(self, content: str) -> str:
+        """Fix common encoding issues."""
+        # Smart quotes and apostrophes
+        replacements = [
+            ('â', "'"),  # Common UTF-8 encoding issue
+            ('â', '"'),
+            ('â', '"'),
+            ('â', '-'),
+            ('â¦', '...'),
+            ('\u2019', "'"),  # Right single quote
+            ('\u2018', "'"),  # Left single quote
+            ('\u201c', '"'),  # Left double quote
+            ('\u201d', '"'),  # Right double quote
+            ('\u2013', '-'),  # En dash
+            ('\u2014', '--'),  # Em dash
+            ('\u2026', '...'),  # Ellipsis
+        ]
+        
+        for old, new in replacements:
+            content = content.replace(old, new)
+        
+        return content
+    
+    def clean_empty_code_blocks(self, content: str) -> str:
+        """Remove empty or near-empty code blocks."""
+        # Remove code blocks with only whitespace
+        content = re.sub(r'```\w*\n\s*\n```', '', content)
+        content = re.sub(r'```\w*\n```', '', content)
+        return content
+    
+    def normalize_whitespace(self, content: str) -> str:
+        """Normalize excessive whitespace."""
+        # Remove more than 2 consecutive blank lines
+        content = re.sub(r'\n{4,}', '\n\n\n', content)
+        
+        # Remove trailing whitespace from lines
+        lines = [line.rstrip() for line in content.split('\n')]
+        content = '\n'.join(lines)
+        
+        return content.strip()
+
+
+# Convenience function
+def clean_content(content: str) -> str:
+    """Clean scraped markdown content."""
+    cleaner = ContentCleaner()
+    return cleaner.clean(content)
