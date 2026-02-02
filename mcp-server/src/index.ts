@@ -616,25 +616,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const docName = args?.name as string;
         const displayName = (args?.displayName as string) || docName;
 
-        // Check if already scraping this doc
-        const existingJob = jobManager.getJobByName(docName);
-        if (existingJob) {
-          return {
-            content: [{
-              type: 'text',
-              text: `[PENDING] Documentation "${docName}" is already being scraped.\n\n**Job ID:** ${existingJob.id}\n**Status:** ${existingJob.status}\n**Progress:** ${existingJob.progress.current}/${existingJob.progress.total}\n\nUse \`get_scrape_status\` with this job ID to check progress.`
-            }]
-          };
-        }
-
-        // Create job and start async scraping
-        const jobId = jobManager.createJob(docName, displayName, url);
-        startAsyncScrape(jobId, url, docName, displayName, false);
+        // Generate CLI command for the user to execute
+        const __filename = fileURLToPath(import.meta.url);
+        const __dirname = path.dirname(__filename);
+        const scraperPath = path.join(__dirname, '..', '..', 'scraper');
+        
+        const cliCommand = `cd "${scraperPath}"; python cli.py add --url "${url}" --name "${docName}" --display-name "${displayName}" --json-progress`;
 
         return {
           content: [{
             type: 'text',
-            text: `[STARTED] Started scraping documentation asynchronously!\n\n**Job ID:** ${jobId}\n**Name:** ${docName}\n**Display Name:** ${displayName}\n**URL:** ${url}\n\nThe scraping is running in the background. Use \`get_scrape_status\` with the job ID to check progress.\n\n**Next steps:**\n1. Call \`get_scrape_status\` with jobId "${jobId}" to monitor progress\n2. Once completed, use \`switch_documentation\` to switch to the new docs\n3. Or use \`list_documentation_sets\` to see all available docs`
+            text: `[READY] To scrape documentation, please execute the following command in your terminal:\n\n\`\`\`bash\n${cliCommand}\n\`\`\`\n\n**Documentation:** ${displayName}\n**URL:** ${url}\n\nOnce the scraping completes successfully, use \`switch_documentation\` with name "${docName}" to use the scraped documentation.`
           }]
         };
       }
@@ -727,25 +719,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           }
         }
 
-        // Check if already updating
-        const existingJob = jobManager.getJobByName(docName);
-        if (existingJob) {
-          return {
-            content: [{
-              type: 'text',
-              text: `[PENDING] Documentation "${docName}" is already being updated.\n\n**Job ID:** ${existingJob.id}\n**Status:** ${existingJob.status}`
-            }]
-          };
-        }
-
-        // Create job and start async update
-        const jobId = jobManager.createJob(docName, docConfig.display_name || docName, docConfig.start_url);
-        startAsyncScrape(jobId, docConfig.start_url, docName, docConfig.display_name || docName, true);
+        // Generate CLI command for the user to execute
+        const __filename = fileURLToPath(import.meta.url);
+        const __dirname = path.dirname(__filename);
+        const scraperPath = path.join(__dirname, '..', '..', 'scraper');
+        
+        const cliCommand = `cd "${scraperPath}"; python cli.py update --name "${docName}" --json-progress${force ? ' --force' : ''}`;
 
         return {
           content: [{
             type: 'text',
-            text: `[UPDATE] Started updating documentation asynchronously!\n\n**Job ID:** ${jobId}\n**Name:** ${docName}\n**Previous hash:** ${metadata?.content_hash?.substring(0, 12) || 'N/A'}...\n\nThe old version remains available while updating. Use \`get_scrape_status\` to monitor progress.`
+            text: `[READY] To update documentation, please execute the following command in your terminal:\n\n\`\`\`bash\n${cliCommand}\n\`\`\`\n\n**Documentation:** ${docConfig.display_name || docName}\n**Previous hash:** ${metadata?.content_hash?.substring(0, 12) || 'N/A'}...\n\nOnce the update completes, use \`switch_documentation\` with name "${docName}" to refresh the index.`
           }]
         };
       }
