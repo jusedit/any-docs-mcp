@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+import { spawn } from 'child_process';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -345,90 +348,84 @@ async function getParserForDocs(docsName?: string): Promise<{ parser: MarkdownPa
 }
 
 // Helper to run async scraping
-function startAsyncScrape(jobId: string, url: string, name: string, displayName: string, isUpdate: boolean = false) {
-  import('child_process').then(({ spawn }) => {
-    import('path').then((path) => {
-      import('url').then(({ fileURLToPath }) => {
-        const __filename = fileURLToPath(import.meta.url);
-        const __dirname = path.dirname(__filename);
-        const scraperPath = path.join(__dirname, '..', '..', 'scraper');
-        
-        const command = isUpdate ? 'update' : 'add';
-        const args = isUpdate 
-          ? ['cli.py', command, '--name', name, '--json-progress']
-          : ['cli.py', command, '--url', url, '--name', name, '--display-name', displayName, '--json-progress'];
-        
-        jobManager.updateJob(jobId, { status: 'analyzing' });
-        
-        const pythonProcess = spawn('python', args, {
-          cwd: scraperPath,
-          env: {
-            ...process.env,
-            OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
-            ANYDOCS_REFRESH_DAYS: String(config.refreshDays || 30)
+function startAsyncScrape(jobId: string, url: string, name: string, displayName: string, isUpdate: boolean = false): void {
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  const scraperPath = path.join(__dirname, '..', '..', 'scraper');
+  
+  const command = isUpdate ? 'update' : 'add';
+  const args = isUpdate 
+    ? ['cli.py', command, '--name', name, '--json-progress']
+    : ['cli.py', command, '--url', url, '--name', name, '--display-name', displayName, '--json-progress'];
+  
+  jobManager.updateJob(jobId, { status: 'analyzing' });
+  
+  const pythonProcess = spawn('python', args, {
+    cwd: scraperPath,
+    env: {
+      ...process.env,
+      OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
+      ANYDOCS_REFRESH_DAYS: String(config.refreshDays || 30)
+    }
+  });
+  
+  pythonProcess.stdout.on('data', (data: Buffer) => {
+    const lines = data.toString().split('\n');
+    for (const line of lines) {
+      if (line.trim()) {
+        jobManager.addLog(jobId, `[stdout] ${line}`);
+      }
+      if (line.startsWith('PROGRESS:')) {
+        try {
+          const progress = JSON.parse(line.substring(9));
+          if (progress.phase === 'completed') {
+            jobManager.completeJob(jobId, {
+              totalPages: progress.result?.total_pages || 0,
+              totalFiles: progress.result?.total_files || 0,
+              version: progress.result?.version || 'v1'
+            });
+          } else if (progress.phase === 'failed') {
+            jobManager.failJob(jobId, progress.message || 'Unknown error');
+          } else {
+            jobManager.updateJob(jobId, { 
+              status: progress.phase === 'scraping' ? 'scraping' : 'analyzing' 
+            });
+            jobManager.updateProgress(
+              jobId, 
+              progress.phase, 
+              progress.current || 0, 
+              progress.total || 0, 
+              progress.current_url
+            );
           }
-        });
-        
-        pythonProcess.stdout.on('data', (data: Buffer) => {
-          const lines = data.toString().split('\n');
-          for (const line of lines) {
-            if (line.trim()) {
-              jobManager.addLog(jobId, `[stdout] ${line}`);
-            }
-            if (line.startsWith('PROGRESS:')) {
-              try {
-                const progress = JSON.parse(line.substring(9));
-                if (progress.phase === 'completed') {
-                  jobManager.completeJob(jobId, {
-                    totalPages: progress.result?.total_pages || 0,
-                    totalFiles: progress.result?.total_files || 0,
-                    version: progress.result?.version || 'v1'
-                  });
-                } else if (progress.phase === 'failed') {
-                  jobManager.failJob(jobId, progress.message || 'Unknown error');
-                } else {
-                  jobManager.updateJob(jobId, { 
-                    status: progress.phase === 'scraping' ? 'scraping' : 'analyzing' 
-                  });
-                  jobManager.updateProgress(
-                    jobId, 
-                    progress.phase, 
-                    progress.current || 0, 
-                    progress.total || 0, 
-                    progress.current_url
-                  );
-                }
-              } catch (e) {
-                console.error('[scraper] Failed to parse progress:', line);
-                jobManager.addLog(jobId, `[error] Failed to parse progress: ${line}`);
-              }
-            }
-          }
-        });
-        
-        pythonProcess.stderr.on('data', (data: Buffer) => {
-          const msg = data.toString();
-          console.error('[scraper]', msg);
-          const lines = msg.split('\n');
-          for (const line of lines) {
-            if (line.trim()) {
-              jobManager.addLog(jobId, `[stderr] ${line}`);
-            }
-          }
-        });
-        
-        pythonProcess.on('close', (code: number) => {
-          const job = jobManager.getJob(jobId);
-          if (job && job.status !== 'completed' && job.status !== 'failed') {
-            if (code === 0) {
-              jobManager.completeJob(jobId, { totalPages: 0, totalFiles: 0, version: 'v1' });
-            } else {
-              jobManager.failJob(jobId, `Process exited with code ${code}`);
-            }
-          }
-        });
-      });
-    });
+        } catch (e) {
+          console.error('[scraper] Failed to parse progress:', line);
+          jobManager.addLog(jobId, `[error] Failed to parse progress: ${line}`);
+        }
+      }
+    }
+  });
+  
+  pythonProcess.stderr.on('data', (data: Buffer) => {
+    const msg = data.toString();
+    console.error('[scraper]', msg);
+    const lines = msg.split('\n');
+    for (const line of lines) {
+      if (line.trim()) {
+        jobManager.addLog(jobId, `[stderr] ${line}`);
+      }
+    }
+  });
+  
+  pythonProcess.on('close', (code: number) => {
+    const job = jobManager.getJob(jobId);
+    if (job && job.status !== 'completed' && job.status !== 'failed') {
+      if (code === 0) {
+        jobManager.completeJob(jobId, { totalPages: 0, totalFiles: 0, version: 'v1' });
+      } else {
+        jobManager.failJob(jobId, `Process exited with code ${code}`);
+      }
+    }
   });
 }
 

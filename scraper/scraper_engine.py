@@ -2,8 +2,9 @@ import os
 import re
 import sys
 import time
+import json
 import threading
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import urljoin, urlparse
 from collections import defaultdict
 from typing import Optional, List, Dict, Callable, Tuple
