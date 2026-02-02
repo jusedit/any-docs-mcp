@@ -14,6 +14,7 @@ from models import DocumentationConfig, ScrapedPage, SiteAnalysis, ScrapeProgres
 from sitemap_parser import SitemapParser
 from storage import StorageManager
 from content_cleaner import ContentCleaner
+from url_discovery import URLDiscovery
 
 
 class ScraperEngine:
