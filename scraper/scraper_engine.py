@@ -1,15 +1,16 @@
 import os
 import re
 import time
+import threading
 from urllib.parse import urljoin, urlparse
 from collections import defaultdict
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Callable, Tuple
 import requests
 from bs4 import BeautifulSoup
 from markdownify import markdownify as md
 from urllib.parse import urljoin, urlparse
 import re
-from models import DocumentationConfig, ScrapedPage, SiteAnalysis
+from models import DocumentationConfig, ScrapedPage, SiteAnalysis, ScrapeProgress
 from sitemap_parser import SitemapParser
 from storage import StorageManager
 

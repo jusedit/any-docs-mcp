@@ -1,6 +1,6 @@
 import os
 import re
-from typing import Optional
+from typing import Optional, List, Dict
 import requests
 from bs4 import BeautifulSoup
 from openai import OpenAI
