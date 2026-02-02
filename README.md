@@ -48,21 +48,9 @@ cd scraper
 pip install -r requirements.txt
 
 # Install MCP server
-cd ..
+cd ../mcp-server
 npm install
-```
-
-### Configuration
-
-Create `%APPDATA%\AnyDocsMCP\config\settings.json`:
-
-```json
-{
-  "llm_provider": "openrouter",
-  "openrouter_api_key": "your-api-key-here",
-  "default_model": "anthropic/claude-3.5-sonnet",
-  "docs_base_dir": "%APPDATA%\\AnyDocsMCP\\docs"
-}
+npm run build
 ```
 
 ### Add Documentation
@@ -83,7 +71,8 @@ npm start
 ### Windsurf (Cascade AI)
 
 1. **Open MCP configuration:**
-   - Windows: `C:\Users\User\.codeium\windsurf\mcp_config.json`
+   - Windows: `%APPDATA%\Windsurf\User\globalStorage\codeium.windsurf\settings\mcp_settings.json`
+   - Mac: `~/Library/Application Support/Windsurf/User/globalStorage/codeium.windsurf/settings/mcp_settings.json`
 
 2. **Add MCP server:**
 
@@ -94,7 +83,7 @@ npm start
       "command": "node",
       "args": ["C:/Path/to/AnyDocsMCP/mcp-server/dist/index.js"],
       "env": {
-        "OPENROUTER_API_KEY": "sk-or-v1-sk-or-v1-your-key-here"
+        "OPENROUTER_API_KEY": "sk-or-v1-your-key-here"
       }
     }
   }
