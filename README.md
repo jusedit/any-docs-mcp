@@ -82,25 +82,36 @@ npm start
 ```
 Documentation URL
        ↓
-┌─────────────────┐
-│  URL Discovery  │ → Sitemap → Navigation → Crawl → WebDriver
-└────────┬────────┘
-         ↓
-┌─────────────────┐
-│ Content Extract │ → BeautifulSoup + markdownify
-└────────┬────────┘
-         ↓
-┌─────────────────┐
-│ Content Clean   │ → Remove UI artifacts, normalize
-└────────┬────────┘
-         ↓
-┌─────────────────┐
-│ File Storage    │ → JSON metadata + Markdown files
-└────────┬────────┘
-         ↓
-┌─────────────────┐
-│ MCP Server      │ → search_docs, read_doc, list_docs
-└─────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│  URL Discovery (Multi-Mode)                             │
+│  Sitemap → Navigation → Crawl → WebDriver               │
+└────────────────────┬────────────────────────────────────┘
+                     ↓
+┌─────────────────────────────────────────────────────────┐
+│  Content Extract                                        │
+│  BeautifulSoup + markdownify                            │
+└────────────────────┬────────────────────────────────────┘
+                     ↓
+┌─────────────────────────────────────────────────────────┐
+│  Content Clean                                          │
+│  Remove UI artifacts, normalize code blocks             │
+└────────────────────┬────────────────────────────────────┘
+                     ↓
+┌─────────────────────────────────────────────────────────┐
+│  File Storage                                           │
+│  JSON metadata + Versioned Markdown files               │
+└────────────────────┬────────────────────────────────────┘
+                     ↓
+┌─────────────────────────────────────────────────────────┐
+│  MCP Server (12 Tools)                                  │
+│  ─────────────────────────────────────────────────────  │
+│  Management: scrape_documentation, get_scrape_status,   │
+│              update_documentation, list_documentation_  │
+│              sets, switch_documentation                 │
+│  ─────────────────────────────────────────────────────  │
+│  Navigation: search, get_overview, get_file_toc,        │
+│              get_section, list_files, find_code_examples│
+└─────────────────────────────────────────────────────────┘
 ```
 
 ## CLI Commands
@@ -121,13 +132,89 @@ python doc_manager.py use <name>
 
 ## MCP Tools
 
-| Tool | Description |
-|------|-------------|
-| `scrape_docs` | Scrape documentation from URL |
-| `search_docs` | Full-text search with context |
-| `read_doc` | Get specific document content |
-| `list_docs` | List available documents |
-| `switch_doc` | Change active documentation set |
+### Documentation Management
+
+**`scrape_documentation`**
+- Scrape a new documentation site asynchronously
+- Parameters:
+  - `url` (required): Start URL of the documentation site
+  - `name` (required): Unique identifier for this documentation set
+  - `displayName` (optional): Human-readable name
+- Returns: Job ID to track progress
+
+**`get_scrape_status`**
+- Check the status of a scraping job
+- Parameters:
+  - `jobId` (required): Job ID returned by scrape_documentation
+- Returns: Progress, phase, current URL, completion status
+
+**`update_documentation`**
+- Re-scrape existing documentation to get latest content
+- Parameters:
+  - `name` (required): Name of documentation set to update
+  - `force` (optional): Force update even if refresh timeout not reached
+- Returns: Job ID to track progress
+
+**`list_documentation_sets`**
+- List all available documentation sets with metadata
+- Parameters: None
+- Returns: List of all docs with status, pages, last scraped time, refresh status
+
+**`switch_documentation`**
+- Switch to a different documentation set
+- Parameters:
+  - `name` (required): Name of documentation set to switch to
+- Returns: Confirmation message
+
+### Search & Navigation
+
+**`search`**
+- Full-text search across documentation
+- Parameters:
+  - `query` (required): Search query
+  - `docs` (optional): Specific documentation set name
+  - `maxResults` (optional): Maximum results (default: 10)
+  - `fileFilter` (optional): Filter by filename
+  - `titlesOnly` (optional): Return only titles without content (default: false)
+- Returns: Relevant sections with content and code examples
+
+**`get_overview`**
+- Get high-level overview of all documentation files and main sections
+- **Use this to browse the menu structure and understand what's available**
+- Parameters:
+  - `docs` (optional): Specific documentation set name
+- Returns: Complete file list with main sections
+
+**`get_file_toc`**
+- Get table of contents for a specific file (all headings/sections)
+- **Use this to navigate within a file using the heading hierarchy**
+- Parameters:
+  - `fileName` (required): File name without .md extension
+  - `docs` (optional): Specific documentation set name
+- Returns: Complete heading structure with all levels
+
+**`get_section`**
+- Get specific section content by title
+- Parameters:
+  - `title` (required): Section title to find
+  - `fileName` (optional): Filter by filename
+  - `docs` (optional): Specific documentation set name
+- Returns: Full section content including code blocks
+
+**`list_files`**
+- List all available documentation files
+- Parameters:
+  - `docs` (optional): Specific documentation set name
+- Returns: Grouped list of all files
+
+**`find_code_examples`**
+- Search specifically for code examples
+- Parameters:
+  - `query` (required): Search term to find in code
+  - `language` (optional): Filter by language (python, javascript, etc.)
+  - `maxResults` (optional): Maximum results (default: 5)
+  - `docs` (optional): Specific documentation set name
+- Returns: Code blocks matching the query
 
 ## URL Discovery Modes
 
