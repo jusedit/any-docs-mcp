@@ -42,6 +42,7 @@ class DocumentationConfig(BaseModel):
     created_at: str
     updated_at: str
     metadata: Dict[str, str] = Field(default_factory=dict)
+    content_hash: Optional[str] = Field(default=None, description="Hash of all content for change detection")
 
 
 class ScrapedPage(BaseModel):

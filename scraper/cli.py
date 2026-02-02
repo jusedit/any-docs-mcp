@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 import click
-from datetime import datetime
+import json
+import os
+from datetime import datetime, timedelta
 from colorama import init, Fore
 from site_analyzer import SiteAnalyzer
 from scraper_engine import ScraperEngine
 from storage import StorageManager
 from models import DocumentationConfig
+
+DEFAULT_REFRESH_DAYS = int(os.getenv('ANYDOCS_REFRESH_DAYS', '30'))
 
 init(autoreset=True)
 storage = StorageManager()

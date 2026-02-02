@@ -518,7 +518,7 @@ class ScraperEngine:
         
         # Limit pages to prevent runaway scrapes
         if len(links) > max_pages:
-            print(f"⚠️ Limiting from {len(links)} to {max_pages} pages", file=sys.stderr)
+            print(f"[WARNING] Limiting from {len(links)} to {max_pages} pages", file=sys.stderr)
             links = links[:max_pages]
         
         url_to_group = {link['url']: self.get_url_group(link['url']) for link in links}
@@ -544,7 +544,7 @@ class ScraperEngine:
         page_counts: Dict[str, int] = {}
         self.content_hashes = []
         
-        print(f"\n🚀 Starting concurrent scraping with {self.max_workers} workers...\n", file=sys.stderr)
+        print(f"\n[STARTED] Starting concurrent scraping with {self.max_workers} workers...\n", file=sys.stderr)
         
         # Use ThreadPoolExecutor for concurrent scraping
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
