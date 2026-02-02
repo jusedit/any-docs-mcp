@@ -3,6 +3,7 @@ import re
 import sys
 import time
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urljoin, urlparse
 from collections import defaultdict
 from typing import Optional, List, Dict, Callable, Tuple
