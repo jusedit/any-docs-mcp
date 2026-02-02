@@ -13,6 +13,7 @@ import re
 from models import DocumentationConfig, ScrapedPage, SiteAnalysis, ScrapeProgress
 from sitemap_parser import SitemapParser
 from storage import StorageManager
+from content_cleaner import ContentCleaner
 
 
 class ScraperEngine:
