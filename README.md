@@ -15,6 +15,21 @@ AnyDocsMCP automatically scrapes documentation sites and serves them via MCP (Mo
 - 🔍 **Semantic Search**: Full-text search with <200ms response
 - 🌐 **MCP Integration**: Direct integration with AI assistants
 
+## ⚠️ Security Disclaimer
+
+**Use at your own risk.** This software scrapes and processes web content, which may contain:
+- Malicious code or injection attempts
+- Untrusted content that could influence AI behavior
+- Potential prompt injection vulnerabilities
+
+**Best Practices:**
+- Only scrape documentation from trusted sources
+- Review scraped content before use in production
+- Be aware that scraped content is injected into your AI assistant's context
+- Consider the security implications of automated web scraping
+
+By using this software, you acknowledge these risks and agree to use it at your own discretion.
+
 ## Quick Start
 
 ### Prerequisites
@@ -63,19 +78,106 @@ python doc_manager.py scrape https://docs.python.org/3/ --name python3
 npm start
 ```
 
-## Verified Documentation Sites
+## 🖥️ Using in Code Editors
 
-**Tested: 49/49 sites (100% success)** with WebDriver escalation for bot-protected sites.
+### Windsurf (Cascade AI)
 
-| Category | Sites | Mode Distribution |
-|----------|-------|-------------------|
-| **Languages** | Python, Node.js, TypeScript, Java, Kotlin, Rust, Go, .NET | Sitemap/Navigation |
-| **Frameworks** | React, Vue, Angular, Svelte, Django, Flask, FastAPI, Rails, Laravel, Spring Boot | Mixed (WebDriver for JS-heavy) |
-| **Databases** | PostgreSQL, MySQL, SQLite, Redis, MongoDB, Elasticsearch | Sitemap/Crawl |
-| **DevOps** | Docker, Kubernetes, Helm, Terraform, Ansible, Nginx | Sitemap |
-| **Cloud/SaaS** | AWS, Azure, GitHub, OpenAI, Stripe, Twilio | WebDriver for protected |
+1. **Open MCP configuration:**
+   - Windows: `C:\Users\User\.codeium\windsurf\mcp_config.json`
 
-**WebDriver used**: 12 sites (MySQL, OpenAI, AWS, Spring Boot, React, Tailwind, etc.)
+2. **Add MCP server:**
+
+```json
+{
+  "mcpServers": {
+    "anydocs": {
+      "command": "node",
+      "args": ["C:/Path/to/AnyDocsMCP/mcp-server/dist/index.js"],
+      "env": {
+        "OPENROUTER_API_KEY": "sk-or-v1-sk-or-v1-your-key-here"
+      }
+    }
+  }
+}
+```
+
+3. **Restart Windsurf** and the MCP server will be available in your AI assistant.
+
+## ✅ Verified Documentation Sites (49/49)
+
+Successfully tested with 100% success rate using automatic WebDriver escalation for bot-protected sites.
+
+### Programming Languages
+- **Python 3 Documentation** - https://docs.python.org/3/
+- **Node.js API** - https://nodejs.org/api/
+- **TypeScript Documentation** - https://www.typescriptlang.org/docs/
+- **Java SE Documentation** - https://docs.oracle.com/en/java/javase/
+- **Kotlin Documentation** - https://kotlinlang.org/docs/home.html
+- **Rust Book** - https://doc.rust-lang.org/book/
+- **Go Documentation** - https://go.dev/doc/
+- **Microsoft .NET** - https://learn.microsoft.com/en-us/dotnet/
+
+### Tools & Build Systems
+- **Git Documentation** - https://git-scm.com/docs
+- **Linux Man Pages** - https://man7.org/linux/man-pages/
+- **Swagger/OpenAPI** - https://swagger.io/docs/
+- **gRPC Documentation** - https://grpc.io/docs/
+- **Webpack Docs** - https://webpack.js.org/concepts/
+- **ESLint Documentation** - https://eslint.org/docs/latest/
+- **Vite Guide** - https://vite.dev/guide/
+- **Tailwind CSS** - https://tailwindcss.com/docs
+
+### Web Frameworks (Frontend)
+- **React Documentation** - https://react.dev/
+- **Next.js Docs** - https://nextjs.org/docs
+- **Vue.js Guide** - https://vuejs.org/guide/
+- **Nuxt Documentation** - https://nuxt.com/docs
+- **Angular Documentation** - https://angular.dev/
+- **Svelte Documentation** - https://svelte.dev/docs
+- **SvelteKit Documentation** - https://svelte.dev/docs/kit
+
+### Web Frameworks (Backend)
+- **Django Documentation** - https://docs.djangoproject.com/en/stable/
+- **Flask Documentation** - https://flask.palletsprojects.com/en/stable/
+- **FastAPI Documentation** - https://fastapi.tiangolo.com/
+- **Ruby on Rails Guides** - https://guides.rubyonrails.org/
+- **Laravel Documentation** - https://laravel.com/docs
+- **Spring Boot Reference** - https://docs.spring.io/spring-boot/reference/index.html
+
+### Databases
+- **PostgreSQL Documentation** - https://www.postgresql.org/docs/current/
+- **MySQL Documentation** - https://dev.mysql.com/doc/
+- **SQLite Documentation** - https://www.sqlite.org/docs.html
+- **Redis Documentation** - https://redis.io/docs/latest/
+- **MongoDB Documentation** - https://www.mongodb.com/docs/
+- **Elasticsearch Reference** - https://www.elastic.co/guide/en/elasticsearch/reference/current/index.html
+
+### Message Queues & Streaming
+- **Apache Kafka** - https://kafka.apache.org/documentation/
+- **RabbitMQ Documentation** - https://www.rabbitmq.com/docs
+
+### DevOps & Infrastructure
+- **Docker Documentation** - https://docs.docker.com/
+- **Kubernetes Documentation** - https://kubernetes.io/docs/
+- **Helm Documentation** - https://helm.sh/docs/
+- **Terraform Documentation** - https://developer.hashicorp.com/terraform/docs
+- **Ansible Documentation** - https://docs.ansible.com/ansible/latest/
+- **Nginx Documentation** - https://nginx.org/en/docs/
+
+### Cloud Providers & APIs
+- **GitHub Documentation** - https://docs.github.com/en
+- **AWS Documentation** - https://docs.aws.amazon.com/
+- **Google Cloud Documentation** - https://docs.cloud.google.com/docs
+- **Microsoft Azure** - https://learn.microsoft.com/en-us/azure/
+- **OpenAI Platform** - https://platform.openai.com/docs/overview
+- **Stripe Documentation** - https://docs.stripe.com/
+- **Twilio Documentation** - https://www.twilio.com/docs
+
+**Discovery Modes Used:**
+- Sitemap: 28 sites (fastest)
+- Navigation: 9 sites (medium)
+- Crawl: 7 sites (fallback)
+- WebDriver: 12 sites (for JS-heavy or bot-protected)
 
 ## Architecture
 
@@ -165,6 +267,14 @@ python doc_manager.py use <name>
 - Parameters:
   - `name` (required): Name of documentation set to switch to
 - Returns: Confirmation message
+
+**`get_scrape_logs`**
+- Read log output from a scraping job for debugging
+- **Use this when scrapes fail or to understand what happened during scraping**
+- Parameters:
+  - `jobId` (required): Job ID to get logs for
+  - `lines` (optional): Number of lines to return (default: 100, max: 1000)
+- Returns: Timestamped log output with stdout and stderr
 
 ### Search & Navigation
 

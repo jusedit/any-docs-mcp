@@ -276,6 +276,25 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           },
           required: ['name']
         }
+      },
+      {
+        name: 'get_scrape_logs',
+        description: 'Read the log output from a scraping job. Useful for debugging failed scrapes or understanding what happened during the process.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            jobId: {
+              type: 'string',
+              description: 'The job ID to get logs for'
+            },
+            lines: {
+              type: 'number',
+              description: 'Number of lines to return (default: 100, max: 1000)',
+              default: 100
+            }
+          },
+          required: ['jobId']
+        }
       }
     ]
   };
@@ -353,6 +372,9 @@ function startAsyncScrape(jobId: string, url: string, name: string, displayName:
         pythonProcess.stdout.on('data', (data: Buffer) => {
           const lines = data.toString().split('\n');
           for (const line of lines) {
+            if (line.trim()) {
+              jobManager.addLog(jobId, `[stdout] ${line}`);
+            }
             if (line.startsWith('PROGRESS:')) {
               try {
                 const progress = JSON.parse(line.substring(9));
@@ -378,13 +400,21 @@ function startAsyncScrape(jobId: string, url: string, name: string, displayName:
                 }
               } catch (e) {
                 console.error('[scraper] Failed to parse progress:', line);
+                jobManager.addLog(jobId, `[error] Failed to parse progress: ${line}`);
               }
             }
           }
         });
         
         pythonProcess.stderr.on('data', (data: Buffer) => {
-          console.error('[scraper]', data.toString());
+          const msg = data.toString();
+          console.error('[scraper]', msg);
+          const lines = msg.split('\n');
+          for (const line of lines) {
+            if (line.trim()) {
+              jobManager.addLog(jobId, `[stderr] ${line}`);
+            }
+          }
         });
         
         pythonProcess.on('close', (code: number) => {
@@ -850,6 +880,45 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             isError: true
           };
         }
+      }
+
+      case 'get_scrape_logs': {
+        const jobId = args?.jobId as string;
+        const lines = (args?.lines as number) || 100;
+
+        const logs = jobManager.getLogs(jobId, lines);
+
+        if (logs.length === 0) {
+          return {
+            content: [{
+              type: 'text',
+              text: `❌ No logs found for job ID: ${jobId}\n\nThe job may not exist or may have expired.`
+            }],
+            isError: true
+          };
+        }
+
+        const job = jobManager.getJob(jobId);
+        let output = `# Scrape Logs\n\n`;
+        if (job) {
+          output += `**Job ID:** ${job.id}\n`;
+          output += `**Documentation:** ${job.displayName} (${job.name})\n`;
+          output += `**Status:** ${job.status}\n`;
+          output += `**Started:** ${job.startedAt}\n`;
+          if (job.completedAt) {
+            output += `**Completed:** ${job.completedAt}\n`;
+          }
+          output += `\n`;
+        }
+
+        output += `## Log Output (last ${logs.length} lines)\n\n`;
+        output += '```\n';
+        output += logs.join('\n');
+        output += '\n```';
+
+        return {
+          content: [{ type: 'text', text: output }]
+        };
       }
 
       default:

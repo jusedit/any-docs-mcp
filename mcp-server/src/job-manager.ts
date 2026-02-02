@@ -18,6 +18,7 @@ export interface ScrapeJob {
     totalFiles: number;
     version: string;
   };
+  logs: string[];
 }
 
 class JobManager {
@@ -37,7 +38,8 @@ class JobManager {
         current: 0,
         total: 0
       },
-      startedAt: new Date().toISOString()
+      startedAt: new Date().toISOString(),
+      logs: []
     };
     this.jobs.set(id, job);
     return id;
@@ -94,6 +96,27 @@ class JobManager {
       job.error = error;
       job.progress.phase = 'Failed';
     }
+  }
+
+  addLog(id: string, message: string): void {
+    const job = this.jobs.get(id);
+    if (job) {
+      const timestamp = new Date().toISOString();
+      job.logs.push(`[${timestamp}] ${message}`);
+      // Keep only last 1000 log lines to prevent memory issues
+      if (job.logs.length > 1000) {
+        job.logs = job.logs.slice(-1000);
+      }
+    }
+  }
+
+  getLogs(id: string, lines: number = 100): string[] {
+    const job = this.jobs.get(id);
+    if (!job) {
+      return [];
+    }
+    const maxLines = Math.min(Math.max(1, lines), 1000);
+    return job.logs.slice(-maxLines);
   }
 
   cleanupOldJobs(maxAgeMs: number = 24 * 60 * 60 * 1000): void {
