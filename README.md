@@ -71,8 +71,7 @@ npm start
 ### Windsurf (Cascade AI)
 
 1. **Open MCP configuration:**
-   - Windows: `%APPDATA%\Windsurf\User\globalStorage\codeium.windsurf\settings\mcp_settings.json`
-   - Mac: `~/Library/Application Support/Windsurf/User/globalStorage/codeium.windsurf/settings/mcp_settings.json`
+   - Windows: `C:\Users\User\.codeium\windsurf\mcp_config.json`
 
 2. **Add MCP server:**
 
