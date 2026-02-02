@@ -366,7 +366,8 @@ function startAsyncScrape(jobId: string, url: string, name: string, displayName:
       ...process.env,
       OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
       ANYDOCS_REFRESH_DAYS: String(config.refreshDays || 30)
-    }
+    },
+    stdio: ['ignore', 'pipe', 'pipe']
   });
   
   pythonProcess.stdout.on('data', (data: Buffer) => {

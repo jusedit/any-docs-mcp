@@ -1,3 +1,4 @@
+import hashlib
 import os
 import re
 import sys
@@ -45,7 +46,7 @@ class ScraperEngine:
         
         sitemap_parser = SitemapParser(base_url)
         if sitemap_parser.has_sitemap():
-            print("✓ Sitemap found! Using sitemap for complete URL extraction...")
+            print("[OK] Sitemap found! Using sitemap for complete URL extraction...")
             sitemap_links = sitemap_parser.parse_sitemap()
             
             # Filter links to match URL pattern
@@ -55,7 +56,7 @@ class ScraperEngine:
                     filtered_links.append(link)
             
             if filtered_links:
-                print(f"✓ Extracted {len(filtered_links)} URLs from sitemap")
+                print(f"[OK] Extracted {len(filtered_links)} URLs from sitemap")
                 return filtered_links
             else:
                 print("! Sitemap found but no matching URLs, falling back to navigation parsing")
@@ -362,7 +363,7 @@ class ScraperEngine:
         mode = self.discovery_result['mode']
         version = self.discovery_result.get('version')
         
-        print(f"✓ Discovered {len(urls)} URLs using {mode.upper()} mode")
+        print(f"[OK] Discovered {len(urls)} URLs using {mode.upper()} mode")
         if version:
             print(f"  Detected documentation version: {version}")
         
