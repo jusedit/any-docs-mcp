@@ -395,7 +395,7 @@ AnyDocsMCP/
 
 ## Stats
 
-- **49 Documentation Sites** verified
+- **50 Documentation Sites** verified
 - **100% Success Rate** (with WebDriver escalation)
 - **Average 25 URLs** per site
 - **<200ms** search response
