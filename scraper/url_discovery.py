@@ -19,12 +19,13 @@ from openai import OpenAI
 import os
 
 from sitemap_parser import SitemapParser
+from github_discovery import GitHubDiscovery
 
 
 class URLDiscovery:
     """Multi-mode URL discovery for documentation sites."""
     
-    MODES = ['sitemap', 'navigation', 'crawl']
+    MODES = ['github', 'sitemap', 'navigation', 'crawl']
     
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or os.getenv("OPENROUTER_API_KEY")
@@ -36,6 +37,7 @@ class URLDiscovery:
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (compatible; AnyDocsMCP/1.0)'
         })
+        self.github_discovery = GitHubDiscovery()
     
     def discover_urls(self, start_url: str, max_pages: int = 500) -> Dict:
         """
@@ -65,6 +67,23 @@ class URLDiscovery:
         
         # Try modes in order of preference
         result = None
+        
+        # 0. Check if it's a GitHub repository first
+        if self.github_discovery.is_github_repo(start_url):
+            print(f"  Detected GitHub repository")
+            github_files = self.github_discovery.discover_markdown_files(start_url, max_pages)
+            if github_files:
+                result = {
+                    'mode': 'github',
+                    'urls': github_files,
+                    'version': version,
+                    'scope': scope,
+                    'stats': {'raw': len(github_files), 'filtered': len(github_files)}
+                }
+                print(f"  Mode: GITHUB ({len(result['urls'])} markdown files)")
+                return result
+            else:
+                print(f"  GitHub discovery found no files, falling back to other modes")
         
         # 1. Try sitemap first
         sitemap_urls = self._try_sitemap(base_url, scope, max_pages)

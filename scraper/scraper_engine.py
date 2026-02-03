@@ -68,6 +68,14 @@ class ScraperEngine:
             try:
                 response = requests.get(url, timeout=30)
                 response.raise_for_status()
+                
+                # Special handling for raw GitHub content (plaintext markdown)
+                if 'raw.githubusercontent.com' in url:
+                    # Wrap plaintext in a simple HTML structure for consistent processing
+                    markdown_content = response.text
+                    html_wrapper = f'<html><body><div class="raw-markdown">{markdown_content}</div></body></html>'
+                    return BeautifulSoup(html_wrapper, 'html.parser')
+                
                 return BeautifulSoup(response.text, 'html.parser')
             except requests.HTTPError as e:
                 # Don't retry 404/410 - page doesn't exist
@@ -118,6 +126,13 @@ class ScraperEngine:
         return urls
     
     def extract_content(self, soup: BeautifulSoup) -> str:
+        # Special handling for raw.githubusercontent.com (plaintext markdown)
+        raw_markdown_div = soup.find('div', class_='raw-markdown')
+        if raw_markdown_div:
+            # This is raw markdown content from GitHub, return as-is
+            raw_content = raw_markdown_div.get_text()
+            return raw_content.strip()
+        
         content_div = None
         
         for selector in self.analysis.content_selectors:
