@@ -4,6 +4,8 @@
 
 Transform any documentation website into searchable knowledge for your AI.
 
+🌐 **[View Landing Page](https://jusedit.github.io/any-docs-mcp)** | 📖 [Documentation](#documentation) | ⭐ [Star on GitHub](https://github.com/jusedit/any-docs-mcp)
+
 ## Overview
 
 AnyDocsMCP automatically scrapes documentation sites and serves them via MCP (Model Context Protocol) to AI assistants like Windsurf/Cascade.
