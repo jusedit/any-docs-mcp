@@ -11,10 +11,11 @@ Transform any documentation website into searchable knowledge for your AI.
 AnyDocsMCP automatically scrapes documentation sites and serves them via MCP (Model Context Protocol) to AI assistants like Windsurf/Cascade.
 
 **Key Features:**
-- 🤖 **4-Mode Discovery**: Sitemap → Navigation → Crawl → WebDriver (escalation)
-- 📚 **Multi-Doc Support**: Manage unlimited documentation sets
+- 🤖 **5-Mode Discovery**: GitHub → Sitemap → Navigation → Crawl → WebDriver (escalation)
+- � **GitHub Repository Support**: Directly scrape markdown docs from any GitHub repo
+- � **Multi-Doc Support**: Manage unlimited documentation sets
 - 🔄 **Version Management**: Automatic versioning with preserved history
-- 🔍 **Semantic Search**: Full-text search with <200ms response
+- 🔍 **Full-Text Search**: Keyword-based search with <200ms response
 - 🌐 **MCP Integration**: Direct integration with AI assistants
 
 ## ⚠️ Security Disclaimer
@@ -138,7 +139,7 @@ Configure the MCP server behavior using environment variables in your MCP config
 - Storage root defaults to OS-specific application data directory
 - Refresh interval prevents unnecessary re-scraping; use `force: true` in `update_documentation` to override
 
-## ✅ Verified Documentation Sites (49/49)
+## ✅ Verified Documentation Sites (50/50)
 
 Successfully tested with 100% success rate using automatic WebDriver escalation for bot-protected sites.
 
@@ -170,6 +171,7 @@ Successfully tested with 100% success rate using automatic WebDriver escalation 
 - **Angular Documentation** - https://angular.dev/
 - **Svelte Documentation** - https://svelte.dev/docs
 - **SvelteKit Documentation** - https://svelte.dev/docs/kit
+- **HyperApp** - https://github.com/jorgebucaran/hyperapp
 
 ### Web Frameworks (Backend)
 - **Django Documentation** - https://docs.djangoproject.com/en/stable/
