@@ -438,9 +438,29 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'search': {
         const query = args?.query as string;
         const docsName = args?.docs as string | undefined;
-        const maxResults = (args?.maxResults as number) || 10;
+        let maxResults = (args?.maxResults as number) || 10;
         const fileFilter = args?.fileFilter as string | undefined;
         const titlesOnly = args?.titlesOnly as boolean || false;
+
+        // Validate inputs
+        if (!query || typeof query !== 'string') {
+          return {
+            content: [{ type: 'text', text: '[ERROR] Query parameter is required and must be a string.' }],
+            isError: true
+          };
+        }
+
+        if (query.length > 500) {
+          return {
+            content: [{ type: 'text', text: '[ERROR] Query is too long (max 500 characters).' }],
+            isError: true
+          };
+        }
+
+        // Validate maxResults bounds
+        if (typeof maxResults !== 'number' || maxResults < 1 || maxResults > 100) {
+          maxResults = Math.min(Math.max(maxResults, 1), 100);
+        }
 
         const parserInfo = await getParserForDocs(docsName);
         if (!parserInfo) {
@@ -616,17 +636,47 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const docName = args?.name as string;
         const displayName = (args?.displayName as string) || docName;
 
+        // Validate and sanitize inputs to prevent command injection
+        if (!url || !docName) {
+          return {
+            content: [{ type: 'text', text: '[ERROR] URL and name are required parameters.' }],
+            isError: true
+          };
+        }
+
+        // Validate URL format
+        try {
+          new URL(url);
+        } catch {
+          return {
+            content: [{ type: 'text', text: `[ERROR] Invalid URL format: ${url}` }],
+            isError: true
+          };
+        }
+
+        // Sanitize name: only alphanumeric, hyphens, and underscores
+        const sanitizedName = docName.replace(/[^a-zA-Z0-9_-]/g, '');
+        if (sanitizedName !== docName) {
+          return {
+            content: [{ type: 'text', text: `[ERROR] Invalid name. Only alphanumeric characters, hyphens, and underscores are allowed. Got: "${docName}"` }],
+            isError: true
+          };
+        }
+
+        // Sanitize display name
+        const sanitizedDisplayName = (displayName || sanitizedName).replace(/["\\\n\r]/g, '');
+
         // Generate CLI command for the user to execute
         const __filename = fileURLToPath(import.meta.url);
         const __dirname = path.dirname(__filename);
         const scraperPath = path.join(__dirname, '..', '..', 'scraper');
         
-        const cliCommand = `cd "${scraperPath}"; python cli.py add --url "${url}" --name "${docName}" --display-name "${displayName}" --json-progress`;
+        const cliCommand = `cd "${scraperPath}"; python cli.py add --url "${url}" --name "${sanitizedName}" --display-name "${sanitizedDisplayName}" --json-progress`;
 
         return {
           content: [{
             type: 'text',
-            text: `[READY] To scrape documentation, please execute the following command in your terminal:\n\n\`\`\`bash\n${cliCommand}\n\`\`\`\n\n**Documentation:** ${displayName}\n**URL:** ${url}\n\nOnce the scraping completes successfully, use \`switch_documentation\` with name "${docName}" to use the scraped documentation.`
+            text: `[READY] To scrape documentation, please execute the following command in your terminal:\n\n\`\`\`bash\n${cliCommand}\n\`\`\`\n\n**Documentation:** ${sanitizedDisplayName}\n**URL:** ${url}\n\nOnce the scraping completes successfully, use \`switch_documentation\` with name "${sanitizedName}" to use the scraped documentation.`
           }]
         };
       }
@@ -799,6 +849,22 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'switch_documentation': {
         const newDocName = args?.name as string;
         
+        // Validate doc name to prevent path traversal
+        if (!newDocName || typeof newDocName !== 'string') {
+          return {
+            content: [{ type: 'text', text: '[ERROR] Documentation name is required.' }],
+            isError: true
+          };
+        }
+
+        // Prevent path traversal attacks
+        if (newDocName.includes('..') || newDocName.includes('/') || newDocName.includes('\\')) {
+          return {
+            content: [{ type: 'text', text: '[ERROR] Invalid documentation name. Only alphanumeric characters, hyphens, and underscores are allowed.' }],
+            isError: true
+          };
+        }
+        
         try {
           const path = await import('path');
           const { existsSync, readdirSync, statSync } = await import('fs');
@@ -830,10 +896,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             };
           }
 
+          interface Version {
+            name: string;
+            num: number;
+          }
+          
           const latestVersion = versions
-            .map((v: string) => ({ name: v, num: parseInt(v.substring(1)) }))
-            .filter((v: any) => !isNaN(v.num))
-            .sort((a: any, b: any) => b.num - a.num)[0].name;
+            .map((v: string): Version => ({ name: v, num: parseInt(v.substring(1)) }))
+            .filter((v: Version) => !isNaN(v.num))
+            .sort((a: Version, b: Version) => b.num - a.num)[0].name;
 
           const newDocsPath = path.join(docDir, latestVersion);
 

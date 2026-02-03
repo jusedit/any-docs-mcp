@@ -25,6 +25,12 @@ export interface DocumentIndex {
 }
 
 export class MarkdownParser {
+  // Configuration constants
+  private static readonly MAX_CONTENT_SIZE = 1024 * 1024; // 1MB
+  private static readonly MAX_CODE_BLOCK_SIZE = 50000;
+  private static readonly MAX_CODE_BLOCKS = 100;
+  private static readonly MAX_LANGUAGE_LENGTH = 30;
+
   private docsPath: string;
   private index: DocumentIndex | null = null;
   private docName: string;
@@ -36,14 +42,27 @@ export class MarkdownParser {
 
   private extractCodeBlocks(content: string): { cleanContent: string; codeBlocks: CodeBlock[] } {
     const codeBlocks: CodeBlock[] = [];
-    const codeBlockRegex = /```(\w*)\n([\s\S]*?)```/g;
-    let match;
     
-    while ((match = codeBlockRegex.exec(content)) !== null) {
+    // Limit content size to prevent DoS
+    if (content.length > MarkdownParser.MAX_CONTENT_SIZE) {
+      console.warn(`Content too large (${content.length} bytes), truncating to ${MarkdownParser.MAX_CONTENT_SIZE}`);
+      content = content.substring(0, MarkdownParser.MAX_CONTENT_SIZE);
+    }
+    
+    // More specific regex with length limit to prevent catastrophic backtracking
+    const codeBlockRegex = new RegExp(
+      `\`\`\`(\\w{0,${MarkdownParser.MAX_LANGUAGE_LENGTH}})\\n([\\s\\S]{0,${MarkdownParser.MAX_CODE_BLOCK_SIZE}}?)\`\`\``,
+      'g'
+    );
+    let match;
+    let matchCount = 0;
+    
+    while ((match = codeBlockRegex.exec(content)) !== null && matchCount < MarkdownParser.MAX_CODE_BLOCKS) {
       codeBlocks.push({
         language: match[1] || 'text',
         code: match[2].trim()
       });
+      matchCount++;
     }
     
     const cleanContent = content.replace(codeBlockRegex, '[CODE_BLOCK]');

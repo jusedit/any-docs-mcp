@@ -1,6 +1,8 @@
 import os
 import re
+import json
 from typing import Optional, List, Dict
+from urllib.parse import urlparse
 import requests
 from bs4 import BeautifulSoup
 from openai import OpenAI
@@ -48,20 +50,30 @@ class SiteAnalyzer:
         
         return analysis
     
+    def _sanitize_html_for_prompt(self, html: str) -> str:
+        """Sanitize HTML to prevent prompt injection attacks."""
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Remove potentially dangerous tags
+        for tag in soup(['script', 'style', 'noscript', 'iframe', 'object', 'embed']):
+            tag.decompose()
+        
+        # Get text content and limit size
+        text = str(soup)[:15000]
+        
+        # Escape prompt injection attempts
+        text = text.replace('"""', '\'\'\'')  # Prevent breaking out of prompt
+        text = text.replace('```', '\'\'\'')  # Prevent code block injection
+        
+        return text
+    
     def _llm_analyze(self, start_url: str, main_html: str, sample_htmls: list[str]) -> SiteAnalysis:
-        soup = BeautifulSoup(main_html, 'html.parser')
-        
-        for script in soup(['script', 'style', 'noscript']):
-            script.decompose()
-        
-        clean_html = str(soup)[:15000]
+        clean_html = self._sanitize_html_for_prompt(main_html)
         
         sample_section = ""
         if sample_htmls:
-            sample_soup = BeautifulSoup(sample_htmls[0], 'html.parser')
-            for script in sample_soup(['script', 'style', 'noscript']):
-                script.decompose()
-            sample_section = f"\n\n### Sample Page HTML (first 10000 chars):\n```html\n{str(sample_soup)[:10000]}\n```"
+            sample_clean = self._sanitize_html_for_prompt(sample_htmls[0])
+            sample_section = f"\n\n### Sample Page HTML (first 10000 chars):\n{sample_clean[:10000]}"
         
         prompt = f"""You are analyzing a documentation website to extract content programmatically.
 
@@ -102,61 +114,6 @@ Return ONLY valid JSON, no other text."""
                 {"role": "user", "content": prompt}
             ],
             temperature=0.1
-        )
-        
-        result_text = response.choices[0].message.content.strip()
-        
-        if result_text.startswith("```json"):
-            result_text = result_text[7:]
-        if result_text.startswith("```"):
-            result_text = result_text[3:]
-        if result_text.endswith("```"):
-            result_text = result_text[:-3]
-        result_text = result_text.strip()
-        
-        import json
-        analysis_dict = json.loads(result_text)
-        
-        return SiteAnalysis(**analysis_dict)
-    
-    def discover_navigation_links(self, start_url: str, nav_selectors: list[str]) -> list[dict]:
-        html = self.fetch_page_html(start_url)
-        soup = BeautifulSoup(html, 'html.parser')
-        
-        links = []
-        seen_urls = set()
-        
-        for selector in nav_selectors:
-            nav_element = soup.select_one(selector)
-            if nav_element:
-                for a in nav_element.find_all('a', href=True):
-                    href = a.get('href', '')
-                    
-                    if href.startswith('#'):
-                        continue
-                    
-                    from urllib.parse import urljoin
-                    full_url = urljoin(start_url, href)
-                    full_url = full_url.split('#')[0]
-                    
-                    if full_url not in seen_urls:
-                        seen_urls.add(full_url)
-                        title = a.get_text(strip=True)
-                        links.append({'url': full_url, 'title': title})
-                
-                break
-        
-        return links
-    
-    def _llm_analyze_continuation(self, start_url: str, main_html: str, sample_htmls: list[str]) -> SiteAnalysis:
-
-        response = self.client.chat.completions.create(
-            model="anthropic/claude-haiku-4.5",
-            messages=[
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.1,
-            max_tokens=2000
         )
         
         result_text = response.choices[0].message.content.strip()
@@ -280,8 +237,12 @@ Return ONLY valid JSON, no markdown."""
                 result_text = result_text[:-3]
             result_text = result_text.strip()
             
-            filters = json.loads(result_text)
-            print(f"  LLM URL Filter: {filters.get('reasoning', 'No reasoning')}")
+            try:
+                filters = json.loads(result_text)
+                print(f"  LLM URL Filter: {filters.get('reasoning', 'No reasoning')}")
+            except json.JSONDecodeError as e:
+                print(f"  Warning: Failed to parse LLM response as JSON: {e}")
+                return sitemap_urls
             
             # Apply filters using simple substring matching
             filtered = []

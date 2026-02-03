@@ -59,10 +59,15 @@ export function getDocsPath(config: ServerConfig): string | null {
     return null;
   }
   
+  interface Version {
+    name: string;
+    num: number;
+  }
+  
   const latestVersion = versions
-    .map((v: string) => ({ name: v, num: parseInt(v.substring(1)) }))
-    .filter((v: any) => !isNaN(v.num))
-    .sort((a: any, b: any) => b.num - a.num)[0].name;
+    .map((v: string): Version => ({ name: v, num: parseInt(v.substring(1)) }))
+    .filter((v: Version) => !isNaN(v.num))
+    .sort((a: Version, b: Version) => b.num - a.num)[0].name;
   
   return join(docDir, latestVersion);
 }
@@ -80,7 +85,16 @@ export function listAllDocs(config: ServerConfig): string[] {
   });
 }
 
-export function getDocMetadata(config: ServerConfig, docName: string): any | null {
+interface DocMetadata {
+  total_pages?: number;
+  total_files?: number;
+  last_scraped?: string;
+  content_hash?: string;
+  refresh_after?: string;
+  content_changed?: boolean;
+}
+
+export function getDocMetadata(config: ServerConfig, docName: string): DocMetadata | null {
   const storageRoot = getStorageRoot(config);
   const metadataPath = join(storageRoot, docName, 'metadata.json');
   
@@ -95,7 +109,13 @@ export function getDocMetadata(config: ServerConfig, docName: string): any | nul
   }
 }
 
-export function getDocConfig(config: ServerConfig, docName: string): any | null {
+interface DocConfig {
+  display_name?: string;
+  start_url?: string;
+  [key: string]: unknown;
+}
+
+export function getDocConfig(config: ServerConfig, docName: string): DocConfig | null {
   const storageRoot = getStorageRoot(config);
   const configPath = join(storageRoot, docName, 'config.json');
   
