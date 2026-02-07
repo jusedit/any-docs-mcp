@@ -56,7 +56,7 @@
         "Filters by lastmod date when refresh_after is set — verified by test with dated sitemap entries",
         "Discovers sitemap URL from robots.txt Sitemap: directive — verified by test with robots.txt fixture"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "URL-Discovery-Quality",
