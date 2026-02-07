@@ -1,443 +1,398 @@
 {
   "project_meta": {
-    "name": "anydocs-mcp-real-world-quality",
-    "version": "2.0.0",
+    "name": "AnyDocsMCP",
+    "version": "v3-quality-score-upgrade",
     "ralph_type": "opencode",
-    "opencode_session_id": "real-world-quality-upgrade-v2"
+    "opencode_session_id": "deep-init-v3-2026-02-07"
   },
   "backlog": [
     {
-      "group": "Capture-Replay-Infrastructure",
-      "feature": "ResponseCapture class for recording HTTP responses",
-      "description": "Create a ResponseCapture class in scraper/response_capture.py that fetches a URL and stores the complete HTTP response (status code, headers dict, body bytes) as a JSON metadata file + raw HTML body file pair. Each captured response is stored under tests/fixtures/real-world/{doc-name}/{url-slug}.meta.json and {url-slug}.body.html. The url-slug is derived from the URL path to keep filenames human-readable. Include a CLI entry point: python -m response_capture capture <url> <doc-name>.",
+      "group": "URL-Discovery-Quality",
+      "feature": "URL Discovery accuracy test for all 10 reference doc-sets",
+      "description": "Create a test that runs URLDiscovery.discover_urls() against each of the 10 reference doc-sets (live, one-time capture) and records: mode used (sitemap/nav/crawl), number of URLs found, scope detected, version detected. Store results in tests/fixtures/real-world/discovery-baseline.json. Compare against known expected page counts (react ~80, fastapi ~130, tailwind ~180, kubernetes ~60, django ~60, etc.) to verify completeness. Identify sites where discovery misses >20% of known pages.",
       "acceptance_criteria": [
-        "ResponseCapture.capture(url) returns a CapturedResponse dataclass with status, headers, body, url \u00e2\u20ac\u201d verify: unit test with mocked requests",
-        "ResponseCapture.save(captured, doc_name) writes .meta.json (status, headers, original_url, captured_at) + .body.html \u00e2\u20ac\u201d verify: file existence check in test",
-        "URL-to-slug conversion produces readable filenames: https://react.dev/learn/state \u00e2\u2020\u2019 react-dev-learn-state \u00e2\u20ac\u201d verify: unit test with 5 URL examples",
-        "CLI entry point captures a real URL when run manually (not tested in CI) \u00e2\u20ac\u201d verify: code inspection of __main__ block",
-        "CapturedResponse.load(doc_name, slug) reconstructs the response from disk \u00e2\u20ac\u201d verify: round-trip test save\u00e2\u2020\u2019load"
-      ],
-      "passes": true
-    },
-    {
-      "group": "Capture-Replay-Infrastructure",
-      "feature": "Capture script for 10 reference doc-sets",
-      "description": "Create a capture manifest file tests/fixtures/real-world/capture-manifest.json listing the 10 reference doc-sets with 3-5 representative URLs each (50 URLs total). Each entry has: doc_name, urls[], site_type (mkdocs/sphinx/docusaurus/hugo/github/custom). Include a runner script that iterates the manifest and captures all URLs using ResponseCapture. The 10 doc-sets are: react, fastapi, tailwind, kubernetes, django, hyperapp-github, onoffice, synthflow, golang, rust-book. URLs should cover: landing page, tutorial/guide page, API reference page, page with code examples, edge case page (very small or very large).",
-      "acceptance_criteria": [
-        "capture-manifest.json contains exactly 10 doc-sets with 3-5 URLs each \u00e2\u20ac\u201d verify: JSON schema validation in test",
-        "Each manifest entry has doc_name, urls (array of {url, page_type}), site_type \u00e2\u20ac\u201d verify: test loads and validates structure",
-        "Runner script capture_all.py iterates manifest and invokes ResponseCapture per URL \u00e2\u20ac\u201d verify: code inspection",
-        "At least 3 doc-sets have been actually captured (react, fastapi, hyperapp-github) with real responses on disk \u00e2\u20ac\u201d verify: fixture files exist in tests/fixtures/real-world/",
-        "Captured HTML files are under 1 MB each (truncate oversized responses) \u00e2\u20ac\u201d verify: file size assertion in test"
-      ],
-      "passes": true
-    },
-    {
-      "group": "Capture-Replay-Infrastructure",
-      "feature": "FixtureHTTPServer mock server for replaying captured responses",
-      "description": "Create a FixtureHTTPServer class in scraper/tests/fixture_server.py that starts a local HTTP server (http.server based) which replays captured responses from the fixtures directory. Given a request to http://localhost:{port}/{doc-name}/path, it looks up the matching .meta.json + .body.html fixture and returns the stored status code, headers, and body. Provide a pytest fixture @pytest.fixture that starts/stops the server and yields the base URL. The server must support concurrent requests (ThreadingMixIn).",
-      "acceptance_criteria": [
-        "FixtureHTTPServer(fixtures_dir).start() starts on a random free port, returns base_url string \u00e2\u20ac\u201d verify: test connects to returned URL",
-        "GET /{doc-name}/{path} returns the captured response body with correct Content-Type header \u00e2\u20ac\u201d verify: test requests a known fixture and asserts body content",
-        "Returns 404 for URLs without a matching fixture \u00e2\u20ac\u201d verify: negative test",
-        "Pytest fixture mock_http_server yields a started server and stops it in teardown \u00e2\u20ac\u201d verify: test uses fixture without manual start/stop",
-        "Server handles 10 concurrent requests without deadlock (ThreadingHTTPServer) \u00e2\u20ac\u201d verify: test sends 10 parallel requests with concurrent.futures",
-        "FixtureHTTPServer.get_rewritten_url(original_url) rewrites e.g. https://react.dev/learn/state to http://localhost:{port}/react/learn/state \u00e2\u20ac\u201d verify: unit test"
-      ],
-      "passes": true
-    },
-    {
-      "group": "Capture-Replay-Infrastructure",
-      "feature": "Golden markdown output snapshots from real scraped docs",
-      "description": "For each of the 10 reference doc-sets, copy the actual scraped markdown output from %APPDATA%/AnyDocsMCP/docs/{doc-name}/v*/  into tests/fixtures/real-world/{doc-name}/golden/. Select 1-2 representative markdown files per doc-set (the most content-rich ones, not stubs). These golden files represent the CURRENT scraper output quality \u00e2\u20ac\u201d including all existing defects (encoding errors, UI artifacts). They serve as the baseline: future improvements must produce output that is BETTER than (or equal to) the golden files, never worse. Create a quality_baseline.json that records per-golden-file: encoding_error_count, artifact_count, heading_count, code_block_count, total_chars.",
-      "acceptance_criteria": [
-        "tests/fixtures/real-world/{doc-name}/golden/ contains 1-2 .md files per doc-set (10-20 golden files total) \u00e2\u20ac\u201d verify: fixture file count assertion",
-        "quality_baseline.json contains per-file metrics: encoding_errors, artifacts, headings, code_blocks, char_count \u00e2\u20ac\u201d verify: JSON loads and all fields present",
-        "Golden files are actual copies from the real scraped output, not synthetic \u00e2\u20ac\u201d verify: files contain real doc content (spot-check react golden for JSX code)",
-        "A script generate_baseline.py scans golden files and regenerates quality_baseline.json \u00e2\u20ac\u201d verify: running script produces valid JSON matching file count",
-        "Golden files total size is under 5 MB \u00e2\u20ac\u201d verify: cumulative file size check"
-      ],
-      "passes": true
-    },
-    {
-      "group": "Capture-Replay-Infrastructure",
-      "feature": "Existing scraped docs as MCP search test corpus",
-      "description": "Copy a curated subset of the already-scraped markdown docs into tests/fixtures/real-world/{doc-name}/mcp-corpus/ for use as MarkdownParser input in vitest tests. Select 3-5 representative .md files per doc-set from the existing scrape output. These files are fed directly to MarkdownParser (no scraping needed) to test search, indexing, overview, and TOC generation against real content. Update the vitest config to make this path available.",
-      "acceptance_criteria": [
-        "tests/fixtures/real-world/{doc-name}/mcp-corpus/ contains 3-5 .md files per doc-set for at least 5 doc-sets \u00e2\u20ac\u201d verify: file count",
-        "MarkdownParser can buildIndex() on each mcp-corpus directory without errors \u00e2\u20ac\u201d verify: vitest test iterates all corpus dirs and calls buildIndex()",
-        "Index contains >10 sections per corpus (real docs are content-rich) \u00e2\u20ac\u201d verify: assertion on allSections.length",
-        "Fixture total size is under 10 MB \u00e2\u20ac\u201d verify: cumulative size check",
-        "A README in tests/fixtures/real-world/ documents the fixture structure and how to refresh \u00e2\u20ac\u201d verify: file exists"
+        "Test calls discover_urls() for all 10 start URLs from capture-manifest.json — verified by pytest parametrize",
+        "Results stored in discovery-baseline.json with mode, url_count, scope, version per site — verified by JSON schema check",
+        "Each site finds at least 50% of its known page count from AppData — verified by comparing against AppData file counts",
+        "Discovery mode is logged (sitemap/nav/crawl) for each site — verified by checking mode field in baseline",
+        "Sites with <50% coverage are flagged in a warnings array — verified by checking warnings field"
       ],
       "passes": false
     },
     {
-      "group": "Encoding-Quality",
-      "feature": "Encoding audit script that categorizes all encoding defects",
-      "description": "Create scraper/encoding_audit.py that scans a directory of markdown files and produces a structured JSON report of all encoding defects found. Categories: mojibake (\u00c3\u00a2\u00e2\u201a\u00ac\u00e2\u201e\u00a2, \u00c3\u00a2\u00e2\u201a\u00ac\u00c5\u201c, \u00c3\u00a2\u00e2\u201a\u00ac, etc.), broken-latin (\u00c3\u201a followed by non-ASCII), permalink-anchors (\u00c2\u00b6 and [\u00c2\u00b6](#...) patterns in headings), html-entities (leftover &amp; &lt; etc.). The report groups defects by category, lists affected files, and counts occurrences. Run it against the golden fixtures and against the full %APPDATA% docs to establish the baseline. Output: encoding-audit-report.json.",
+      "group": "URL-Discovery-Quality",
+      "feature": "Language and locale scope filter for URL discovery",
+      "description": "Fix the Django Greek content problem: URLDiscovery currently has no language/locale filtering. When Django's sitemap returns URLs for /el/ (Greek), /ja/ (Japanese), etc., the scraper should filter to the target language (default: /en/). Add locale_filter parameter to discover_urls() that accepts a language code (e.g., 'en') and filters URLs to only include that locale. Auto-detect locale from start_url path (e.g., /en/stable/ → 'en'). Add test with Django sitemap fixture.",
       "acceptance_criteria": [
-        "encoding_audit.scan_directory(path) returns AuditReport with categories: mojibake, broken_latin, permalink_anchors, html_entities \u00e2\u20ac\u201d verify: unit test with crafted fixture file containing all 4 categories",
-        "Each category entry has: pattern_matched, file_path, line_number, context (\u00c2\u00b120 chars around match) \u00e2\u20ac\u201d verify: test asserts context field is populated",
-        "Report includes summary: {total_files, affected_files, defects_by_category: {mojibake: N, broken_latin: N, ...}} \u00e2\u20ac\u201d verify: test asserts summary matches expected counts on fixture",
-        "Running against tests/fixtures/real-world golden files produces a non-empty report (baseline has known defects) \u00e2\u20ac\u201d verify: integration test",
-        "CLI: python -m encoding_audit <directory> [--output report.json] \u00e2\u20ac\u201d verify: code inspection"
+        "discover_urls() accepts optional locale_filter='en' parameter — verified by unit test",
+        "URLs containing /el/, /ja/, /fr/, /zh/ etc. are excluded when locale_filter='en' — verified by test with mock sitemap containing multi-locale URLs",
+        "Auto-detection: start_url /en/stable/ auto-sets locale_filter='en' — verified by unit test",
+        "Django specifically returns English docs, not Greek — verified by re-scraping Django with locale filter and checking content language",
+        "Existing behavior unchanged when locale_filter=None — verified by regression test"
       ],
       "passes": false
     },
     {
-      "group": "Encoding-Quality",
-      "feature": "Permalink anchor removal from headings",
-      "description": "Extend ContentCleaner with a remove_permalink_anchors() method that strips permalink markers from markdown headings. Patterns to handle: (1) Heading text followed by \u00c2\u00b6 character: '## Security\u00c2\u00b6' \u00e2\u2020\u2019 '## Security', (2) Heading text with markdown permalink: '## Security[\u00c2\u00b6](#security \"Permanent link\")' \u00e2\u2020\u2019 '## Security', (3) Heading with just anchor link: '## Security[](#security)' \u00e2\u2020\u2019 '## Security'. Must preserve heading level and any inline code in the heading. Test against real fastapi and django heading patterns extracted from golden fixtures.",
+      "group": "URL-Discovery-Quality",
+      "feature": "Scope detection accuracy test with ground-truth URLs",
+      "description": "Create ground-truth URL lists for 5 reference doc-sets (react, fastapi, kubernetes, django, tailwind) by extracting all URLs from their actual scrapes in AppData. Build a test that compares _determine_scope() and _url_in_scope() output against these ground-truth sets. Measure precision (no irrelevant URLs) and recall (no missed URLs). Target: >90% recall, >95% precision.",
       "acceptance_criteria": [
-        "Removes trailing \u00c2\u00b6 from headings: '## Security\u00c2\u00b6' \u00e2\u2020\u2019 '## Security' \u00e2\u20ac\u201d verify: unit test",
-        "Removes [\u00c2\u00b6](#anchor \"Permanent link\") patterns: '## OAuth2[\u00c2\u00b6](#oauth2 \"Permanent link\")' \u00e2\u2020\u2019 '## OAuth2' \u00e2\u20ac\u201d verify: unit test with fastapi-style heading",
-        "Removes [](#anchor) patterns: '### OpenID[](#openid)' \u00e2\u2020\u2019 '### OpenID' \u00e2\u20ac\u201d verify: unit test",
-        "Preserves inline code in headings: '## Using `async`[\u00c2\u00b6](#using-async)' \u00e2\u2020\u2019 '## Using `async`' \u00e2\u20ac\u201d verify: unit test",
-        "Preserves non-heading lines containing \u00c2\u00b6 (if any) \u00e2\u20ac\u201d verify: negative test",
-        "Running clean() on fastapi golden fixture reduces permalink-anchor count to 0 \u00e2\u20ac\u201d verify: integration test comparing before/after audit report"
-      ],
-      "passes": true
-    },
-    {
-      "group": "Encoding-Quality",
-      "feature": "Comprehensive UTF-8 mojibake repair mapping",
-      "description": "Extend ContentCleaner with a fix_mojibake() method that systematically repairs common UTF-8 double-encoding (mojibake) artifacts. Build a mapping table of the most frequent patterns found in the real scraped docs: curly quotes, em/en dashes, orphan Latin supplement chars, accented letters, etc. The mapping must be applied BEFORE other cleaning steps to ensure correct text for downstream processing. Include a confidence check: only apply replacements when the surrounding context confirms mojibake (avoid false positives).",
-      "acceptance_criteria": [
-        "Mapping table covers at least 15 mojibake patterns found in real data \u00e2\u20ac\u201d verify: test asserts mapping dict length >= 15",
-        "Repairs mojibake right single quote to proper Unicode \u00e2\u20ac\u201d verify: unit test",
-        "Repairs mojibake left/right double quotes to proper Unicode \u00e2\u20ac\u201d verify: unit test",
-        "Repairs mojibake em dash and en dash to proper Unicode \u00e2\u20ac\u201d verify: unit test",
-        "Removes orphan Latin supplement prefix before non-ASCII chars \u00e2\u20ac\u201d verify: unit test",
-        "Does NOT corrupt legitimate text containing similar byte sequences \u00e2\u20ac\u201d verify: negative test with word chateau unchanged",
-        "Running fix_mojibake on fastapi golden fixture reduces mojibake count by >90% \u00e2\u20ac\u201d verify: before/after audit",
-        "fix_mojibake is called as first step in clean() pipeline \u00e2\u20ac\u201d verify: code inspection of clean() method order"
-      ],
-      "passes": true
-    },
-    {
-      "group": "Encoding-Quality",
-      "feature": "Encoding regression tests with real fixture data",
-      "description": "Create scraper/tests/test_encoding_realworld.py with regression tests that load golden fixture files from tests/fixtures/real-world/{doc-name}/golden/, run them through ContentCleaner.clean(), and assert that the output has zero encoding defects. Use the encoding_audit module to scan the cleaned output. This creates an automated regression gate: any future change to the cleaner that reintroduces encoding defects will fail these tests. Test at minimum against: fastapi (100% affected), django (95%), react (100%), kubernetes (61%).",
-      "acceptance_criteria": [
-        "Test loads golden .md files from at least 4 doc-sets (fastapi, django, react, kubernetes) \u00e2\u20ac\u201d verify: parametrized test with doc-name parameter",
-        "Each golden file is processed through ContentCleaner.clean() \u00e2\u20ac\u201d verify: test calls clean() on file content",
-        "Cleaned output is scanned with encoding_audit for mojibake and permalink_anchors \u00e2\u20ac\u201d verify: test calls audit.scan_text()",
-        "Assert mojibake_count == 0 and permalink_anchor_count == 0 on cleaned output \u00e2\u20ac\u201d verify: assertion in test",
-        "Test produces a human-readable diff showing what was changed (for review) \u00e2\u20ac\u201d verify: test logs before/after line count delta",
-        "All 4+ doc-set tests pass \u00e2\u20ac\u201d verify: pytest passes"
-      ],
-      "passes": true
-    },
-    {
-      "group": "Encoding-Quality",
-      "feature": "Response charset detection and conversion in fetch_page",
-      "description": "Enhance ScraperEngine.fetch_page() to properly detect and handle response character encoding. Currently relies on requests' default encoding detection, which fails for pages that declare charset in HTML meta tags but not in HTTP headers. Add: (1) Check Content-Type header for charset parameter, (2) Fall back to HTML meta charset detection, (3) If detected charset is not UTF-8, convert response.text using the correct encoding. This prevents mojibake at the source rather than fixing it after the fact.",
-      "acceptance_criteria": [
-        "Extracts charset from Content-Type header: 'text/html; charset=utf-8' \u00e2\u2020\u2019 'utf-8' \u00e2\u20ac\u201d verify: unit test with mocked response",
-        "Falls back to HTML meta charset detection if header has no charset \u00e2\u20ac\u201d verify: unit test with HTML fixture containing meta tag",
-        "Falls back to legacy meta http-equiv Content-Type charset detection \u00e2\u20ac\u201d verify: unit test with legacy meta tag",
-        "If charset is not utf-8, sets response.encoding before accessing response.text \u00e2\u20ac\u201d verify: unit test with mocked latin-1 response",
-        "Does not change behavior for responses that are already UTF-8 \u00e2\u20ac\u201d verify: existing fetch_page tests still pass",
-        "Tested against captured fixtures from FixtureHTTPServer \u00e2\u20ac\u201d verify: integration test with mock server serving a non-UTF-8 fixture"
-      ],
-      "passes": true
-    },
-    {
-      "group": "Artifact-Cleanup-Profiles",
-      "feature": "Pattern discovery script for automated artifact detection",
-      "description": "Create scraper/pattern_discovery.py that scans a directory of scraped markdown files and automatically identifies recurring non-content patterns. Uses frequency analysis: lines/phrases that appear in >30% of files in a doc-set but carry no semantic value (navigation, UI chrome, boilerplate). Outputs a ranked list of candidate artifact patterns with occurrence count, sample context, and suggested regex. This enables data-driven pattern identification instead of manually guessing what to clean.",
-      "acceptance_criteria": [
-        "pattern_discovery.scan_directory(path) returns list of PatternCandidate(pattern, count, percentage, sample_contexts) \u00e2\u20ac\u201d verify: unit test with crafted fixture dir containing repeated boilerplate",
-        "Identifies lines appearing in >30% of files as candidates \u00e2\u20ac\u201d verify: test with 10 files where 5 share a common line",
-        "Filters out legitimate repeated content (headings like Introduction are OK) vs boilerplate (Show more, On this page) \u00e2\u20ac\u201d verify: test with mix of both",
-        "Running against real onoffice golden fixtures (highest file count) produces >5 candidate patterns \u00e2\u20ac\u201d verify: integration test",
-        "Output includes suggested regex for each pattern \u00e2\u20ac\u201d verify: test asserts regex field is present and compilable",
-        "CLI: python -m pattern_discovery <directory> [--threshold 0.3] \u00e2\u20ac\u201d verify: code inspection"
-      ],
-      "passes": true
-    },
-    {
-      "group": "Artifact-Cleanup-Profiles",
-      "feature": "Site-type profile system for ContentCleaner",
-      "description": "Extend ContentCleaner to accept an optional site_type parameter (mkdocs, sphinx, docusaurus, hugo, github, custom) that loads a predefined set of artifact patterns specific to that documentation framework. Each profile is a list of regex patterns and replacement rules. The clean() method applies the base universal patterns PLUS the site-specific profile patterns. Profiles are stored as a PROFILES dict inside content_cleaner.py. The scraper auto-detects site_type from SiteAnalysis or URL patterns and passes it to the cleaner.",
-      "acceptance_criteria": [
-        "ContentCleaner(site_type='mkdocs') loads MkDocs-specific patterns \u00e2\u20ac\u201d verify: test asserts profile patterns are loaded",
-        "ContentCleaner(site_type=None) uses only universal patterns (backward compatible) \u00e2\u20ac\u201d verify: existing tests still pass",
-        "PROFILES dict contains entries for at least: mkdocs, sphinx, docusaurus, hugo \u00e2\u20ac\u201d verify: test iterates PROFILES keys",
-        "clean() applies universal patterns first, then site-specific patterns \u00e2\u20ac\u201d verify: test with content matching both universal and site-specific artifacts",
-        "ScraperEngine passes site_type from config/analysis to ContentCleaner \u00e2\u20ac\u201d verify: integration test or code inspection",
-        "Unknown site_type logs warning and falls back to universal-only \u00e2\u20ac\u201d verify: test with site_type='unknown'"
-      ],
-      "passes": true
-    },
-    {
-      "group": "Artifact-Cleanup-Profiles",
-      "feature": "MkDocs and Sphinx cleanup profiles",
-      "description": "Create cleanup profiles for MkDocs-based sites (fastapi, kubernetes) and Sphinx-based sites (django, python3). MkDocs profile handles: permalink anchors in headings, 'Edit on GitHub' links, 'Last updated' timestamps, admonition syntax artifacts (!!!, ???), tab-set artifacts. Sphinx profile handles: 'Changed in version X.Y', 'New in version X.Y', 'Deprecated since version X.Y' badges, note/warning/tip box markers, '(source)' links, cross-reference artifacts like :ref: and :doc:. Test each profile against the corresponding golden fixtures.",
-      "acceptance_criteria": [
-        "MkDocs profile removes 'Edit on GitHub/GitLab' link lines \u00e2\u20ac\u201d verify: unit test",
-        "MkDocs profile removes admonition markers (!!!, ???) leaving content \u00e2\u20ac\u201d verify: unit test with '!!! note' block",
-        "MkDocs profile removes 'Last updated:' lines \u00e2\u20ac\u201d verify: unit test",
-        "Sphinx profile preserves 'Changed in version' as inline note but removes badge markup \u00e2\u20ac\u201d verify: unit test",
-        "Sphinx profile removes '(source)' links after class/function names \u00e2\u20ac\u201d verify: unit test",
-        "MkDocs profile tested against fastapi golden fixture: artifact count reduced by >80% \u00e2\u20ac\u201d verify: before/after comparison",
-        "Sphinx profile tested against django golden fixture: artifact count reduced by >80% \u00e2\u20ac\u201d verify: before/after comparison"
-      ],
-      "passes": true
-    },
-    {
-      "group": "Artifact-Cleanup-Profiles",
-      "feature": "Docusaurus and Hugo cleanup profiles",
-      "description": "Create cleanup profiles for Docusaurus-based sites (react) and Hugo-based sites (kubernetes). Docusaurus profile handles: CodeSandbox/StackBlitz embed artifacts, 'Show more/Show less' toggle text, tab switcher remnants (TabItem markers), interactive playground artifacts (ReloadClear, sp-pre-placeholder), 'tip/info/warning/danger' admonition markers. Hugo profile handles: 'On this page' sidebar TOC remnants, breadcrumb trails, 'Last modified' timestamps, 'Edit this page' links, 'Feedback: Was this page helpful?' sections. Test each against golden fixtures.",
-      "acceptance_criteria": [
-        "Docusaurus profile removes 'Show more' and 'Show less' standalone lines \u00e2\u20ac\u201d verify: unit test",
-        "Docusaurus profile removes CodeSandbox fork links and ReloadClear artifacts \u00e2\u20ac\u201d verify: unit test",
-        "Docusaurus profile removes tab switcher remnants \u00e2\u20ac\u201d verify: unit test",
-        "Hugo profile removes 'On this page' followed by anchor-link lists \u00e2\u20ac\u201d verify: unit test",
-        "Hugo profile removes 'Was this page helpful?' feedback sections \u00e2\u20ac\u201d verify: unit test",
-        "Hugo profile removes breadcrumb lines (Home > Docs > Section > Page) \u00e2\u20ac\u201d verify: unit test",
-        "Docusaurus profile against react golden: artifact count reduced by >80% \u00e2\u20ac\u201d verify: before/after",
-        "Hugo profile against kubernetes golden: 'On this page' occurrences reduced to 0 \u00e2\u20ac\u201d verify: grep count"
-      ],
-      "passes": true
-    },
-    {
-      "group": "Artifact-Cleanup-Profiles",
-      "feature": "Cookie banner and generic SPA artifact cleanup",
-      "description": "Create a 'generic-spa' cleanup profile for sites that don't fit standard doc frameworks (synthflow, onoffice, siliconforest). Handles: cookie consent banner remnants (Accept/Reject/Cookie Policy text), newsletter signup artifacts, social media share buttons text, 'Back to top' links, footer boilerplate (Copyright, Terms, Privacy Policy), loading spinner text, 'Search docs...' placeholder text. Also handles the most common cross-framework artifacts found by the pattern discovery script. This profile is applied as a fallback when no specific framework profile matches.",
-      "acceptance_criteria": [
-        "Removes cookie consent text blocks (lines containing 'cookie', 'consent', 'accept all' in non-content context) \u00e2\u20ac\u201d verify: unit test",
-        "Removes newsletter signup blocks ('Subscribe', 'Enter your email') \u00e2\u20ac\u201d verify: unit test",
-        "Removes footer boilerplate (Copyright lines, Terms of Service links) \u00e2\u20ac\u201d verify: unit test",
-        "Removes 'Back to top' link lines \u00e2\u20ac\u201d verify: unit test",
-        "Does NOT remove legitimate content mentioning cookies (e.g., HTTP cookie documentation) \u00e2\u20ac\u201d verify: negative test with content about browser cookies",
-        "Applied to synthflow golden fixture: cookie artifact count drops to 0 \u00e2\u20ac\u201d verify: integration test",
-        "generic-spa profile is used as default when site_type is 'custom' or unknown \u00e2\u20ac\u201d verify: test"
-      ],
-      "passes": true
-    },
-    {
-      "group": "Content-Sizing-Chunking",
-      "feature": "File size guardrails with configurable max size and auto-split",
-      "description": "Add a max_file_size_kb parameter to ScraperEngine (default: 500 KB). When a scraped output file exceeds this limit, split it into numbered parts ({group}-part1.md, {group}-part2.md, etc.) at heading boundaries. The split algorithm walks the markdown content, accumulates sections until the size threshold is approaching, then cuts at the nearest h2 boundary. Log a warning when splitting occurs. This prevents monster files like nodejs (3 MB avg) and nextjs (2.3 MB avg) from being unusable.",
-      "acceptance_criteria": [
-        "ScraperEngine accepts max_file_size_kb parameter (default 500) \u00e2\u20ac\u201d verify: constructor test",
-        "Files under the limit are not modified \u00e2\u20ac\u201d verify: test with small file",
-        "Files over the limit are split at h2 heading boundaries \u00e2\u20ac\u201d verify: test with 600 KB fixture, assert 2 output files",
-        "Split files have correct numbering: {group}-part1.md, {group}-part2.md \u00e2\u20ac\u201d verify: filename assertion",
-        "Each split file retains the document header (title, source info) \u00e2\u20ac\u201d verify: test asserts header present in all parts",
-        "Warning is logged when splitting occurs \u00e2\u20ac\u201d verify: caplog assertion in test",
-        "Tested against real nodejs or nextjs golden fixture (>1 MB) \u00e2\u20ac\u201d verify: integration test produces multiple smaller files"
-      ],
-      "passes": true
-    },
-    {
-      "group": "Content-Sizing-Chunking",
-      "feature": "Stub page detection and filtering",
-      "description": "Add stub page detection to ScraperEngine._scrape_single_page(). A page is a stub if its cleaned content is under a configurable threshold (default: 200 chars) AND it contains no code blocks AND no more than 1 heading. Stub pages are logged and excluded from the output (not written to disk). Optionally, stub pages can be collected into a {group}-stubs.md file if there are >3 stubs in the same group. This addresses the issue of pages like tailwind docs-installation.md (370 bytes with just a title) and fastapi about.md (220 bytes) polluting the output.",
-      "acceptance_criteria": [
-        "Pages with <200 chars, 0 code blocks, and <=1 heading are classified as stubs \u00e2\u20ac\u201d verify: unit test with stub content",
-        "Pages with <200 chars BUT containing code blocks are NOT classified as stubs \u00e2\u20ac\u201d verify: negative test",
-        "Stub pages are not written to the main output file \u00e2\u20ac\u201d verify: test asserts stub content absent from output",
-        "Stub pages are logged with URL and char count \u00e2\u20ac\u201d verify: caplog/stderr assertion",
-        "If >3 stubs in same group, they are collected into {group}-stubs.md \u00e2\u20ac\u201d verify: test with 4 stub pages",
-        "min_content_chars is configurable via ScraperEngine parameter \u00e2\u20ac\u201d verify: constructor test",
-        "Tested against real tailwind doc-set: docs-installation.md (370B) is classified as stub \u00e2\u20ac\u201d verify: integration test"
-      ],
-      "passes": true
-    },
-    {
-      "group": "Content-Sizing-Chunking",
-      "feature": "Reference table compression for oversized utility docs",
-      "description": "Add a compress_reference_tables() method to ContentCleaner that detects and compresses very large markdown tables (>100 rows). For tables where all rows follow the same pattern (like Tailwind CSS utility classes), keep the first 10 rows as examples, add a summary row showing the pattern and total count, and collapse the rest. The compression is opt-in via a compress_tables parameter on clean(). This addresses Tailwind border-color.md being 264 KB of just color variant tables. The compressed version should still be searchable (keep class name prefixes) but dramatically smaller.",
-      "acceptance_criteria": [
-        "Tables with >100 rows are detected \u00e2\u20ac\u201d verify: unit test with 150-row table",
-        "Tables with <100 rows are not modified \u00e2\u20ac\u201d verify: negative test with 50-row table",
-        "Compressed table keeps first 10 rows + summary row \u00e2\u20ac\u201d verify: unit test asserting 11 data rows in output",
-        "Summary row includes original row count and pattern description \u00e2\u20ac\u201d verify: test asserts summary content",
-        "compress_tables=False (default) leaves tables unchanged \u00e2\u20ac\u201d verify: backward compatibility test",
-        "Tested against real Tailwind border-color.md golden fixture: file size reduced by >70% \u00e2\u20ac\u201d verify: before/after size comparison",
-        "Compressed content still contains searchable class name prefixes (border-red, border-blue, etc.) \u00e2\u20ac\u201d verify: test asserts key prefixes present"
-      ],
-      "passes": true
-    },
-    {
-      "group": "Content-Sizing-Chunking",
-      "feature": "Duplicate version detection across doc-set versions",
-      "description": "Create scraper/duplicate_detector.py with a detect_duplicate_versions() function that compares multiple version directories of the same doc-set (e.g., tailwind/v1, v2, v3, v4) and reports which versions are identical or near-identical. Uses content hashing at the file level: if >80% of files have identical hashes between two versions, they are flagged as duplicates. This helps users avoid storing redundant data (tailwind has 4 nearly identical versions). The detector produces a JSON report and optionally a CLI command to prune duplicates.",
-      "acceptance_criteria": [
-        "detect_duplicate_versions(doc_path) returns list of DuplicateGroup(versions, similarity_pct, identical_files) \u00e2\u20ac\u201d verify: unit test with 3 versions, 2 identical",
-        "Versions with >80% identical file hashes are grouped as duplicates \u00e2\u20ac\u201d verify: test with controlled fixture",
-        "Versions with <50% identical files are NOT flagged \u00e2\u20ac\u201d verify: negative test",
-        "Report includes per-version: file_count, total_size, unique_files \u00e2\u20ac\u201d verify: test asserts all fields",
-        "CLI: python -m duplicate_detector <doc-root> [--threshold 0.8] \u00e2\u20ac\u201d verify: code inspection",
-        "Tested against real tailwind doc-set (4 versions): correctly identifies duplicate versions \u00e2\u20ac\u201d verify: integration test"
+        "Ground-truth URL lists created from AppData source URLs for 5 doc-sets — verified by file existence with >20 URLs each",
+        "Test measures precision: ratio of discovered URLs that are in ground-truth — verified by precision >= 0.95",
+        "Test measures recall: ratio of ground-truth URLs that were discovered — verified by recall >= 0.90",
+        "_determine_scope() returns correct scope for each site — verified by comparing against known scopes",
+        "Results stored in tests/fixtures/real-world/scope-accuracy.json — verified by JSON output"
       ],
       "passes": false
     },
     {
-      "group": "Content-Sizing-Chunking",
-      "feature": "Content quality score per scraped page",
-      "description": "Add a compute_page_quality_score() method to ContentCleaner that evaluates the quality of a cleaned markdown page and returns a score from 0.0 to 1.0. Scoring factors: heading_structure (proper hierarchy, not all h1), code_block_ratio (pages with code examples score higher for API docs), artifact_residue (remaining UI artifacts penalize score), content_density (meaningful text vs boilerplate ratio), encoding_health (presence of mojibake penalizes). The score is logged per page during scraping and aggregated into the final quality metrics. Pages scoring below 0.3 trigger a warning.",
+      "group": "URL-Discovery-Quality",
+      "feature": "Sitemap parser robustness for edge cases",
+      "description": "Test and fix SitemapParser for real-world edge cases found across the 10 reference sites: nested sitemap index files (kubernetes), sitemap.xml.gz compressed sitemaps, sitemaps with lastmod/priority filtering, sitemaps behind /robots.txt discovery, and sites without sitemap (should gracefully fall back). Create fixture sitemaps for each edge case.",
       "acceptance_criteria": [
-        "compute_page_quality_score(content) returns float 0.0-1.0 \u00e2\u20ac\u201d verify: unit test",
-        "Clean page with good headings and code blocks scores >0.7 \u00e2\u20ac\u201d verify: test with well-structured fixture",
-        "Page with many artifacts and no headings scores <0.3 \u00e2\u20ac\u201d verify: test with artifact-heavy fixture",
-        "Page with encoding errors scores lower than same page without \u00e2\u20ac\u201d verify: comparative test",
-        "Empty or near-empty page scores 0.0 \u00e2\u20ac\u201d verify: edge case test",
-        "Score is logged during _scrape_single_page \u00e2\u20ac\u201d verify: code inspection or caplog test",
-        "Pages below 0.3 trigger a warning log \u00e2\u20ac\u201d verify: caplog assertion",
-        "Average quality score is included in scrape_all return metrics \u00e2\u20ac\u201d verify: test on scrape output"
-      ],
-      "passes": true
-    },
-    {
-      "group": "Search-Relevance-RealData",
-      "feature": "Real-world query suite with 100 curated queries across 10 doc-sets",
-      "description": "Create tests/fixtures/real-world/query-suite.json containing 100 hand-curated search queries (10 per reference doc-set). Each query entry has: doc_name, query (natural language), expected_top_title (the section title that SHOULD rank #1), expected_file (which .md file it should come from), query_type (concept, api, code-example, troubleshooting, tutorial). Queries should be realistic: what a developer would actually ask while using the docs. Mix of single-term, multi-term, exact-match, and fuzzy queries. This is the ground truth for measuring search quality improvements.",
-      "acceptance_criteria": [
-        "query-suite.json contains exactly 100 entries \u00e2\u20ac\u201d verify: JSON load and length assertion",
-        "Each entry has fields: doc_name, query, expected_top_title, expected_file, query_type \u00e2\u20ac\u201d verify: schema validation test",
-        "At least 10 queries per doc-set (react, fastapi, tailwind, kubernetes, django, hyperapp-github, onoffice, synthflow, golang, rust-book) \u00e2\u20ac\u201d verify: group-by count",
-        "Query types are distributed: at least 15 concept, 15 api, 15 code-example, 10 troubleshooting, 10 tutorial \u00e2\u20ac\u201d verify: type count assertion",
-        "Each expected_top_title actually exists in the corresponding mcp-corpus fixture \u00e2\u20ac\u201d verify: cross-reference test loads corpus and checks title exists",
-        "Queries are realistic developer questions, not keyword stuffing \u00e2\u20ac\u201d verify: manual review / code inspection"
+        "Handles sitemap index files (sitemapindex → multiple sitemap URLs) — verified by test with kubernetes-style sitemap index fixture",
+        "Handles gzipped sitemaps (.xml.gz) — verified by test with compressed fixture",
+        "Gracefully returns empty list for sites without sitemap — verified by test with 404 sitemap response",
+        "Filters by lastmod date when refresh_after is set — verified by test with dated sitemap entries",
+        "Discovers sitemap URL from robots.txt Sitemap: directive — verified by test with robots.txt fixture"
       ],
       "passes": false
     },
     {
-      "group": "Search-Relevance-RealData",
-      "feature": "Multi-corpus search benchmark with precision and MRR metrics",
-      "description": "Create mcp-server/src/__tests__/realworld-search.test.ts that loads each doc-set mcp-corpus, builds the index, runs all queries for that doc-set from query-suite.json, and measures: precision@1 (is the top result the expected one?), precision@3 (is the expected result in top 3?), MRR (Mean Reciprocal Rank). Report per-doc-set and aggregate metrics. Write results to test-output/search-quality-report.json. Assert aggregate precision@1 >= 0.5 as initial baseline (to be raised as search improves). This replaces the synthetic search-golden.test.ts with real-data evaluation.",
+      "group": "URL-Discovery-Quality",
+      "feature": "Navigation extraction improvement for SPA documentation sites",
+      "description": "React.dev, Tailwind, and Synthflow use JavaScript-rendered navigation that BeautifulSoup cannot parse from raw HTML. Improve _try_navigation() to also check for structured data in <script> tags (Next.js __NEXT_DATA__, Docusaurus docusaurus.config, etc.) and JSON-LD navigation. Add fallback: if nav selectors find <5 URLs but page has many <a> tags, expand search to all internal links within content area. Test against captured HTML from these 3 SPA sites.",
       "acceptance_criteria": [
-        "Test loads query-suite.json and groups queries by doc_name \u00e2\u20ac\u201d verify: test setup logs query count per doc",
-        "For each doc-set: builds MarkdownParser index on mcp-corpus, runs all queries \u00e2\u20ac\u201d verify: test iterates all 10 doc-sets",
-        "Measures precision@1: percentage of queries where top result matches expected_top_title \u00e2\u20ac\u201d verify: metric calculation in test",
-        "Measures precision@3: percentage where expected result is in top 3 \u00e2\u20ac\u201d verify: metric calculation",
-        "Measures MRR (Mean Reciprocal Rank) per doc-set \u00e2\u20ac\u201d verify: MRR formula implemented correctly",
-        "Writes search-quality-report.json with per-doc and aggregate metrics \u00e2\u20ac\u201d verify: file written and valid JSON",
-        "Asserts aggregate precision@1 >= 0.5 \u00e2\u20ac\u201d verify: assertion in test (baseline, will be raised)",
-        "Asserts aggregate precision@3 >= 0.7 \u00e2\u20ac\u201d verify: assertion in test"
+        "Extracts navigation from __NEXT_DATA__ JSON in React.dev HTML — verified by test with captured react HTML fixture",
+        "Falls back to content-area link extraction when nav selectors find <5 URLs — verified by test",
+        "Finds >20 URLs from React.dev captured HTML (currently finds ~5 via nav) — verified by count assertion",
+        "Finds >50 URLs from Tailwind captured HTML — verified by count assertion",
+        "Does not regress on server-rendered sites (fastapi, kubernetes) — verified by regression test"
       ],
       "passes": false
     },
     {
-      "group": "Search-Relevance-RealData",
-      "feature": "Large corpus performance test with onoffice and tailwind",
-      "description": "Create mcp-server/src/__tests__/large-corpus-perf.test.ts that measures index build time and search latency against the two largest doc-sets: onoffice (645 files) and tailwind (560 files). Uses the full scraped output from %APPDATA%/AnyDocsMCP/docs (not the small mcp-corpus subset). If the full docs are not available in CI, the test gracefully skips with a message. Measures: index build time (must be <5s for 600+ file corpus), search p95 latency (must be <100ms), memory usage delta during indexing. Results written to test-output/large-corpus-perf.json.",
+      "group": "Full-Scrape-Capture",
+      "feature": "Bulk HTML capture for all 10 reference doc-sets (full site)",
+      "description": "Extend run_capture.py to capture ALL discovered URLs per site (not just 3-5). For each of the 10 reference doc-sets: run URL discovery, then capture every discovered page as .meta.json + .body.html. Store in tests/fixtures/real-world/{doc-name}/captured/. Add --max-pages-per-site flag (default: 50) to limit capture size. Track capture manifest with total pages captured per site. Target: 30-50 pages per major site (react, fastapi, tailwind, kubernetes, django), 10-20 for smaller sites.",
       "acceptance_criteria": [
-        "Test checks if large corpus exists at expected path, skips gracefully if not \u00e2\u20ac\u201d verify: test.skipIf logic",
-        "Index build time measured for onoffice (645 files) \u00e2\u20ac\u201d verify: timing assertion <5s",
-        "Index build time measured for tailwind (560 files) \u00e2\u20ac\u201d verify: timing assertion <5s",
-        "Search p95 latency measured across 50 queries on large corpus \u00e2\u20ac\u201d verify: p95 < 100ms assertion",
-        "Reports section count, file count, index build time, search p50/p95 per corpus \u00e2\u20ac\u201d verify: output JSON structure",
-        "Writes large-corpus-perf.json with all metrics \u00e2\u20ac\u201d verify: file is valid JSON",
-        "Test passes in both CI (skip) and local (run) modes \u00e2\u20ac\u201d verify: no hard failures when corpus absent"
+        "Capture script accepts --max-pages-per-site N flag — verified by CLI test",
+        "Each of the 10 doc-sets has captured/ directory with .meta.json + .body.html pairs — verified by directory scan",
+        "Major sites (react, fastapi, tailwind, kubernetes, django) have >= 30 captured pages — verified by file count",
+        "Smaller sites (hyperapp, rust-book) have >= 5 captured pages — verified by file count",
+        "Capture manifest updated with actual page counts and capture timestamp — verified by JSON schema check"
       ],
       "passes": false
     },
     {
-      "group": "Search-Relevance-RealData",
-      "feature": "Cross-file search quality evaluation",
-      "description": "Add 20 cross-file queries to query-suite.json that test search across multiple files within a doc-set. These queries should return results from at least 2 different files. For example, searching 'authentication' in fastapi should return results from both tutorial-security.md and advanced-security.md. Extend the search benchmark to measure cross-file recall: what percentage of expected files appear in the top 5 results. This tests the search engine's ability to surface relevant content distributed across the documentation.",
+      "group": "Full-Scrape-Capture",
+      "feature": "Full offline scrape test using all captured HTML",
+      "description": "Create test_full_scrape_offline.py that runs ScraperEngine against ALL captured HTML files per site (not just 3-5). For each doc-set: start CaptureServer with all captured pages → run ScraperEngine.scrape_all() → verify output .md files. Compare scraped page count against captured page count. This tests the complete scraping pipeline offline with realistic data volume.",
       "acceptance_criteria": [
-        "20 additional cross-file queries added to query-suite.json \u00e2\u20ac\u201d verify: queries with expected_files (plural) field",
-        "Each cross-file query has expected_files array with 2+ file names \u00e2\u20ac\u201d verify: schema validation",
-        "Cross-file queries span at least 5 different doc-sets \u00e2\u20ac\u201d verify: group-by count",
-        "Search benchmark measures cross-file recall: pct of expected files found in top 5 results \u00e2\u20ac\u201d verify: metric in report",
-        "Aggregate cross-file recall >= 0.4 as baseline \u00e2\u20ac\u201d verify: assertion in test",
-        "Results included in search-quality-report.json under cross_file_metrics key \u00e2\u20ac\u201d verify: JSON structure"
+        "Test runs ScraperEngine for each of the 10 doc-sets with all captured pages — verified by pytest parametrize",
+        "Scraper produces >= 80% of captured page count as .md output files — verified by count comparison",
+        "No crashes or unhandled exceptions for any doc-set — verified by clean pytest exit",
+        "Total scrape time per site is < 60 seconds — verified by timing assertion",
+        "Output .md files are stored in tests/e2e/full_scrape_output/{doc-name}/ for MCP evaluation — verified by directory check"
       ],
       "passes": false
     },
     {
-      "group": "Search-Relevance-RealData",
-      "feature": "Code-specific search evaluation against real code examples",
-      "description": "Add 15 code-specific queries to query-suite.json that target specific code patterns in the documentation. Examples: 'React useState hook example', 'FastAPI path parameters', 'Tailwind flex container', 'Kubernetes pod spec YAML', 'Django model definition'. Each query has expected_code_language and expected_code_snippet (a substring that must appear in a code block of the top result). Extend the search benchmark to measure code-search precision: does the top result contain a code block matching the expected language and snippet? This directly tests the code block boosting logic from v1.",
+      "group": "Full-Scrape-Capture",
+      "feature": "Capture deduplication and storage optimization",
+      "description": "When capturing 30-50 pages per site, many pages share identical boilerplate (headers, footers, nav). Implement deduplication: store common HTML fragments once, reference them in meta.json. Also implement .body.html.gz compression for large files (>100KB). Add capture stats: total size, deduplicated size, compression ratio.",
       "acceptance_criteria": [
-        "15 code-specific queries added to query-suite.json with expected_code_language and expected_code_snippet fields \u00e2\u20ac\u201d verify: schema validation",
-        "Queries cover at least 5 different programming languages (JS, Python, YAML, TypeScript, bash) \u00e2\u20ac\u201d verify: language diversity check",
-        "Search benchmark measures code-search precision: top result has matching code block \u00e2\u20ac\u201d verify: metric in report",
-        "Code match checks both language and snippet substring \u00e2\u20ac\u201d verify: test logic inspection",
-        "Aggregate code-search precision >= 0.5 as baseline \u00e2\u20ac\u201d verify: assertion",
-        "Results included in search-quality-report.json under code_search_metrics key \u00e2\u20ac\u201d verify: JSON structure"
+        "Large body files (>100KB) are stored as .body.html.gz — verified by checking file extension for kubernetes captures",
+        "CaptureServer can serve both .body.html and .body.html.gz transparently — verified by HTTP response test",
+        "Capture stats report total_size_bytes and compressed_size_bytes — verified by stats JSON output",
+        "Storage savings >= 30% for sites with >20 pages — verified by comparing raw vs compressed totals",
+        "Existing uncompressed captures still work (backward compatible) — verified by regression test with current fixtures"
       ],
       "passes": false
     },
     {
-      "group": "E2E-Pipeline-Testing",
-      "feature": "Full pipeline smoke test per reference doc-set via MockServer",
-      "description": "Create scraper/tests/test_pipeline_e2e.py with parametrized tests that run the complete Scrape->Clean->Write pipeline for each reference doc-set using the FixtureHTTPServer. For each doc-set: start MockServer with captured fixtures, configure ScraperEngine with rewritten URLs, run scrape_all(), verify output files are created with non-empty content. This is the first true end-to-end test that exercises the real pipeline without network access. Start with 3 doc-sets (react, fastapi, hyperapp-github) that have captured fixtures available.",
+      "group": "Full-Scrape-Capture",
+      "feature": "Captured HTML freshness check and re-capture workflow",
+      "description": "Add metadata tracking for when each page was captured. Implement a freshness check: if captures are older than N days (default: 90), flag them for re-capture. Create a --refresh flag for the capture script that only re-captures stale pages. This ensures the test corpus stays current without re-downloading everything.",
       "acceptance_criteria": [
-        "Test is parametrized over doc-sets that have captured fixtures \u00e2\u20ac\u201d verify: pytest parametrize decorator",
-        "MockServer starts and serves captured HTML responses \u00e2\u20ac\u201d verify: test setup starts server",
-        "ScraperEngine is configured with rewritten base URL pointing to MockServer \u00e2\u20ac\u201d verify: config uses mock_server.get_rewritten_url()",
-        "scrape_all() completes without exceptions \u00e2\u20ac\u201d verify: no pytest errors",
-        "At least 1 output .md file is created per doc-set \u00e2\u20ac\u201d verify: output file count > 0",
-        "Output .md files contain real content (>500 chars each) \u00e2\u20ac\u201d verify: file size assertion",
-        "Test runs in <30s per doc-set \u00e2\u20ac\u201d verify: pytest timeout",
-        "At least 3 doc-sets tested (react, fastapi, hyperapp-github) \u00e2\u20ac\u201d verify: parametrize list length"
+        "Each .meta.json has captured_at timestamp — verified by schema check on all meta files",
+        "Freshness check reports stale captures (>90 days) — verified by test with mock old timestamp",
+        "--refresh flag only re-captures stale pages, skips fresh ones — verified by test with mix of old/new captures",
+        "Re-capture preserves the old file as .body.html.bak before overwriting — verified by backup file check",
+        "Summary report shows: total captures, fresh, stale, re-captured — verified by report JSON output"
       ],
       "passes": false
     },
     {
-      "group": "E2E-Pipeline-Testing",
-      "feature": "Golden output snapshot comparison with diff reporting",
-      "description": "Extend the pipeline E2E tests with golden output comparison. After scraping via MockServer, compare the produced markdown output against the golden snapshots in tests/fixtures/real-world/{doc-name}/golden/. Use a structured diff that ignores whitespace variations and reports: lines_added, lines_removed, sections_changed, encoding_changes, artifact_changes. The test PASSES if the output is equal to or BETTER than the golden (fewer artifacts, fewer encoding errors). It FAILS only if the output is WORSE (more artifacts or new encoding errors introduced). This enables fearless refactoring.",
+      "group": "Full-Scrape-Capture",
+      "feature": "Capture validation and integrity check",
+      "description": "Add a validation step after capture: verify each .body.html is valid HTML (not error pages, not redirects, not empty). Check that Content-Type is text/html, status is 200, body has >1000 bytes, body contains <html> or <body> tag. Flag and quarantine invalid captures. Add a --validate flag to check existing captures without re-downloading.",
       "acceptance_criteria": [
-        "compare_with_golden(produced, golden) returns QualityDiff with metrics \u00e2\u20ac\u201d verify: unit test with known diff",
-        "QualityDiff includes: lines_changed, encoding_errors_delta, artifacts_delta, quality_score_delta \u00e2\u20ac\u201d verify: field assertions",
-        "Test PASSES when produced output has fewer encoding errors than golden \u00e2\u20ac\u201d verify: test with improved output",
-        "Test PASSES when produced output is identical to golden \u00e2\u20ac\u201d verify: test with unchanged output",
-        "Test FAILS when produced output has MORE encoding errors than golden \u00e2\u20ac\u201d verify: test with degraded output",
-        "Diff report is written to test-output/golden-diff-{doc-name}.json \u00e2\u20ac\u201d verify: file existence",
-        "Human-readable summary logged showing what improved/degraded \u00e2\u20ac\u201d verify: test output inspection"
+        "Validation rejects captures with status != 200 — verified by test with 404 capture",
+        "Validation rejects captures with body < 1000 bytes — verified by test with tiny capture",
+        "Validation rejects captures without <html> or <body> tag — verified by test with JSON response",
+        "--validate flag checks all existing captures and reports results — verified by running against current fixtures",
+        "Invalid captures are moved to captured/quarantine/ subdirectory — verified by quarantine directory check"
       ],
       "passes": false
     },
     {
-      "group": "E2E-Pipeline-Testing",
-      "feature": "MCP tool integration tests against real doc corpora",
-      "description": "Create mcp-server/src/__tests__/realworld-tools.test.ts that tests all MCP tools (search, get_overview, get_file_toc, get_section, find_code_examples) against the real mcp-corpus fixtures. For each doc-set: build index, call each tool, verify the response is well-formed and contains expected content from the real docs. This replaces the synthetic e2e-tools.test.ts with real-data validation. Specifically tests: overview contains real section titles, TOC has proper heading hierarchy, search returns relevant sections, code examples have correct language tags.",
+      "group": "Content-Extraction-Quality",
+      "feature": "HTML residue audit and targeted cleanup for Tailwind (2,045 instances)",
+      "description": "Tailwind has 2,045 HTML residue instances — the worst of all 10 doc-sets. Analyze the actual HTML tags leaking through: likely <div>, <span> with Tailwind utility classes, interactive code example containers, and color swatch elements. Create targeted cleanup rules in ContentCleaner for these patterns. Verify by re-running the markdown quality scorer before and after cleanup. Target: reduce Tailwind HTML residue from 2,045 to <100.",
       "acceptance_criteria": [
-        "Test iterates over all doc-sets with mcp-corpus fixtures \u00e2\u20ac\u201d verify: parametrized over fixture dirs",
-        "getOverview() returns overview containing real file names from the corpus \u00e2\u20ac\u201d verify: string matching",
-        "getFileToc() returns non-empty TOC for each file in the corpus \u00e2\u20ac\u201d verify: length > 0",
-        "search() for a known term returns at least 1 result \u00e2\u20ac\u201d verify: results.length > 0",
-        "Code blocks in search results have non-empty language tags \u00e2\u20ac\u201d verify: codeBlocks[0].language check",
-        "getSection() with a valid section ID returns content \u00e2\u20ac\u201d verify: section.content.length > 0",
-        "All tests pass across at least 5 doc-set corpora \u00e2\u20ac\u201d verify: no test failures"
+        "Audit identifies top 5 HTML tag patterns in Tailwind .md output — verified by audit script output",
+        "ContentCleaner removes Tailwind-specific HTML residue (utility class divs, color swatches) — verified by unit test with Tailwind fixture",
+        "Re-scraping Tailwind with updated cleaner reduces HTML residue from 2,045 to <100 — verified by quality scorer comparison",
+        "React HTML residue (90) also reduced to <20 — verified by quality scorer",
+        "No regression on clean sites (kubernetes, hyperapp-github) — verified by before/after comparison"
       ],
       "passes": false
     },
     {
-      "group": "E2E-Pipeline-Testing",
-      "feature": "Quality dashboard JSON report after each test run",
-      "description": "Create a quality dashboard that aggregates all test results into a single comprehensive JSON report: test-output/quality-dashboard.json. Includes: per-doc-set metrics (encoding_errors, artifacts, quality_score, search_precision, index_build_time), aggregate metrics (total_encoding_errors, avg_quality_score, overall_precision), trend data (current vs golden baseline from quality_baseline.json showing improvement/degradation). A simple Node.js script renders this JSON as a markdown table to stdout for quick review. The dashboard is the single source of truth for 'is the system getting better?'.",
+      "group": "Content-Extraction-Quality",
+      "feature": "Code block language tag correction in markdownify output",
+      "description": "markdownify often assigns wrong language tags to code blocks: JavaScript becomes 'dockerfile', Python becomes 'dockerfile', etc. This happens because markdownify uses the CSS class of the <pre>/<code> element and sometimes misinterprets it. Fix by post-processing code blocks: detect actual language from content heuristics (import statements, syntax patterns) and correct the tag. Add a language_map for known CSS class → language mappings (e.g., 'language-js' → 'javascript', 'highlight-python' → 'python').",
       "acceptance_criteria": [
-        "quality-dashboard.json is generated after vitest run \u00e2\u20ac\u201d verify: file exists after npm test",
-        "Contains per-doc-set section with encoding_errors, artifacts, quality_score, search_precision \u00e2\u20ac\u201d verify: JSON schema validation",
-        "Contains aggregate section with totals and averages \u00e2\u20ac\u201d verify: field assertions",
-        "Contains trend section comparing current metrics to quality_baseline.json \u00e2\u20ac\u201d verify: delta fields present",
-        "Trend shows improvement_pct per metric \u00e2\u20ac\u201d verify: calculation test",
-        "render-dashboard.js script outputs markdown table to stdout \u00e2\u20ac\u201d verify: script runs without error",
-        "Dashboard correctly reflects test results (not hardcoded) \u00e2\u20ac\u201d verify: changing a metric changes dashboard output"
+        "Language map covers top 15 CSS class patterns from real doc-sets — verified by map having >= 15 entries",
+        "Post-processing corrects 'dockerfile' to correct language based on content — verified by test with JavaScript code tagged as dockerfile",
+        "FastAPI code blocks correctly tagged as 'python' — verified by re-scraping FastAPI fixture and checking tags",
+        "React code blocks correctly tagged as 'javascript'/'jsx' — verified by re-scraping React fixture",
+        "Unknown languages default to 'text' rather than wrong tag — verified by unit test"
       ],
       "passes": false
     },
     {
-      "group": "E2E-Pipeline-Testing",
-      "feature": "CI pipeline update with real-world test gates",
-      "description": "Update .github/workflows/test.yml to include the real-world test suite as an additional CI job. The job runs after the basic unit tests pass. It requires the captured fixtures to be present in the repo (tests/fixtures/real-world/). The job runs: (1) Python encoding regression tests, (2) Python pipeline E2E tests with MockServer, (3) TypeScript real-world search benchmark, (4) Quality dashboard generation. The job fails if: any encoding regression test fails, search precision@1 drops below baseline, or pipeline E2E tests produce worse output than golden. Large corpus perf tests are skipped in CI (local-only).",
+      "group": "Content-Extraction-Quality",
+      "feature": "Content selector accuracy test per site-type",
+      "description": "The SiteAnalysis.content_selectors determine what HTML is extracted as documentation content. Test accuracy for each site-type: scrape a captured page, check if extracted content includes the main documentation text and excludes navigation/sidebar/footer. Build a ground-truth content test: for 5 captured pages, manually mark expected text snippets that MUST appear and text snippets that MUST NOT appear in output.",
       "acceptance_criteria": [
-        "New CI job 'real-world-tests' defined in test.yml \u00e2\u20ac\u201d verify: YAML inspection",
-        "Job depends on basic unit test jobs passing first \u00e2\u20ac\u201d verify: needs: field in YAML",
-        "Runs Python encoding regression tests \u00e2\u20ac\u201d verify: step with pytest test_encoding_realworld.py",
-        "Runs TypeScript real-world search benchmark \u00e2\u20ac\u201d verify: step with npx vitest run realworld-search",
-        "Generates quality dashboard as CI artifact \u00e2\u20ac\u201d verify: upload-artifact step for test-output/",
-        "Large corpus perf tests are skipped in CI \u00e2\u20ac\u201d verify: test.skipIf or CI env check",
-        "Pipeline E2E tests run with MockServer \u00e2\u20ac\u201d verify: step with pytest test_pipeline_e2e.py"
+        "Ground-truth expectations for 5 pages (1 per site-type: mkdocs, docusaurus, hugo, sphinx, custom) — verified by fixture files with must_contain/must_not_contain arrays",
+        "All must_contain strings appear in scraped .md output — verified by content check test",
+        "No must_not_contain strings appear in scraped .md output — verified by content check test",
+        "Content extraction includes code examples from all 5 test pages — verified by code block count > 0",
+        "Content extraction excludes sidebar navigation text — verified by checking nav text absence"
+      ],
+      "passes": false
+    },
+    {
+      "group": "Content-Extraction-Quality",
+      "feature": "Encoding error elimination for rust-book (27 errors)",
+      "description": "rust-book has 27 encoding errors (mojibake patterns). Investigate root cause: likely the scraper fetches with wrong encoding, or markdownify mishandles certain UTF-8 sequences. Fix by: improving charset detection in fetch_page(), adding BOM handling, and adding a post-processing encoding repair step in ContentCleaner. Verify fix by re-scraping rust-book and running encoding audit.",
+      "acceptance_criteria": [
+        "Root cause identified: document which specific characters/patterns cause the 27 errors — verified by audit report",
+        "Fix implemented in fetch_page() or ContentCleaner — verified by code change",
+        "Re-scraping rust-book produces 0 encoding errors — verified by encoding audit on new output",
+        "Encoding repair does not corrupt valid UTF-8 content — verified by regression test on fastapi output",
+        "fix_encoding_issues() in ContentCleaner handles all identified mojibake patterns — verified by unit test with each pattern"
+      ],
+      "passes": false
+    },
+    {
+      "group": "Content-Extraction-Quality",
+      "feature": "Heading hierarchy normalization across all site-types",
+      "description": "Different doc sites use different heading hierarchies: some start at h1, some at h2, some skip levels (h1 → h3). The MCP MarkdownParser expects consistent heading levels for good TOC generation. Add a heading normalization step in ContentCleaner that ensures: each page starts with h1 (or h2 for sub-pages), no levels are skipped, and duplicate h1s are cleaned. Test against all 10 doc-set outputs.",
+      "acceptance_criteria": [
+        "Heading normalizer ensures no skipped levels (e.g., h1 → h3 without h2) — verified by unit test",
+        "Pages with multiple h1 headings are cleaned to single h1 + h2s — verified by unit test",
+        "Normalizer preserves original heading text — verified by content comparison",
+        "All 10 doc-set outputs pass heading hierarchy validation after normalization — verified by batch test",
+        "MCP MarkdownParser TOC generation improves (fewer orphan entries) — verified by TOC entry count comparison"
+      ],
+      "passes": false
+    },
+    {
+      "group": "Search-Relevance-Tuning",
+      "feature": "TF-IDF scoring to replace raw term frequency",
+      "description": "The current search uses raw term count (capped at 20) which treats common words the same as rare domain-specific terms. Implement TF-IDF (Term Frequency - Inverse Document Frequency) scoring in MarkdownParser.search(): build a document frequency map during buildIndex() that counts how many sections contain each word. During search, weight rare terms higher than common ones. This should dramatically improve precision for specific queries like 'ConfigMaps' vs generic ones like 'configuration'.",
+      "acceptance_criteria": [
+        "buildIndex() computes document frequency (DF) for each unique word across all sections — verified by checking DF map exists with >100 entries",
+        "search() uses TF-IDF scoring: score = tf * log(N/df) instead of raw count — verified by unit test comparing old vs new scoring",
+        "Query 'ConfigMaps' ranks kubernetes ConfigMaps section #1 (currently not) — verified by search result test",
+        "Query 'authentication' still returns relevant results (no regression) — verified by regression test",
+        "Search benchmark precision@1 improves from 0.35 to >= 0.50 across all 10 doc-sets — verified by re-running quality benchmark"
+      ],
+      "passes": false
+    },
+    {
+      "group": "Search-Relevance-Tuning",
+      "feature": "Multi-word phrase matching with proximity scoring",
+      "description": "Current search splits queries into individual terms and scores each independently. This means 'Docker deployment' matches any section mentioning 'Docker' OR 'deployment' separately. Add phrase matching: when query terms appear adjacent or within N words of each other in the content, add a proximity bonus. Exact phrase match gets highest boost. This improves relevance for multi-word queries.",
+      "acceptance_criteria": [
+        "Exact phrase match ('Docker deployment' as substring) gets 3x bonus over individual term matches — verified by unit test",
+        "Proximity within 5 words gets 2x bonus — verified by unit test with crafted content",
+        "Query 'OAuth2 authentication' ranks OAuth2 section higher than generic auth sections — verified by search test on fastapi",
+        "Single-word queries are unaffected (no regression) — verified by regression test",
+        "Search benchmark MRR improves from 0.35 to >= 0.50 — verified by re-running quality benchmark"
+      ],
+      "passes": false
+    },
+    {
+      "group": "Search-Relevance-Tuning",
+      "feature": "Section hierarchy boost for parent-child relevance",
+      "description": "When a section's parent heading matches the query, the child section should get a relevance boost. Example: query 'Pods' should rank sections under the 'Pods' h2 heading higher, even if those child sections don't mention 'Pods' directly. Currently, path matching gives 30 points but is the same for all path depths. Add a depth-weighted path boost: direct parent match = 25pts, grandparent = 15pts, great-grandparent = 10pts.",
+      "acceptance_criteria": [
+        "Direct parent title matching query term gets +25 bonus — verified by unit test with nested sections",
+        "Grandparent matching gets +15 bonus — verified by unit test",
+        "Child sections under 'Pods' h2 rank higher for query 'Pods lifecycle' — verified by kubernetes search test",
+        "No regression for top-level section searches — verified by regression test",
+        "Heading hierarchy data (path array) is correctly populated for all doc-sets — verified by index validation test"
+      ],
+      "passes": false
+    },
+    {
+      "group": "Search-Relevance-Tuning",
+      "feature": "Stop word removal and query preprocessing",
+      "description": "Queries like 'how to deploy with Docker' score 'how', 'to', 'deploy', 'with', 'Docker' equally. Common stop words ('how', 'to', 'with', 'the', 'a', 'is', etc.) dilute relevance scores. Add stop word filtering: remove common English stop words from queries before scoring. Also add query normalization: strip punctuation, collapse whitespace, handle camelCase splitting (e.g., 'useState' → 'use state').",
+      "acceptance_criteria": [
+        "Stop word list has >= 50 common English words (the, a, is, how, to, with, etc.) — verified by list length check",
+        "Query 'how to deploy with Docker' is preprocessed to ['deploy', 'docker'] — verified by unit test",
+        "camelCase splitting: 'useState' → ['use', 'state'] for search — verified by unit test",
+        "Query 'What is a ConfigMap?' preprocessed to ['configmap'] — verified by unit test",
+        "Search results for 'how to deploy with Docker' are same quality as 'deploy Docker' — verified by result comparison test"
+      ],
+      "passes": false
+    },
+    {
+      "group": "Search-Relevance-Tuning",
+      "feature": "Search result diversity and file-level deduplication",
+      "description": "When a large file has 50 sections all mentioning 'configuration', search results are dominated by that single file. Add file-level diversity: after scoring, ensure no more than 3 results from the same file in the top 10. Promote the highest-scoring section from each file, then fill remaining slots with next-best from other files. This gives users a broader view across the documentation.",
+      "acceptance_criteria": [
+        "Top 10 results contain sections from at least 3 different files (when available) — verified by file diversity test on kubernetes",
+        "No more than 3 results from same file in top 10 — verified by count-per-file assertion",
+        "Highest-scoring section per file is always included — verified by score ordering test",
+        "File diversity does not apply when maxResults <= 3 — verified by small result set test",
+        "Search benchmark overall score does not decrease — verified by before/after benchmark comparison"
+      ],
+      "passes": false
+    },
+    {
+      "group": "Query-Suite-Calibration",
+      "feature": "Manual ground-truth query annotations for 5 core doc-sets",
+      "description": "The current query-suite.json uses fuzzy-matched expected_top_title which often maps to wrong headings. For 5 core doc-sets (react, fastapi, kubernetes, tailwind, golang), manually create ground-truth annotations: for each query, specify the exact section title AND section ID from the actual MCP index that should be the correct top result. Build an annotation tool that loads the MCP index, shows search results, and lets the annotator mark the correct answer. Store annotations in tests/fixtures/real-world/query-annotations/{doc-name}.json.",
+      "acceptance_criteria": [
+        "Annotation tool script that loads MCP index and presents search results for review — verified by script existence and --help output",
+        "Each of 5 core doc-sets has annotation file with >= 8 annotated queries — verified by file existence and count",
+        "Each annotation has: query, correct_section_id, correct_title, correct_file, relevance_grade (exact/partial/none) — verified by JSON schema validation",
+        "Total >= 40 manually verified query-answer pairs — verified by counting across all annotation files",
+        "Annotation format is compatible with eval-realworld.ts evaluation script — verified by integration test"
+      ],
+      "passes": false
+    },
+    {
+      "group": "Query-Suite-Calibration",
+      "feature": "Query type distribution across conceptual, API, code, and troubleshooting queries",
+      "description": "Current query-suite.json has mostly conceptual queries ('React hooks', 'Kubernetes pods'). Real users also search for: API signatures ('useState parameters'), code patterns ('fetch data useEffect'), error messages ('CORS error'), and how-to queries ('deploy to production'). Rebalance the query suite to have 25% conceptual, 25% API/reference, 25% code patterns, 25% how-to/troubleshooting. Add query_type field to each query.",
+      "acceptance_criteria": [
+        "Each query has query_type field: 'conceptual', 'api_reference', 'code_pattern', or 'howto' — verified by schema check",
+        "Distribution is within 20-30% per type (no type below 20%) — verified by count per type",
+        "At least 15 queries per doc-set (up from current 5-10) — verified by per-doc count",
+        "Total query count >= 100 — verified by total count",
+        "New query types include API signatures, error messages, and code snippets — verified by content check"
+      ],
+      "passes": false
+    },
+    {
+      "group": "Query-Suite-Calibration",
+      "feature": "Automated query generation from section titles and code blocks",
+      "description": "Manually writing 100+ queries is slow and biased. Create a script that auto-generates candidate queries from the MCP index: extract section titles as 'conceptual' queries, extract function/class names from code blocks as 'api_reference' queries, extract error strings as 'troubleshooting' queries. Human reviews and filters the candidates. The correct answer is the section the query was generated from.",
+      "acceptance_criteria": [
+        "Generator script produces candidate queries from section titles — verified by script output with >= 50 candidates per doc-set",
+        "Code block extraction finds function names, class names, API endpoints — verified by regex pattern tests",
+        "Generated queries have automatic correct_section_id (the source section) — verified by ID validity check",
+        "Human review workflow: script outputs candidates to review file, human marks keep/discard — verified by review file format",
+        "At least 20 auto-generated queries pass human review per core doc-set — verified by approved count"
+      ],
+      "passes": false
+    },
+    {
+      "group": "Query-Suite-Calibration",
+      "feature": "Cross-doc-set query deduplication and difficulty grading",
+      "description": "Some queries appear across multiple doc-sets with different expected answers (e.g., 'authentication' appears in fastapi, django, synthflow). Ensure each query is unique per doc-set and add difficulty grading: 'easy' (exact title match exists), 'medium' (topic exists but title differs), 'hard' (requires semantic understanding). Report search benchmark broken down by difficulty level.",
+      "acceptance_criteria": [
+        "No duplicate queries within the same doc-set — verified by uniqueness check",
+        "Each query has difficulty field: 'easy', 'medium', or 'hard' — verified by schema check",
+        "Difficulty distribution: ~30% easy, ~40% medium, ~30% hard — verified by count per difficulty",
+        "Search benchmark reports precision broken down by difficulty — verified by benchmark output format",
+        "Easy queries achieve precision@1 >= 0.80 — verified by benchmark result"
+      ],
+      "passes": false
+    },
+    {
+      "group": "Query-Suite-Calibration",
+      "feature": "Django English-only re-scrape and query suite fix",
+      "description": "Django's AppData contains Greek translations (v1 scraped /el/ URLs). Re-scrape Django with the correct English start URL (https://docs.djangoproject.com/en/stable/) and locale filter. Update the query-suite with proper English Django queries targeting real section titles like 'Models', 'Views', 'Templates', 'Forms', 'Admin'. Verify search works correctly on the English content.",
+      "acceptance_criteria": [
+        "Django re-scraped from /en/stable/ with locale_filter='en' — verified by config.json start_url check",
+        "All Django .md files contain English content (no Greek characters) — verified by encoding scan",
+        "Django query-suite has 10 queries with manually verified English expected_top_title — verified by annotation file",
+        "Django search precision@1 >= 0.50 (up from 0.00) — verified by search benchmark",
+        "Django .md file count >= 40 (similar to v1's 60 but all English) — verified by file count"
+      ],
+      "passes": false
+    },
+    {
+      "group": "E2E-Pipeline-Hardening",
+      "feature": "Full-site E2E test: capture → discover → scrape → index → search → score",
+      "description": "Create the definitive E2E test that runs the COMPLETE pipeline for each of the 10 reference doc-sets: (1) serve all captured HTML via CaptureServer, (2) run URLDiscovery against the server, (3) run ScraperEngine.scrape_all(), (4) run MarkdownParser.buildIndex(), (5) run search queries from query-suite, (6) compute quality scores. Each step feeds into the next. A single test run produces a complete quality dashboard. This replaces the current piecemeal tests.",
+      "acceptance_criteria": [
+        "Single pytest command runs full pipeline for all 10 doc-sets — verified by pytest tests/e2e/test_pipeline_full.py -v",
+        "Each doc-set pipeline step is timed and logged — verified by timing output per step",
+        "Pipeline produces quality-dashboard.json with per-doc-set and aggregate scores — verified by JSON output",
+        "Any doc-set with overall_score < 0.50 is flagged as FAILING — verified by status field in dashboard",
+        "Total pipeline runtime < 5 minutes for all 10 doc-sets — verified by total time assertion"
+      ],
+      "passes": false
+    },
+    {
+      "group": "E2E-Pipeline-Hardening",
+      "feature": "Regression detection via golden output comparison",
+      "description": "Store the current scraper .md output for 5 key pages as golden baselines. On each E2E run, compare new output against golden baselines using diff. Flag regressions: lost headings, lost code blocks, new HTML residue, content truncation, encoding errors. This catches unintended side effects of code changes. Use semantic diff (ignore whitespace changes, focus on structure).",
+      "acceptance_criteria": [
+        "Golden baselines stored for 5 pages (1 per core site: react, fastapi, kubernetes, tailwind, golang) — verified by file existence",
+        "Diff tool compares: heading count, code block count, content length, encoding errors — verified by diff output format",
+        "Regression detected when heading count drops by >10% — verified by test with intentionally broken cleaner",
+        "Regression detected when new HTML tags appear in output — verified by test with broken selector",
+        "Clean run (no code changes) produces 0 regressions — verified by baseline comparison"
+      ],
+      "passes": false
+    },
+    {
+      "group": "E2E-Pipeline-Hardening",
+      "feature": "Quality score trend tracking across runs",
+      "description": "Store quality dashboard results from each test run in a history file (tests/e2e/quality-history.jsonl, one JSON line per run). Add trend analysis: compare current run against last 3 runs, flag improvements and regressions per dimension. Display a summary showing score trajectory. This enables tracking whether code changes improve or degrade quality over time.",
+      "acceptance_criteria": [
+        "Each benchmark run appends results to quality-history.jsonl — verified by line count increasing after run",
+        "Trend report compares current vs previous run per dimension — verified by trend output format",
+        "Improvements (score increase >= 0.05) are highlighted as IMPROVED — verified by test with mock history",
+        "Regressions (score decrease >= 0.05) are highlighted as REGRESSED — verified by test with mock history",
+        "History file is capped at 50 entries (oldest pruned) — verified by max line count check"
+      ],
+      "passes": false
+    },
+    {
+      "group": "E2E-Pipeline-Hardening",
+      "feature": "Error resilience test: malformed HTML, timeouts, encoding edge cases",
+      "description": "The scraper should handle real-world edge cases gracefully: malformed HTML (unclosed tags), timeout responses, binary content served as text/html, enormous pages (>5MB), empty responses, redirect chains, and mixed encoding (UTF-8 BOM, Latin-1 declared as UTF-8). Create fixture files for each edge case and verify the scraper produces reasonable output (or skips gracefully) rather than crashing.",
+      "acceptance_criteria": [
+        "Scraper handles malformed HTML (unclosed tags) without crash — verified by test with malformed fixture",
+        "Scraper handles empty response body gracefully (skips page) — verified by test with empty fixture",
+        "Scraper handles >5MB page by truncating (not OOM) — verified by test with large fixture",
+        "Scraper handles Latin-1 content declared as UTF-8 — verified by test with mismatched encoding fixture",
+        "All edge case tests complete in < 10 seconds total — verified by timing assertion"
+      ],
+      "passes": false
+    },
+    {
+      "group": "E2E-Pipeline-Hardening",
+      "feature": "CI-ready test runner with quality gate enforcement",
+      "description": "Create a CI-compatible test runner script (run_quality_gate.py) that: (1) runs all E2E tests, (2) generates quality dashboard, (3) compares against minimum quality thresholds, (4) exits with non-zero code if any threshold is violated. Thresholds: avg_markdown_score >= 0.80, avg_search_score >= 0.50, avg_overall_score >= 0.65. Include GitHub Actions workflow YAML for automated quality gate checks on PRs.",
+      "acceptance_criteria": [
+        "run_quality_gate.py runs all E2E tests and produces dashboard — verified by script execution",
+        "Script exits 0 when all thresholds met — verified by test with good scores",
+        "Script exits 1 with clear error when markdown score < 0.80 — verified by test with mock low score",
+        "Script exits 1 with clear error when search score < 0.50 — verified by test with mock low score",
+        "GitHub Actions workflow YAML (.github/workflows/quality-gate.yml) triggers on PR — verified by YAML schema validation"
       ],
       "passes": false
     }

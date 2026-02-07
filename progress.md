@@ -194,3 +194,33 @@
 **Batch 3:** 7 Cycles, 7 tests passed, 1 skipped, 7 tasks done ✅
 
 **Overall:** 21/30 Tasks complete, 105+ tests passing
+
+---
+
+## Plan v3: Quality Score Upgrade — Deep Init
+
+### Session 1 — 2026-02-07
+
+**Baseline Quality Dashboard (from real-world benchmark):**
+- Avg Markdown: 0.87 | Avg MCP Index: 0.77 | Avg Search: 0.35 | Avg Overview: 0.93
+- Overall: 0.70 across 10 doc-sets, 672 files, 20,190 sections
+
+**Critical Issues Identified:**
+- URL Discovery untested — Django scraped Greek content (wrong locale)
+- Search Relevance 0.35 — basic keyword matching, no TF-IDF/phrase matching
+- HTML Residue 2,397 instances — Tailwind alone 2,045
+- Only 14 HTML pages captured (need full sites for offline testing)
+- Query-suite mappings inaccurate (fuzzy matched to wrong headings)
+
+**Deep Init: 30 tasks across 6 groups:**
+
+| Group | Tasks | Focus |
+|-------|-------|-------|
+| URL-Discovery-Quality | 5 | Discovery accuracy, locale filter, scope detection, sitemap edge cases, SPA nav |
+| Full-Scrape-Capture | 5 | Bulk capture all 10 sites, full offline scrape test, dedup, freshness, validation |
+| Content-Extraction-Quality | 5 | Tailwind HTML fix, code lang tags, selector accuracy, encoding fix, heading normalization |
+| Search-Relevance-Tuning | 5 | TF-IDF scoring, phrase matching, hierarchy boost, stop words, result diversity |
+| Query-Suite-Calibration | 5 | Manual annotations, query types, auto-generation, difficulty grading, Django English fix |
+| E2E-Pipeline-Hardening | 5 | Full-site E2E, golden regression, trend tracking, error resilience, CI quality gate |
+
+**Target:** Overall score 0.70 -> 0.85+, Search score 0.35 -> 0.60+
