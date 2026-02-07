@@ -43,7 +43,7 @@
         "_determine_scope() returns correct scope for each site — verified by comparing against known scopes",
         "Results stored in tests/fixtures/real-world/scope-accuracy.json — verified by JSON output"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "URL-Discovery-Quality",

@@ -1,0 +1,41 @@
+{
+  "tested_at": "2026-02-07T17:42:55.627824",
+  "results": {
+    "react": {
+      "scope": "/blog/2025/10/07/react-compiler-1/",
+      "ground_truth_count": 16,
+      "in_scope": 1,
+      "out_of_scope": 15,
+      "precision": 0.062,
+      "recall": 0.062,
+      "passed": false
+    },
+    "fastapi": {
+      "scope": "/",
+      "ground_truth_count": 145,
+      "in_scope": 145,
+      "out_of_scope": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "passed": true
+    },
+    "kubernetes": {
+      "scope": "/docs/concepts/",
+      "ground_truth_count": 499,
+      "in_scope": 72,
+      "out_of_scope": 427,
+      "precision": 0.144,
+      "recall": 0.144,
+      "passed": false
+    },
+    "tailwind": {
+      "scope": "/docs/accent-color/",
+      "ground_truth_count": 186,
+      "in_scope": 1,
+      "out_of_scope": 185,
+      "precision": 0.005,
+      "recall": 0.005,
+      "passed": false
+    }
+  }
+}
