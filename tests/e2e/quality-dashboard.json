@@ -1,0 +1,417 @@
+{
+  "generated_at": "2026-02-07T17:06:41.695154",
+  "doc_sets_evaluated": 10,
+  "per_doc_set": {
+    "django": {
+      "name": "django",
+      "version": "v1",
+      "markdown": {
+        "total_files": 60,
+        "total_size_bytes": 5902624,
+        "avg_file_size_bytes": 98377.06666666667,
+        "total_headings": 2950,
+        "total_code_blocks": 909,
+        "files_with_code": 26,
+        "encoding_errors": 0,
+        "html_residue_count": 44,
+        "empty_files": 0,
+        "score": 0.832
+      },
+      "mcp_index": {
+        "total_sections": 2895,
+        "total_files_indexed": 60,
+        "build_time_ms": 108,
+        "sections_with_code": 474,
+        "sections_with_source_url": 500,
+        "avg_content_length": 1298,
+        "score": 0.749
+      },
+      "search": {
+        "queries_tested": 10,
+        "precision_at_1": 0.4,
+        "precision_at_3": 0.4,
+        "mrr": 0.4,
+        "zero_result_queries": 0,
+        "score": 0.4
+      },
+      "overview": {
+        "overview_length": 59607,
+        "toc_files_with_entries": 60,
+        "toc_total_entries": 2895,
+        "score": 1.0
+      },
+      "overall_score": 0.715
+    },
+    "fastapi": {
+      "name": "fastapi",
+      "version": "v2",
+      "markdown": {
+        "total_files": 132,
+        "total_size_bytes": 3349049,
+        "avg_file_size_bytes": 25371.583333333332,
+        "total_headings": 3233,
+        "total_code_blocks": 2606,
+        "files_with_code": 112,
+        "encoding_errors": 0,
+        "html_residue_count": 189,
+        "empty_files": 0,
+        "score": 0.862
+      },
+      "mcp_index": {
+        "total_sections": 3233,
+        "total_files_indexed": 132,
+        "build_time_ms": 80,
+        "sections_with_code": 1403,
+        "sections_with_source_url": 145,
+        "avg_content_length": 796,
+        "score": 0.83
+      },
+      "search": {
+        "queries_tested": 10,
+        "precision_at_1": 0.4,
+        "precision_at_3": 0.4,
+        "mrr": 0.4,
+        "zero_result_queries": 0,
+        "score": 0.4
+      },
+      "overview": {
+        "overview_length": 22006,
+        "toc_files_with_entries": 132,
+        "toc_total_entries": 3233,
+        "score": 1.0
+      },
+      "overall_score": 0.743
+    },
+    "golang": {
+      "name": "golang",
+      "version": "v1",
+      "markdown": {
+        "total_files": 18,
+        "total_size_bytes": 1023706,
+        "avg_file_size_bytes": 56872.555555555555,
+        "total_headings": 860,
+        "total_code_blocks": 858,
+        "files_with_code": 17,
+        "encoding_errors": 0,
+        "html_residue_count": 14,
+        "empty_files": 0,
+        "score": 0.931
+      },
+      "mcp_index": {
+        "total_sections": 859,
+        "total_files_indexed": 18,
+        "build_time_ms": 33,
+        "sections_with_code": 334,
+        "sections_with_source_url": 48,
+        "avg_content_length": 954,
+        "score": 0.817
+      },
+      "search": {
+        "queries_tested": 5,
+        "precision_at_1": 0.8,
+        "precision_at_3": 1,
+        "mrr": 0.9,
+        "zero_result_queries": 0,
+        "score": 0.89
+      },
+      "overview": {
+        "overview_length": 2516,
+        "toc_files_with_entries": 18,
+        "toc_total_entries": 859,
+        "score": 1.0
+      },
+      "overall_score": 0.904
+    },
+    "hyperapp-github": {
+      "name": "hyperapp-github",
+      "version": "v2",
+      "markdown": {
+        "total_files": 1,
+        "total_size_bytes": 125297,
+        "avg_file_size_bytes": 125297.0,
+        "total_headings": 152,
+        "total_code_blocks": 160,
+        "files_with_code": 1,
+        "encoding_errors": 0,
+        "html_residue_count": 0,
+        "empty_files": 0,
+        "score": 1.0
+      },
+      "mcp_index": {
+        "total_sections": 152,
+        "total_files_indexed": 1,
+        "build_time_ms": 5,
+        "sections_with_code": 77,
+        "sections_with_source_url": 20,
+        "avg_content_length": 646,
+        "score": 0.852
+      },
+      "search": {
+        "queries_tested": 5,
+        "precision_at_1": 0.8,
+        "precision_at_3": 0.8,
+        "mrr": 0.8,
+        "zero_result_queries": 0,
+        "score": 0.8
+      },
+      "overview": {
+        "overview_length": 331,
+        "toc_files_with_entries": 1,
+        "toc_total_entries": 152,
+        "score": 0.732
+      },
+      "overall_score": 0.849
+    },
+    "kubernetes": {
+      "name": "kubernetes",
+      "version": "v2",
+      "markdown": {
+        "total_files": 61,
+        "total_size_bytes": 6767724,
+        "avg_file_size_bytes": 110946.29508196721,
+        "total_headings": 8700,
+        "total_code_blocks": 3264,
+        "files_with_code": 52,
+        "encoding_errors": 0,
+        "html_residue_count": 12,
+        "empty_files": 0,
+        "score": 0.956
+      },
+      "mcp_index": {
+        "total_sections": 8666,
+        "total_files_indexed": 61,
+        "build_time_ms": 120,
+        "sections_with_code": 1299,
+        "sections_with_source_url": 499,
+        "avg_content_length": 681,
+        "score": 0.745
+      },
+      "search": {
+        "queries_tested": 10,
+        "precision_at_1": 0.7,
+        "precision_at_3": 0.8,
+        "mrr": 0.775,
+        "zero_result_queries": 0,
+        "score": 0.752
+      },
+      "overview": {
+        "overview_length": 39981,
+        "toc_files_with_entries": 61,
+        "toc_total_entries": 8666,
+        "score": 1.0
+      },
+      "overall_score": 0.851
+    },
+    "onoffice": {
+      "name": "onoffice",
+      "version": "v18",
+      "markdown": {
+        "total_files": 65,
+        "total_size_bytes": 536887,
+        "avg_file_size_bytes": 8259.8,
+        "total_headings": 341,
+        "total_code_blocks": 260,
+        "files_with_code": 20,
+        "encoding_errors": 0,
+        "html_residue_count": 3,
+        "empty_files": 0,
+        "score": 0.858
+      },
+      "mcp_index": {
+        "total_sections": 341,
+        "total_files_indexed": 65,
+        "build_time_ms": 28,
+        "sections_with_code": 79,
+        "sections_with_source_url": 161,
+        "avg_content_length": 1463,
+        "score": 0.77
+      },
+      "search": {
+        "queries_tested": 5,
+        "precision_at_1": 0.4,
+        "precision_at_3": 0.4,
+        "mrr": 0.4,
+        "zero_result_queries": 0,
+        "score": 0.4
+      },
+      "overview": {
+        "overview_length": 3980,
+        "toc_files_with_entries": 65,
+        "toc_total_entries": 341,
+        "score": 1.0
+      },
+      "overall_score": 0.727
+    },
+    "react": {
+      "name": "react",
+      "version": "v2",
+      "markdown": {
+        "total_files": 13,
+        "total_size_bytes": 179346,
+        "avg_file_size_bytes": 13795.846153846154,
+        "total_headings": 230,
+        "total_code_blocks": 79,
+        "files_with_code": 8,
+        "encoding_errors": 0,
+        "html_residue_count": 90,
+        "empty_files": 0,
+        "score": 0.773
+      },
+      "mcp_index": {
+        "total_sections": 230,
+        "total_files_indexed": 13,
+        "build_time_ms": 8,
+        "sections_with_code": 23,
+        "sections_with_source_url": 16,
+        "avg_content_length": 719,
+        "score": 0.73
+      },
+      "search": {
+        "queries_tested": 10,
+        "precision_at_1": 0,
+        "precision_at_3": 0.1,
+        "mrr": 0.05,
+        "zero_result_queries": 0,
+        "score": 0.045
+      },
+      "overview": {
+        "overview_length": 1183,
+        "toc_files_with_entries": 13,
+        "toc_total_entries": 230,
+        "score": 1.0
+      },
+      "overall_score": 0.589
+    },
+    "rust-book": {
+      "name": "rust-book",
+      "version": "v2",
+      "markdown": {
+        "total_files": 1,
+        "total_size_bytes": 11806,
+        "avg_file_size_bytes": 11806.0,
+        "total_headings": 15,
+        "total_code_blocks": 11,
+        "files_with_code": 1,
+        "encoding_errors": 27,
+        "html_residue_count": 0,
+        "empty_files": 0,
+        "score": 0.8
+      },
+      "mcp_index": {
+        "total_sections": 15,
+        "total_files_indexed": 1,
+        "build_time_ms": 2,
+        "sections_with_code": 4,
+        "sections_with_source_url": 3,
+        "avg_content_length": 699,
+        "score": 0.57
+      },
+      "search": {
+        "queries_tested": 12,
+        "precision_at_1": 0,
+        "precision_at_3": 0,
+        "mrr": 0,
+        "zero_result_queries": 0,
+        "score": 0.0
+      },
+      "overview": {
+        "overview_length": 53,
+        "toc_files_with_entries": 1,
+        "toc_total_entries": 15,
+        "score": 0.546
+      },
+      "overall_score": 0.452
+    },
+    "synthflow": {
+      "name": "synthflow",
+      "version": "v2",
+      "markdown": {
+        "total_files": 135,
+        "total_size_bytes": 1238357,
+        "avg_file_size_bytes": 9173.014814814815,
+        "total_headings": 2263,
+        "total_code_blocks": 298,
+        "files_with_code": 38,
+        "encoding_errors": 0,
+        "html_residue_count": 0,
+        "empty_files": 0,
+        "score": 0.856
+      },
+      "mcp_index": {
+        "total_sections": 2157,
+        "total_files_indexed": 135,
+        "build_time_ms": 80,
+        "sections_with_code": 99,
+        "sections_with_source_url": 238,
+        "avg_content_length": 538,
+        "score": 0.714
+      },
+      "search": {
+        "queries_tested": 5,
+        "precision_at_1": 0.4,
+        "precision_at_3": 0.4,
+        "mrr": 0.4,
+        "zero_result_queries": 0,
+        "score": 0.4
+      },
+      "overview": {
+        "overview_length": 12126,
+        "toc_files_with_entries": 135,
+        "toc_total_entries": 2157,
+        "score": 1.0
+      },
+      "overall_score": 0.712
+    },
+    "tailwind": {
+      "name": "tailwind",
+      "version": "v4",
+      "markdown": {
+        "total_files": 186,
+        "total_size_bytes": 1448860,
+        "avg_file_size_bytes": 7789.569892473119,
+        "total_headings": 1642,
+        "total_code_blocks": 1315,
+        "files_with_code": 185,
+        "encoding_errors": 0,
+        "html_residue_count": 2045,
+        "empty_files": 0,
+        "score": 0.849
+      },
+      "mcp_index": {
+        "total_sections": 1642,
+        "total_files_indexed": 186,
+        "build_time_ms": 49,
+        "sections_with_code": 1040,
+        "sections_with_source_url": 186,
+        "avg_content_length": 716,
+        "score": 0.89
+      },
+      "search": {
+        "queries_tested": 10,
+        "precision_at_1": 0.4,
+        "precision_at_3": 0.5,
+        "mrr": 0.45,
+        "zero_result_queries": 0,
+        "score": 0.445
+      },
+      "overview": {
+        "overview_length": 8680,
+        "toc_files_with_entries": 186,
+        "toc_total_entries": 1642,
+        "score": 1.0
+      },
+      "overall_score": 0.768
+    }
+  },
+  "aggregate": {
+    "avg_overall_score": 0.731,
+    "avg_markdown_score": 0.872,
+    "avg_index_score": 0.767,
+    "avg_search_score": 0.453,
+    "avg_overview_score": 0.928,
+    "total_files": 672,
+    "total_sections": 20190,
+    "total_encoding_errors": 27,
+    "total_html_residue": 2397
+  }
+}
