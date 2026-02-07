@@ -35,3 +35,21 @@
 ### Recommended First Task
 
 **"ResponseCapture class for recording HTTP responses"** — foundation for all other real-world tests.
+
+## Working on ResponseCapture class
+
+**Files to modify/create:**
+- `scraper/response_capture.py` — Main ResponseCapture class with capture(), save(), load()
+- `scraper/tests/test_response_capture.py` — Unit tests for all acceptance criteria
+
+**Approach:**
+1. Create dataclass CapturedResponse with status, headers, body, url
+2. URL-to-slug: replace non-alphanumeric with hyphens, collapse multiple
+3. Save as pair: .meta.json (metadata) + .body.html (raw content)
+4. CLI entry point for manual capture (not tested in CI)
+
+**Verification:** pytest with mocked requests
+
+**Potential challenges:** URL slug collision handling, large response truncation
+
+**Result:** Success — 16/16 tests passed. ResponseCapture with capture(), save(), load(), url_to_slug(), and CLI entry point fully implemented.

@@ -17,7 +17,7 @@
         "CLI entry point captures a real URL when run manually (not tested in CI) — verify: code inspection of __main__ block",
         "CapturedResponse.load(doc_name, slug) reconstructs the response from disk — verify: round-trip test save→load"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Capture-Replay-Infrastructure",
