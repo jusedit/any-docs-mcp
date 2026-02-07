@@ -131,3 +131,24 @@
 **Potential challenges:** Pattern accuracy, avoiding false positives
 
 **Result:** Success — 16/16 tests passed. EncodingAuditor with mojibake, broken_latin, permalink_anchors, html_entities detection, and CLI fully implemented.
+
+## Working on Cycles 6+7: Permalink removal + Pattern discovery
+
+**Files modified/created:**
+- `scraper/content_cleaner.py` — Added `remove_permalink_anchors()` method
+- `scraper/pattern_discovery.py` — Pattern discovery script
+- `scraper/tests/test_cycles_6_7.py` — Combined tests for both cycles
+
+**Cycle 6 (Permalink removal):**
+- Removes trailing ¶ from headings
+- Removes [¶](#anchor) permalink links
+- Removes []( #anchor) empty anchor links
+- Preserves inline code in headings
+
+**Cycle 7 (Pattern discovery):**
+- Scans directory for recurring patterns >30% threshold
+- Identifies boilerplate vs content
+- Returns PatternCandidate with regex suggestions
+- CLI for interactive discovery
+
+**Result:** Success — 9/9 tests passed. Both cycles complete.

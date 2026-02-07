@@ -397,6 +397,36 @@ class ContentCleaner:
         flush_block()
         return '\n'.join(result)
 
+    def remove_permalink_anchors(self, content: str) -> str:
+        """Remove permalink anchor markers from markdown headings.
+        
+        Handles:
+        - Trailing ¶ character: '## Security¶' → '## Security'
+        - Permalink links: '## Security[¶](#anchor)' → '## Security'
+        - Empty anchor links: '## Security[](#anchor)' → '## Security'
+        """
+        lines = content.split('\n')
+        result = []
+        
+        for line in lines:
+            # Only process heading lines
+            if line.strip().startswith('#'):
+                # Pattern 1: Remove trailing ¶ character
+                line = re.sub(r'Â¶\s*$', '', line)
+                
+                # Pattern 2: Remove [¶](#anchor "...") permalink links
+                line = re.sub(r'\[Â¶\]\(#[^)]*\)', '', line)
+                
+                # Pattern 3: Remove []( #anchor) empty anchor links  
+                line = re.sub(r'\[\]\(\s*#[^)]*\)', '', line)
+                
+                # Clean up any trailing whitespace
+                line = line.rstrip()
+            
+            result.append(line)
+        
+        return '\n'.join(result)
+
 
 # Convenience function
 def clean_content(content: str) -> str:

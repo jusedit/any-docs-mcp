@@ -97,7 +97,7 @@
         "Preserves non-heading lines containing ¶ (if any) — verify: negative test",
         "Running clean() on fastapi golden fixture reduces permalink-anchor count to 0 — verify: integration test comparing before/after audit report"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Encoding-Quality",
@@ -113,7 +113,7 @@
         "Running fix_mojibake on fastapi golden fixture reduces mojibake count by >90% — verify: before/after audit",
         "fix_mojibake is called as first step in clean() pipeline — verify: code inspection of clean() method order"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Encoding-Quality",
@@ -127,7 +127,7 @@
         "Test produces a human-readable diff showing what was changed (for review) — verify: test logs before/after line count delta",
         "All 4+ doc-set tests pass — verify: pytest passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Encoding-Quality",
@@ -141,7 +141,7 @@
         "Does not change behavior for responses that are already UTF-8 — verify: existing fetch_page tests still pass",
         "Tested against captured fixtures from FixtureHTTPServer — verify: integration test with mock server serving a non-UTF-8 fixture"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Artifact-Cleanup-Profiles",
