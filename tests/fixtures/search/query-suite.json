@@ -1,0 +1,12 @@
+[
+  {"query": "installation", "expectedTopTitle": "Installation", "expectedFile": "getting-started"},
+  {"query": "npm install", "expectedTopTitle": "Installation", "expectedFile": "getting-started"},
+  {"query": "configuration", "expectedTopTitle": "Configuration", "expectedFile": "getting-started"},
+  {"query": "start server", "expectedTopTitle": "start", "expectedFile": "api-reference"},
+  {"query": "API functions", "expectedTopTitle": "Functions", "expectedFile": "api-reference"},
+  {"query": "port option", "expectedTopTitle": "start", "expectedFile": "api-reference"},
+  {"query": "events callback", "expectedTopTitle": "onConnect", "expectedFile": "api-reference"},
+  {"query": "javascript example", "expectedTopTitle": "Basic Usage", "expectedFile": "getting-started"},
+  {"query": "stop server", "expectedTopTitle": "stop", "expectedFile": "api-reference"},
+  {"query": "client connection", "expectedTopTitle": "onConnect", "expectedFile": "api-reference"}
+]

@@ -41,7 +41,7 @@
         "Each fixture has a companion .meta.json with expected content_selectors and expected title",
         "No network calls needed to use fixtures — verify: files exist and are valid HTML"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Test-Harness-Fixtures",
@@ -54,7 +54,7 @@
         "scraper/tests/test_content_extraction.py loads each HTML fixture, runs extract_content + content_cleaner.clean, and asserts output matches golden .md file — verify: pytest scraper/tests/test_content_extraction.py -v passes",
         "Comparison ignores trailing whitespace differences but catches structural changes (headings, code blocks, content loss)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Test-Harness-Fixtures",
@@ -66,7 +66,7 @@
         "mcp-server/src/__tests__/search-golden.test.ts builds index from fixture docs and asserts top-1 result matches expected — verify: npm test passes",
         "At least 8/10 queries pass (allows 2 to be marked 'aspirational' for future search improvements)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Source-Selection-Routing",

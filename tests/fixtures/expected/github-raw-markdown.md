@@ -1,0 +1,34 @@
+# Installation Guide
+
+## Requirements
+
+- Node.js 18+
+- npm or yarn
+
+## Quick Start
+
+```bash
+npm install my-package
+npx my-package init
+```
+
+## Configuration
+
+Create a `config.json`:
+
+```json
+{
+  "name": "my-project",
+  "version": "1.0.0"
+}
+```
+
+## Usage
+
+```javascript
+import { init } from 'my-package';
+
+init({
+  port: 3000
+});
+```
