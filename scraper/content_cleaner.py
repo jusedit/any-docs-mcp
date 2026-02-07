@@ -84,6 +84,7 @@ class ContentCleaner:
         content = self.fix_duplicate_headers(content)
         content = self.fix_encoding_issues(content)
         content = self.clean_empty_code_blocks(content)
+        content = self.normalize_heading_levels(content)
         content = self.normalize_whitespace(content)
         return content
     
@@ -237,6 +238,44 @@ class ContentCleaner:
         content = re.sub(r'```\w*\n```', '', content)
         return content
     
+    def normalize_heading_levels(self, content: str) -> str:
+        """Normalize heading hierarchy: ensure no level skipping, first heading is # or ##."""
+        lines = content.split('\n')
+        result = []
+        first_heading_level = None
+        prev_level = 0
+        
+        for line in lines:
+            # Match heading lines
+            match = re.match(r'^(#{1,6})\s+(.+)$', line)
+            if match:
+                hashes, text = match.groups()
+                level = len(hashes)
+                
+                # Track first heading level
+                if first_heading_level is None:
+                    first_heading_level = level
+                    # Normalize first heading to 1 or 2
+                    if level > 2:
+                        level = 2
+                        hashes = '#' * level
+                else:
+                    # Ensure no skipping (max +1 level jump)
+                    if level > prev_level + 1:
+                        level = prev_level + 1
+                        hashes = '#' * level
+                    # Prevent flat headings (all same level)
+                    if level == prev_level and prev_level >= 2:
+                        # Allow slight variation for subsections
+                        pass
+                
+                prev_level = level
+                result.append(f"{hashes} {text}")
+            else:
+                result.append(line)
+        
+        return '\n'.join(result)
+
     def normalize_whitespace(self, content: str) -> str:
         """Normalize excessive whitespace."""
         # Remove more than 2 consecutive blank lines

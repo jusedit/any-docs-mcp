@@ -127,7 +127,7 @@
         "clean() method calls normalize_heading_levels before normalize_whitespace — verify: code inspection",
         "scraper/tests/test_content_cleaner.py tests heading normalization with 3 edge cases — verify: pytest passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "HTML-Markdown-Quality",
