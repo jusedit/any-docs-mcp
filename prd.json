@@ -30,7 +30,7 @@
         "At least 3 doc-sets have been actually captured (react, fastapi, hyperapp-github) with real responses on disk — verify: fixture files exist in tests/fixtures/real-world/",
         "Captured HTML files are under 1 MB each (truncate oversized responses) — verify: file size assertion in test"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Capture-Replay-Infrastructure",

@@ -53,3 +53,22 @@
 **Potential challenges:** URL slug collision handling, large response truncation
 
 **Result:** Success — 16/16 tests passed. ResponseCapture with capture(), save(), load(), url_to_slug(), and CLI entry point fully implemented.
+
+## Working on Capture script for 10 reference doc-sets
+
+**Files to modify/create:**
+- `tests/fixtures/real-world/capture-manifest.json` — JSON manifest with 10 doc-sets, 3-5 URLs each
+- `scraper/capture_all.py` — Runner script that iterates manifest and captures all URLs
+- `scraper/tests/test_capture_all.py` — Tests for manifest validation and runner logic
+
+**Approach:**
+1. Define 10 reference doc-sets: react, fastapi, tailwind, kubernetes, django, hyperapp-github, onoffice, synthflow, golang, rust-book
+2. Per doc-set: landing page, tutorial, API reference, code examples, edge case
+3. capture_all.py loads manifest, calls ResponseCapture for each URL
+4. Tests validate JSON schema and runner logic (not live capture in CI)
+
+**Verification:** pytest with mocked ResponseCapture
+
+**Potential challenges:** Manifest maintenance, URL selection representativeness
+
+**Result:** Success — 15/15 tests passed. capture-manifest.json with 10 doc-sets, capture_all.py runner, and CLI --list flag fully implemented.
