@@ -6,7 +6,7 @@
 
 ## Thinking in React
 
-**Source:** http://127.0.0.1:50840/learn/thinking-in-react
+**Source:** http://127.0.0.1:43725/learn/thinking-in-react
 
 [Learn React](/learn)
 [Quick Start](/learn)

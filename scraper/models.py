@@ -34,6 +34,10 @@ class SiteAnalysis(BaseModel):
         default="path_depth_2",
         description="Strategy for grouping pages: path_depth_N, single_file, or manual"
     )
+    site_type: Optional[str] = Field(
+        default=None,
+        description="Documentation framework type detected by LLM (e.g., mkdocs, sphinx, docusaurus, hugo, tailwind, generic-spa)"
+    )
     notes: str = Field(
         default="",
         description="Additional notes about the site structure"

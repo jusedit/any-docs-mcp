@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-02-07T19:33:44.544990",
+  "generated_at": "2026-02-07T19:39:43.188948",
   "doc_sets_evaluated": 10,
   "per_doc_set": {
     "django": {
@@ -20,7 +20,7 @@
       "mcp_index": {
         "total_sections": 2895,
         "total_files_indexed": 60,
-        "build_time_ms": 215,
+        "build_time_ms": 211,
         "sections_with_code": 474,
         "sections_with_source_url": 500,
         "avg_content_length": 1298,
@@ -60,7 +60,7 @@
       "mcp_index": {
         "total_sections": 3233,
         "total_files_indexed": 132,
-        "build_time_ms": 188,
+        "build_time_ms": 197,
         "sections_with_code": 1403,
         "sections_with_source_url": 145,
         "avg_content_length": 796,
@@ -100,7 +100,7 @@
       "mcp_index": {
         "total_sections": 859,
         "total_files_indexed": 18,
-        "build_time_ms": 63,
+        "build_time_ms": 54,
         "sections_with_code": 334,
         "sections_with_source_url": 48,
         "avg_content_length": 954,
@@ -140,7 +140,7 @@
       "mcp_index": {
         "total_sections": 152,
         "total_files_indexed": 1,
-        "build_time_ms": 8,
+        "build_time_ms": 9,
         "sections_with_code": 77,
         "sections_with_source_url": 20,
         "avg_content_length": 646,
@@ -180,7 +180,7 @@
       "mcp_index": {
         "total_sections": 8666,
         "total_files_indexed": 61,
-        "build_time_ms": 285,
+        "build_time_ms": 287,
         "sections_with_code": 1299,
         "sections_with_source_url": 499,
         "avg_content_length": 681,
@@ -220,7 +220,7 @@
       "mcp_index": {
         "total_sections": 341,
         "total_files_indexed": 65,
-        "build_time_ms": 31,
+        "build_time_ms": 37,
         "sections_with_code": 79,
         "sections_with_source_url": 161,
         "avg_content_length": 1463,
@@ -260,7 +260,7 @@
       "mcp_index": {
         "total_sections": 230,
         "total_files_indexed": 13,
-        "build_time_ms": 15,
+        "build_time_ms": 12,
         "sections_with_code": 23,
         "sections_with_source_url": 16,
         "avg_content_length": 719,
@@ -300,7 +300,7 @@
       "mcp_index": {
         "total_sections": 15,
         "total_files_indexed": 1,
-        "build_time_ms": 3,
+        "build_time_ms": 4,
         "sections_with_code": 4,
         "sections_with_source_url": 3,
         "avg_content_length": 699,
@@ -340,7 +340,7 @@
       "mcp_index": {
         "total_sections": 2157,
         "total_files_indexed": 135,
-        "build_time_ms": 89,
+        "build_time_ms": 88,
         "sections_with_code": 99,
         "sections_with_source_url": 238,
         "avg_content_length": 538,
@@ -380,7 +380,7 @@
       "mcp_index": {
         "total_sections": 1642,
         "total_files_indexed": 186,
-        "build_time_ms": 80,
+        "build_time_ms": 68,
         "sections_with_code": 1040,
         "sections_with_source_url": 186,
         "avg_content_length": 716,

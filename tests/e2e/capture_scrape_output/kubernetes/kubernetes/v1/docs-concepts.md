@@ -6,7 +6,7 @@
 
 ## Concepts
 
-**Source:** http://127.0.0.1:50874/docs/concepts
+**Source:** http://127.0.0.1:43748/docs/concepts
 
 The Concepts section helps you learn about the parts of the Kubernetes system and the abstractions Kubernetes uses to represent your [cluster](/docs/reference/glossary/?all=true#term-cluster "A set of worker machines, called nodes, that run containerized applications. Every cluster has at least one worker node."), and helps you obtain a deeper understanding of how Kubernetes works.
 ---

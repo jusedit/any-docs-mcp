@@ -6,7 +6,7 @@
 
 ## E2E Test Documentation
 
-**Source:** http://127.0.0.1:22756/docs/
+**Source:** http://127.0.0.1:55271/docs/
 
 # E2E Test Documentation
 Welcome to the E2E test documentation. This is a small documentation site used for end-to-end pipeline testing of AnyDocsMCP.

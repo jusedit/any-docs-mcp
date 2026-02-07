@@ -6,7 +6,7 @@
 
 ## Tutorials
 
-**Source:** http://127.0.0.1:50874/docs/tutorials
+**Source:** http://127.0.0.1:43748/docs/tutorials
 
 This section of the Kubernetes documentation contains tutorials.
 A tutorial shows how to accomplish a goal that is larger than a single

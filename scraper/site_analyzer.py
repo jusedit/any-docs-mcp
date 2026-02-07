@@ -95,6 +95,7 @@ Analyze this HTML and provide extraction rules as JSON following this schema:
   "url_pattern": "regex pattern to match valid documentation URLs",
   "base_url": "base URL (protocol + domain)",
   "grouping_strategy": "path_depth_2 or path_depth_3 or single_file",
+  "site_type": "one of: mkdocs, sphinx, docusaurus, hugo, tailwind, generic-spa, or null if unknown",
   "notes": "brief notes about the site structure"
 }}
 
@@ -105,6 +106,14 @@ Analyze this HTML and provide extraction rules as JSON following this schema:
 4. url_pattern: Create regex to match only documentation pages (e.g., "https://example\\.com/docs/.*")
 5. grouping_strategy: Use "path_depth_2" for sites with /category/page structure, "path_depth_3" for deeper hierarchies
 6. Be specific with CSS selectors - use IDs and classes visible in the HTML
+7. site_type: Detect the documentation framework from HTML signatures:
+   - "mkdocs" if you see mkdocs-material theme, `<meta name="generator" content="mkdocs">`, or Material for MkDocs classes
+   - "sphinx" if you see Sphinx/Read the Docs theme, `<meta name="generator" content="Sphinx">`, or alabaster/rtd classes
+   - "docusaurus" if you see Docusaurus meta, `<meta name="generator" content="Docusaurus">`, or docusaurus CSS classes
+   - "hugo" if you see Hugo generator meta or Hugo-specific template patterns
+   - "tailwind" if tailwindcss.com or heavy Tailwind utility classes in documentation layout
+   - "generic-spa" if it's a JavaScript SPA without a known framework
+   - null if you cannot determine the framework
 
 Return ONLY valid JSON, no other text."""
 
