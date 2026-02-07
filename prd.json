@@ -1,400 +1,258 @@
 {
   "project_meta": {
     "name": "AnyDocsMCP",
-    "version": "v3-quality-score-upgrade",
+    "version": "v4-url-discovery-upgrade",
     "ralph_type": "opencode",
-    "opencode_session_id": "deep-init-v3-2026-02-07"
+    "opencode_session_id": "deep-init-v4-2026-02-07"
   },
   "backlog": [
     {
-      "group": "URL-Discovery-Quality",
-      "feature": "URL Discovery accuracy test for all 10 reference doc-sets",
-      "description": "Create a test that runs URLDiscovery.discover_urls() against each of the 10 reference doc-sets (live, one-time capture) and records: mode used (sitemap/nav/crawl), number of URLs found, scope detected, version detected. Store results in tests/fixtures/real-world/discovery-baseline.json. Compare against known expected page counts (react ~80, fastapi ~130, tailwind ~180, kubernetes ~60, django ~60, etc.) to verify completeness. Identify sites where discovery misses >20% of known pages.",
+      "group": "Scope-Boundary-Detection",
+      "feature": "Adaptive scope detection based on start_url and site structure",
+      "description": "CONTEXT: The current `_determine_scope()` in `scraper/url_discovery.py` (line 226-236) simply strips the trailing slash from the start_url path and uses that as scope. This causes two critical failures: (1) Sites with root start_url like https://react.dev/ get scope='/' which is too broad (captures blog, community, etc.), and (2) Sites like https://nodejs.org/api/ get scope='/api/' which is correct but the scraper's navigation mode finds blog links outside scope and follows them anyway. PROBLEM: react.dev has 200+ doc pages under /learn/ and /reference/ but the scraper only found 7 top-level pages because navigation mode only extracts links from the start page, not recursively. Node.js scraped 235 blog posts instead of API docs. FIX: Replace `_determine_scope()` with a smarter method that fetches the start page, analyzes the link structure, and determines the actual documentation boundary. The method should: (a) Find the dominant link prefix in navigation/sidebar elements, (b) If start_url is root ('/'), identify the documentation sub-path by looking at nav links (e.g., if most nav links point to /docs/ or /learn/, use those as scope), (c) Return multiple scope prefixes if documentation spans multiple paths (e.g., React has /learn/ AND /reference/). IMPORTANT: Do NOT add site-specific logic. The solution must work for ANY documentation site by analyzing link patterns generically. FILE TO MODIFY: `scraper/url_discovery.py`, method `_determine_scope` (line 226). CURRENT AUDIT TARGETS: react 3.5%->80%, typescript 3.5%->80%, nodejs 1.0%->80%.",
       "acceptance_criteria": [
-        "Test calls discover_urls() for all 10 start URLs from capture-manifest.json — verified by pytest parametrize",
-        "Results stored in discovery-baseline.json with mode, url_count, scope, version per site — verified by JSON schema check",
-        "Each site finds at least 50% of its known page count from AppData — verified by comparing against AppData file counts",
-        "Discovery mode is logged (sitemap/nav/crawl) for each site — verified by checking mode field in baseline",
-        "Sites with <50% coverage are flagged in a warnings array — verified by checking warnings field"
-      ],
-      "passes": true
-    },
-    {
-      "group": "URL-Discovery-Quality",
-      "feature": "Language and locale scope filter for URL discovery",
-      "description": "Fix the Django Greek content problem: URLDiscovery currently has no language/locale filtering. When Django's sitemap returns URLs for /el/ (Greek), /ja/ (Japanese), etc., the scraper should filter to the target language (default: /en/). Add locale_filter parameter to discover_urls() that accepts a language code (e.g., 'en') and filters URLs to only include that locale. Auto-detect locale from start_url path (e.g., /en/stable/ → 'en'). Add test with Django sitemap fixture.",
-      "acceptance_criteria": [
-        "discover_urls() accepts optional locale_filter='en' parameter — verified by unit test",
-        "URLs containing /el/, /ja/, /fr/, /zh/ etc. are excluded when locale_filter='en' — verified by test with mock sitemap containing multi-locale URLs",
-        "Auto-detection: start_url /en/stable/ auto-sets locale_filter='en' — verified by unit test",
-        "Django specifically returns English docs, not Greek — verified by re-scraping Django with locale filter and checking content language",
-        "Existing behavior unchanged when locale_filter=None — verified by regression test"
-      ],
-      "passes": true
-    },
-    {
-      "group": "URL-Discovery-Quality",
-      "feature": "Scope detection accuracy test with ground-truth URLs",
-      "description": "Create ground-truth URL lists for 5 reference doc-sets (react, fastapi, kubernetes, django, tailwind) by extracting all URLs from their actual scrapes in AppData. Build a test that compares _determine_scope() and _url_in_scope() output against these ground-truth sets. Measure precision (no irrelevant URLs) and recall (no missed URLs). Target: >90% recall, >95% precision.",
-      "acceptance_criteria": [
-        "Ground-truth URL lists created from AppData source URLs for 5 doc-sets — verified by file existence with >20 URLs each",
-        "Test measures precision: ratio of discovered URLs that are in ground-truth — verified by precision >= 0.95",
-        "Test measures recall: ratio of ground-truth URLs that were discovered — verified by recall >= 0.90",
-        "_determine_scope() returns correct scope for each site — verified by comparing against known scopes",
-        "Results stored in tests/fixtures/real-world/scope-accuracy.json — verified by JSON output"
-      ],
-      "passes": true
-    },
-    {
-      "group": "URL-Discovery-Quality",
-      "feature": "Sitemap parser robustness for edge cases",
-      "description": "Test and fix SitemapParser for real-world edge cases found across the 10 reference sites: nested sitemap index files (kubernetes), sitemap.xml.gz compressed sitemaps, sitemaps with lastmod/priority filtering, sitemaps behind /robots.txt discovery, and sites without sitemap (should gracefully fall back). Create fixture sitemaps for each edge case.",
-      "acceptance_criteria": [
-        "Handles sitemap index files (sitemapindex → multiple sitemap URLs) — verified by test with kubernetes-style sitemap index fixture",
-        "Handles gzipped sitemaps (.xml.gz) — verified by test with compressed fixture",
-        "Gracefully returns empty list for sites without sitemap — verified by test with 404 sitemap response",
-        "Filters by lastmod date when refresh_after is set — verified by test with dated sitemap entries",
-        "Discovers sitemap URL from robots.txt Sitemap: directive — verified by test with robots.txt fixture"
-      ],
-      "passes": true
-    },
-    {
-      "group": "URL-Discovery-Quality",
-      "feature": "Navigation extraction improvement for SPA documentation sites",
-      "description": "React.dev, Tailwind, and Synthflow use JavaScript-rendered navigation that BeautifulSoup cannot parse from raw HTML. Improve _try_navigation() to also check for structured data in <script> tags (Next.js __NEXT_DATA__, Docusaurus docusaurus.config, etc.) and JSON-LD navigation. Add fallback: if nav selectors find <5 URLs but page has many <a> tags, expand search to all internal links within content area. Test against captured HTML from these 3 SPA sites.",
-      "acceptance_criteria": [
-        "Extracts navigation from __NEXT_DATA__ JSON in React.dev HTML — verified by test with captured react HTML fixture",
-        "Falls back to content-area link extraction when nav selectors find <5 URLs — verified by test",
-        "Finds >20 URLs from React.dev captured HTML (currently finds ~5 via nav) — verified by count assertion",
-        "Finds >50 URLs from Tailwind captured HTML — verified by count assertion",
-        "Does not regress on server-rendered sites (fastapi, kubernetes) — verified by regression test"
-      ],
-      "passes": true
-    },
-    {
-      "group": "Full-Scrape-Capture",
-      "feature": "Bulk HTML capture for all 10 reference doc-sets (full site)",
-      "description": "Extend run_capture.py to capture ALL discovered URLs per site (not just 3-5). For each of the 10 reference doc-sets: run URL discovery, then capture every discovered page as .meta.json + .body.html. Store in tests/fixtures/real-world/{doc-name}/captured/. Add --max-pages-per-site flag (default: 50) to limit capture size. Track capture manifest with total pages captured per site. Target: 30-50 pages per major site (react, fastapi, tailwind, kubernetes, django), 10-20 for smaller sites.",
-      "acceptance_criteria": [
-        "Capture script accepts --max-pages-per-site N flag — verified by CLI test",
-        "Each of the 10 doc-sets has captured/ directory with .meta.json + .body.html pairs — verified by directory scan",
-        "Major sites (react, fastapi, tailwind, kubernetes, django) have >= 30 captured pages — verified by file count",
-        "Smaller sites (hyperapp, rust-book) have >= 5 captured pages — verified by file count",
-        "Capture manifest updated with actual page counts and capture timestamp — verified by JSON schema check"
-      ],
-      "passes": true
-    },
-    {
-      "group": "Full-Scrape-Capture",
-      "feature": "Full offline scrape test using all captured HTML",
-      "description": "Create test_full_scrape_offline.py that runs ScraperEngine against ALL captured HTML files per site (not just 3-5). For each doc-set: start CaptureServer with all captured pages → run ScraperEngine.scrape_all() → verify output .md files. Compare scraped page count against captured page count. This tests the complete scraping pipeline offline with realistic data volume.",
-      "acceptance_criteria": [
-        "Test runs ScraperEngine for each of the 10 doc-sets with all captured pages — verified by pytest parametrize",
-        "Scraper produces >= 80% of captured page count as .md output files — verified by count comparison",
-        "No crashes or unhandled exceptions for any doc-set — verified by clean pytest exit",
-        "Total scrape time per site is < 60 seconds — verified by timing assertion",
-        "Output .md files are stored in tests/e2e/full_scrape_output/{doc-name}/ for MCP evaluation — verified by directory check"
-      ],
-      "passes": true
-    },
-    {
-      "group": "Full-Scrape-Capture",
-      "feature": "Capture deduplication and storage optimization",
-      "description": "When capturing 30-50 pages per site, many pages share identical boilerplate (headers, footers, nav). Implement deduplication: store common HTML fragments once, reference them in meta.json. Also implement .body.html.gz compression for large files (>100KB). Add capture stats: total size, deduplicated size, compression ratio.",
-      "acceptance_criteria": [
-        "Large body files (>100KB) are stored as .body.html.gz — verified by checking file extension for kubernetes captures",
-        "CaptureServer can serve both .body.html and .body.html.gz transparently — verified by HTTP response test",
-        "Capture stats report total_size_bytes and compressed_size_bytes — verified by stats JSON output",
-        "Storage savings >= 30% for sites with >20 pages — verified by comparing raw vs compressed totals",
-        "Existing uncompressed captures still work (backward compatible) — verified by regression test with current fixtures"
-      ],
-      "passes": true
-    },
-    {
-      "group": "Full-Scrape-Capture",
-      "feature": "Captured HTML freshness check and re-capture workflow",
-      "description": "Add metadata tracking for when each page was captured. Implement a freshness check: if captures are older than N days (default: 90), flag them for re-capture. Create a --refresh flag for the capture script that only re-captures stale pages. This ensures the test corpus stays current without re-downloading everything.",
-      "acceptance_criteria": [
-        "Each .meta.json has captured_at timestamp — verified by schema check on all meta files",
-        "Freshness check reports stale captures (>90 days) — verified by test with mock old timestamp",
-        "--refresh flag only re-captures stale pages, skips fresh ones — verified by test with mix of old/new captures",
-        "Re-capture preserves the old file as .body.html.bak before overwriting — verified by backup file check",
-        "Summary report shows: total captures, fresh, stale, re-captured — verified by report JSON output"
+        "New `_determine_scope()` returns a list of scope prefixes instead of a single string â€” verified by unit test with mock HTML containing nav links to /docs/, /api/, /guide/",
+        "For root start_urls (path='/'), the method fetches the page and analyzes nav element links to find documentation paths â€” verified by test with mock page having sidebar links to /learn/ and /reference/",
+        "All callers of `_determine_scope` updated to handle list of scopes (check `_url_in_scope`, `_try_sitemap`, `_try_navigation`, `_crawl_links`) â€” verified by grep for _determine_scope and _url_in_scope",
+        "`_url_in_scope()` updated to accept list of scopes and return True if URL matches ANY scope â€” verified by unit test",
+        "Existing tests still pass (run: python -m pytest tests/e2e/ -v) â€” verified by test run with 0 failures"
       ],
       "passes": false
     },
     {
-      "group": "Full-Scrape-Capture",
-      "feature": "Capture validation and integrity check",
-      "description": "Add a validation step after capture: verify each .body.html is valid HTML (not error pages, not redirects, not empty). Check that Content-Type is text/html, status is 200, body has >1000 bytes, body contains <html> or <body> tag. Flag and quarantine invalid captures. Add a --validate flag to check existing captures without re-downloading.",
+      "group": "Scope-Boundary-Detection",
+      "feature": "Documentation path detection from page link analysis",
+      "description": "CONTEXT: When a user provides a root URL like https://react.dev/ the scraper needs to figure out where the actual documentation lives. Currently it just uses '/' as scope which matches everything. PROBLEM: The scraper finds 7 pages for react.dev because it only looks at the start page's nav links (which are top-level like /learn, /reference, /blog) and doesn't recurse into them. SOLUTION: Add a new method `_analyze_documentation_paths(start_url)` to `URLDiscovery` class in `scraper/url_discovery.py` that: (1) Fetches the start page, (2) Extracts ALL links from nav/sidebar elements, (3) Groups links by their first path segment (e.g., /learn/*, /reference/*, /blog/*), (4) Scores each group: links inside nav elements get +2 weight, links with doc-like paths (/docs/, /guide/, /reference/, /api/, /learn/, /tutorial/, /handbook/) get +3 weight, links to /blog/, /community/, /changelog/, /about/ get -5 weight, (5) Returns the top-scoring path groups as documentation scopes. This method should be called by `_determine_scope` when the start_url path is '/' or very short. IMPORTANT: Use ONLY generic heuristics (link density in nav elements, common doc path names). No site-specific rules. FILE TO MODIFY: `scraper/url_discovery.py`, add new method `_analyze_documentation_paths`, call from `_determine_scope`.",
       "acceptance_criteria": [
-        "Validation rejects captures with status != 200 — verified by test with 404 capture",
-        "Validation rejects captures with body < 1000 bytes — verified by test with tiny capture",
-        "Validation rejects captures without <html> or <body> tag — verified by test with JSON response",
-        "--validate flag checks all existing captures and reports results — verified by running against current fixtures",
-        "Invalid captures are moved to captured/quarantine/ subdirectory — verified by quarantine directory check"
+        "New method `_analyze_documentation_paths(start_url)` exists in URLDiscovery class â€” verified by reading url_discovery.py",
+        "Method returns list of path prefixes sorted by documentation-likelihood score â€” verified by unit test with crafted HTML having /docs/, /blog/, /about/ links",
+        "Doc-like paths (/docs/, /guide/, /reference/, /api/, /learn/, /tutorial/) score higher than non-doc paths â€” verified by unit test asserting /docs/ outscores /blog/",
+        "Links found inside <nav>, <aside>, .sidebar elements get higher weight than links in <footer> or <header> â€” verified by unit test with HTML having same link in nav vs footer",
+        "Method correctly identifies /learn/ and /reference/ as React's doc paths when given a page with React-like nav structure (without hardcoding react.dev) â€” verified by test with mock HTML mimicking a docs site with learn+reference sections"
       ],
       "passes": false
     },
     {
-      "group": "Content-Extraction-Quality",
-      "feature": "HTML residue audit and targeted cleanup for Tailwind (2,045 instances)",
-      "description": "Tailwind has 2,045 HTML residue instances — the worst of all 10 doc-sets. Analyze the actual HTML tags leaking through: likely <div>, <span> with Tailwind utility classes, interactive code example containers, and color swatch elements. Create targeted cleanup rules in ContentCleaner for these patterns. Verify by re-running the markdown quality scorer before and after cleanup. Target: reduce Tailwind HTML residue from 2,045 to <100.",
+      "group": "Scope-Boundary-Detection",
+      "feature": "Multi-scope URL filtering across all discovery modes",
+      "description": "CONTEXT: After implementing multi-scope detection, all discovery modes (sitemap, navigation, crawl) need to filter URLs against multiple scope prefixes instead of a single one. Currently `_url_in_scope()` at line 493 in `scraper/url_discovery.py` checks if a URL path starts with a single scope string. CHANGE: (1) Update `_url_in_scope()` to accept `scopes: List[str]` parameter and return True if the URL matches ANY of the scopes, (2) Update `_try_sitemap()` line 250 to filter against all scopes, (3) Update `_try_navigation()` to use multi-scope, (4) Update `_crawl_links()` to use multi-scope, (5) Update `discover_urls()` to store scopes list in result dict. BACKWARD COMPATIBILITY: If _determine_scope returns a single string (for sites with clear scope like /api/), wrap it in a list. The return type of discover_urls() changes 'scope' from str to List[str]. Check all callers of discover_urls() in `scraper_engine.py` and `cli.py` and update them. FILE TO MODIFY: `scraper/url_discovery.py` (methods: _url_in_scope, _try_sitemap, _try_navigation, _crawl_links, discover_urls). ALSO CHECK: `scraper/scraper_engine.py` for any code that reads result['scope'].",
       "acceptance_criteria": [
-        "Audit identifies top 5 HTML tag patterns in Tailwind .md output — verified by audit script output",
-        "ContentCleaner removes Tailwind-specific HTML residue (utility class divs, color swatches) — verified by unit test with Tailwind fixture",
-        "Re-scraping Tailwind with updated cleaner reduces HTML residue from 2,045 to <100 — verified by quality scorer comparison",
-        "React HTML residue (90) also reduced to <20 — verified by quality scorer",
-        "No regression on clean sites (kubernetes, hyperapp-github) — verified by before/after comparison"
+        "`_url_in_scope(url, base_url, scopes)` accepts List[str] and returns True if URL matches any scope â€” verified by unit test with URL '/docs/api' matching scopes ['/docs/', '/guide/']",
+        "Sitemap mode filters URLs against all scopes (OR logic) â€” verified by test with mock sitemap containing /docs/page1, /guide/page2, /blog/page3 where scopes=['/docs/', '/guide/'] keeps first two",
+        "discover_urls() return dict has 'scope' as List[str] â€” verified by checking return type in test",
+        "ScraperEngine and cli.py handle the new scope format without errors â€” verified by running python -m pytest tests/e2e/ -v with 0 failures",
+        "Crawl mode respects multi-scope: BFS queue only adds URLs matching at least one scope â€” verified by unit test with mock pages linking to in-scope and out-of-scope URLs"
       ],
       "passes": false
     },
     {
-      "group": "Content-Extraction-Quality",
-      "feature": "Code block language tag correction in markdownify output",
-      "description": "markdownify often assigns wrong language tags to code blocks: JavaScript becomes 'dockerfile', Python becomes 'dockerfile', etc. This happens because markdownify uses the CSS class of the <pre>/<code> element and sometimes misinterprets it. Fix by post-processing code blocks: detect actual language from content heuristics (import statements, syntax patterns) and correct the tag. Add a language_map for known CSS class → language mappings (e.g., 'language-js' → 'javascript', 'highlight-python' → 'python').",
+      "group": "Recursive-Navigation-Discovery",
+      "feature": "Multi-page recursive navigation extraction",
+      "description": "CONTEXT: The current `_try_navigation()` in `scraper/url_discovery.py` (line 262-322) only extracts links from the START PAGE's nav/sidebar elements. It never follows those links to discover sub-pages. This is why react.dev returns only 7 URLs â€” the start page nav has /learn, /reference, /blog, etc. but each of those has dozens of sub-pages accessible from THEIR sidebars. PROBLEM: For sites like react.dev, TypeScript, and Rust Book, the documentation is organized hierarchically: the start page links to section pages, which link to individual doc pages. Single-page extraction misses 90%+ of content. SOLUTION: Modify `_try_navigation()` to do a 2-level recursive extraction: (1) Extract nav links from start page (Level 0), (2) For each Level 0 link that looks like a section page (not a leaf page), fetch it and extract ITS nav/sidebar links (Level 1), (3) Deduplicate and return all discovered URLs. A 'section page' heuristic: URL has fewer than 3 path segments, or the link text suggests a category (contains words like 'Guide', 'Reference', 'Tutorial', 'API', 'Getting Started'). DEPTH LIMIT: Maximum 2 levels of recursion. Maximum 20 section pages to fetch at Level 1 (to avoid hammering servers). Add a 0.5s delay between fetches. IMPORTANT: This must be generic â€” do not check for specific site domains. Only use structural heuristics (path depth, nav element presence, link count). FILE TO MODIFY: `scraper/url_discovery.py`, method `_try_navigation` (line 262).",
       "acceptance_criteria": [
-        "Language map covers top 15 CSS class patterns from real doc-sets — verified by map having >= 15 entries",
-        "Post-processing corrects 'dockerfile' to correct language based on content — verified by test with JavaScript code tagged as dockerfile",
-        "FastAPI code blocks correctly tagged as 'python' — verified by re-scraping FastAPI fixture and checking tags",
-        "React code blocks correctly tagged as 'javascript'/'jsx' — verified by re-scraping React fixture",
-        "Unknown languages default to 'text' rather than wrong tag — verified by unit test"
+        "`_try_navigation()` fetches up to 20 sub-pages from Level 0 nav links and extracts their nav links too â€” verified by unit test with mock HTTP server serving 3 pages each with sidebar links",
+        "Deduplication ensures no URL appears twice in results â€” verified by unit test checking len(urls) == len(set(url['url'] for url in urls))",
+        "Section page heuristic correctly identifies /learn/ as a section (few path segments) and /learn/thinking-in-react as a leaf â€” verified by unit test",
+        "0.5s delay between Level 1 fetches to respect rate limits â€” verified by timing test (20 fetches should take >= 10s)",
+        "Total navigation discovery finds >= 30 URLs for sites with hierarchical nav structure â€” verified by test with mock site having 5 sections x 10 sub-pages"
       ],
       "passes": false
     },
     {
-      "group": "Content-Extraction-Quality",
-      "feature": "Content selector accuracy test per site-type",
-      "description": "The SiteAnalysis.content_selectors determine what HTML is extracted as documentation content. Test accuracy for each site-type: scrape a captured page, check if extracted content includes the main documentation text and excludes navigation/sidebar/footer. Build a ground-truth content test: for 5 captured pages, manually mark expected text snippets that MUST appear and text snippets that MUST NOT appear in output.",
+      "group": "Recursive-Navigation-Discovery",
+      "feature": "SPA deep navigation extraction for Next.js and React-based doc sites",
+      "description": "CONTEXT: The current `_extract_spa_navigation()` in `scraper/url_discovery.py` (line 324-373) looks for `__NEXT_DATA__` and `__DOCUSAURUS_CONFIG__` in script tags. It only checks two specific global variables. Many modern doc sites use client-side routing with navigation data embedded in JSON/JS bundles. PROBLEM: Sites like react.dev, Next.js docs, and Angular docs render navigation client-side. The HTML returned by requests.get() may have an empty nav element that gets populated by JavaScript. SOLUTION: Enhance `_extract_spa_navigation()` to: (1) Search ALL <script> tags for JSON-like content containing arrays of objects with 'url'/'href'/'path' and 'title'/'label'/'name' fields, (2) Parse any JSON found in script tags that contains navigation-like structures (arrays of objects with path/title pairs), (3) Extract URL patterns from JavaScript source using regex: look for string arrays that contain path-like values (starting with /), (4) If the page has very few (<5) nav links but many <script> tags, flag it as likely SPA and try WebDriver as supplement. IMPORTANT: Do NOT hardcode site-specific variable names beyond __NEXT_DATA__ and __DOCUSAURUS_CONFIG__ which are well-known framework conventions. The generic JSON scanning should work for any framework. FILE TO MODIFY: `scraper/url_discovery.py`, method `_extract_spa_navigation` (line 324).",
       "acceptance_criteria": [
-        "Ground-truth expectations for 5 pages (1 per site-type: mkdocs, docusaurus, hugo, sphinx, custom) — verified by fixture files with must_contain/must_not_contain arrays",
-        "All must_contain strings appear in scraped .md output — verified by content check test",
-        "No must_not_contain strings appear in scraped .md output — verified by content check test",
-        "Content extraction includes code examples from all 5 test pages — verified by code block count > 0",
-        "Content extraction excludes sidebar navigation text — verified by checking nav text absence"
+        "Method scans all <script> tags for JSON objects containing arrays with path/title pairs â€” verified by unit test with script tag containing [{path: '/docs/intro', title: 'Intro'}]",
+        "Regex extraction finds path-like strings (/docs/something) from JS source code â€” verified by unit test with minified JS containing route definitions",
+        "Existing __NEXT_DATA__ and __DOCUSAURUS_CONFIG__ extraction still works â€” verified by existing tests passing",
+        "Method returns empty list (not error) when no SPA data found â€” verified by unit test with plain HTML page",
+        "If main nav has <5 links but SPA extraction finds >10 paths, the SPA paths are included â€” verified by unit test simulating a SPA doc site"
       ],
       "passes": false
     },
     {
-      "group": "Content-Extraction-Quality",
-      "feature": "Encoding error elimination for rust-book (27 errors)",
-      "description": "rust-book has 27 encoding errors (mojibake patterns). Investigate root cause: likely the scraper fetches with wrong encoding, or markdownify mishandles certain UTF-8 sequences. Fix by: improving charset detection in fetch_page(), adding BOM handling, and adding a post-processing encoding repair step in ContentCleaner. Verify fix by re-scraping rust-book and running encoding audit.",
+      "group": "Recursive-Navigation-Discovery",
+      "feature": "WebDriver escalation for JS-rendered navigation",
+      "description": "CONTEXT: `scraper/webdriver_discovery.py` has a `WebDriverDiscovery` class that uses Selenium to load pages. It currently only discovers URLs from ONE page (the start page). The URL discovery chain in `url_discovery.py` tries: GitHub -> Sitemap -> Navigation -> Crawl, but never uses WebDriver. PROBLEM: Sites like react.dev and angular.dev render their navigation with JavaScript. When fetched via requests.get(), the nav/sidebar is empty or minimal. Only Selenium can see the fully rendered navigation. SOLUTION: Add WebDriver as a supplementary step in `_try_navigation()`: (1) After standard navigation extraction, if fewer than 10 URLs found AND the page has <script> tags suggesting a JS framework, (2) Use `WebDriverDiscovery` to load the start page and extract ALL links from nav/sidebar elements, (3) Merge WebDriver-discovered URLs with standard navigation URLs, (4) Also do Level 1 recursive extraction via WebDriver for up to 5 section pages. INTEGRATION: Import `WebDriverDiscovery` in `url_discovery.py`. Add a flag `use_webdriver=False` to `discover_urls()` that enables WebDriver escalation. The flag should auto-enable if navigation+SPA extraction returns <10 URLs. FILE TO MODIFY: `scraper/url_discovery.py` (method `_try_navigation`, also `discover_urls`). DEPENDENCY: `scraper/webdriver_discovery.py` (existing class, no changes needed to it).",
       "acceptance_criteria": [
-        "Root cause identified: document which specific characters/patterns cause the 27 errors — verified by audit report",
-        "Fix implemented in fetch_page() or ContentCleaner — verified by code change",
-        "Re-scraping rust-book produces 0 encoding errors — verified by encoding audit on new output",
-        "Encoding repair does not corrupt valid UTF-8 content — verified by regression test on fastapi output",
-        "fix_encoding_issues() in ContentCleaner handles all identified mojibake patterns — verified by unit test with each pattern"
+        "`discover_urls()` accepts `use_webdriver` parameter (default False) â€” verified by checking method signature",
+        "WebDriver auto-escalation triggers when navigation returns <10 URLs and page has >3 script tags â€” verified by unit test with mock HTML having 4 script tags and 3 nav links",
+        "WebDriver-discovered URLs are merged with standard navigation URLs (union, no duplicates) â€” verified by unit test",
+        "WebDriver escalation is logged: 'WebDriver escalation: found N additional URLs' â€” verified by checking print output in test",
+        "If Selenium is not installed, WebDriver escalation is silently skipped (no crash) â€” verified by test mocking SELENIUM_AVAILABLE=False"
       ],
       "passes": false
     },
     {
-      "group": "Content-Extraction-Quality",
-      "feature": "Heading hierarchy normalization across all site-types",
-      "description": "Different doc sites use different heading hierarchies: some start at h1, some at h2, some skip levels (h1 → h3). The MCP MarkdownParser expects consistent heading levels for good TOC generation. Add a heading normalization step in ContentCleaner that ensures: each page starts with h1 (or h2 for sub-pages), no levels are skipped, and duplicate h1s are cleaned. Test against all 10 doc-set outputs.",
+      "group": "Recursive-Navigation-Discovery",
+      "feature": "Sitemap-assisted navigation for large documentation sites",
+      "description": "CONTEXT: Some documentation sites have sitemaps that list ALL pages but the current `_try_sitemap()` in `scraper/url_discovery.py` (line 238-260) either uses all sitemap URLs or filters too aggressively via LLM. For sites like Django (200+ doc pages) and Kubernetes (500+ pages), the sitemap contains the complete URL list but the scraper's scope filter or LLM filter removes too many. PROBLEM: Django's sitemap has URLs for all versions and languages. The current scope filter (line 250-251) does `scope in u['url']` which is a substring match â€” it's not precise enough. For example, scope '/en/stable/' correctly matches /en/stable/topics/ but also incorrectly rejects /en/stable which doesn't have trailing path. Kubernetes has /docs/home/ as start URL, scope becomes '/docs/home/' which is too narrow â€” it misses /docs/concepts/, /docs/tasks/, etc. SOLUTION: Improve sitemap URL filtering: (1) When sitemap returns >50 URLs, group them by path prefix (first 2 segments), (2) Score groups by: doc-like names (+3), presence in nav links (+5), same prefix as start_url (+2), translation pages (-10), old versions (-5), (3) Keep groups with positive score, (4) For scope filtering, use the broader doc path (e.g., /docs/ not /docs/home/) â€” walk up the path until the prefix covers a reasonable number of sitemap URLs. IMPORTANT: No site-specific logic. All heuristics must be based on URL structure and generic naming patterns. FILE TO MODIFY: `scraper/url_discovery.py`, method `_try_sitemap` (line 238).",
       "acceptance_criteria": [
-        "Heading normalizer ensures no skipped levels (e.g., h1 → h3 without h2) — verified by unit test",
-        "Pages with multiple h1 headings are cleaned to single h1 + h2s — verified by unit test",
-        "Normalizer preserves original heading text — verified by content comparison",
-        "All 10 doc-set outputs pass heading hierarchy validation after normalization — verified by batch test",
-        "MCP MarkdownParser TOC generation improves (fewer orphan entries) — verified by TOC entry count comparison"
+        "Sitemap URLs are grouped by first 2 path segments when >50 URLs returned â€” verified by unit test with 100 mock URLs across /docs/, /blog/, /api/ paths",
+        "Groups with doc-like names (/docs/, /api/, /guide/, /reference/, /tutorial/) score higher â€” verified by unit test asserting /docs/ group outscores /blog/ group",
+        "Translation pages (/de/, /fr/, /ja/) are scored negatively and filtered out â€” verified by unit test with bilingual sitemap",
+        "Scope broadening: if start_url is /docs/home/, scope widens to /docs/ when /docs/ prefix covers >20 sitemap URLs â€” verified by unit test",
+        "The improved filtering increases coverage for django to >=60% and kubernetes to >=50% (based on audit_url_coverage.py --compare-only) â€” verified by running the audit tool after implementation"
       ],
       "passes": false
     },
     {
-      "group": "Search-Relevance-Tuning",
-      "feature": "TF-IDF scoring to replace raw term frequency",
-      "description": "The current search uses raw term count (capped at 20) which treats common words the same as rare domain-specific terms. Implement TF-IDF (Term Frequency - Inverse Document Frequency) scoring in MarkdownParser.search(): build a document frequency map during buildIndex() that counts how many sections contain each word. During search, weight rare terms higher than common ones. This should dramatically improve precision for specific queries like 'ConfigMaps' vs generic ones like 'configuration'.",
+      "group": "Hybrid-Mode-Strategy",
+      "feature": "Combined discovery: merge results from multiple modes",
+      "description": "CONTEXT: The current `discover_urls()` in `scraper/url_discovery.py` (line 42-142) tries modes sequentially and STOPS at the first one that returns enough results: GitHub -> Sitemap (>=10) -> Navigation (>=5) -> Crawl. This means if sitemap returns 50 URLs but there are actually 200 pages discoverable via crawl, the scraper stops at 50. PROBLEM: Tailwind has 93% coverage because sitemap works well. But sites like golang (24%) use sitemap which returns go.dev blog posts mixed with docs, and the scope filter is too aggressive. If navigation or crawl were ALSO used, more doc pages would be found. Node.js sitemap returns blog posts, and navigation is never tried because sitemap already returned >=10 URLs. SOLUTION: Change the discovery strategy from 'first-wins' to 'best-combined': (1) Run sitemap AND navigation in sequence (not crawl yet â€” it's expensive), (2) Merge results: union of URLs from both modes, deduplicated by normalized URL, (3) If combined result has < max_pages * 0.5 URLs, ALSO run crawl mode to supplement, (4) Track which mode discovered each URL (add 'discovery_mode' field to each URL dict), (5) Log combined stats: 'Combined: X from sitemap + Y from navigation + Z from crawl = N total'. IMPORTANT: The 'first-wins' shortcut is gone. Always try sitemap AND navigation. Only add crawl if the first two didn't find enough. This increases HTTP requests per scrape but dramatically improves coverage. FILE TO MODIFY: `scraper/url_discovery.py`, method `discover_urls` (line 42-142). Refactor the sequential if/return chain into a merge-based approach.",
       "acceptance_criteria": [
-        "buildIndex() computes document frequency (DF) for each unique word across all sections — verified by checking DF map exists with >100 entries",
-        "search() uses TF-IDF scoring: score = tf * log(N/df) instead of raw count — verified by unit test comparing old vs new scoring",
-        "Query 'ConfigMaps' ranks kubernetes ConfigMaps section #1 (currently not) — verified by search result test",
-        "Query 'authentication' still returns relevant results (no regression) — verified by regression test",
-        "Search benchmark precision@1 improves from 0.35 to >= 0.50 across all 10 doc-sets — verified by re-running quality benchmark"
+        "discover_urls() always tries both sitemap AND navigation (not just the first that succeeds) â€” verified by unit test mocking both methods and asserting both were called",
+        "Results are merged with URL deduplication (same URL from sitemap and nav counted once) â€” verified by unit test with overlapping URL lists",
+        "Each URL dict has 'discovery_mode' field ('sitemap', 'navigation', or 'crawl') â€” verified by checking field exists in returned URLs",
+        "Crawl mode only runs if sitemap+navigation combined yield < 50% of max_pages â€” verified by unit test: when sitemap returns 100 and max_pages=200, crawl is triggered; when sitemap returns 150, crawl is skipped",
+        "Result dict has 'mode' field set to 'combined' when multiple modes contributed, or the single mode name if only one found URLs â€” verified by unit test"
       ],
       "passes": false
     },
     {
-      "group": "Search-Relevance-Tuning",
-      "feature": "Multi-word phrase matching with proximity scoring",
-      "description": "Current search splits queries into individual terms and scores each independently. This means 'Docker deployment' matches any section mentioning 'Docker' OR 'deployment' separately. Add phrase matching: when query terms appear adjacent or within N words of each other in the content, add a proximity bonus. Exact phrase match gets highest boost. This improves relevance for multi-word queries.",
+      "group": "Hybrid-Mode-Strategy",
+      "feature": "Crawl supplementation with discovered-URL seeding",
+      "description": "CONTEXT: The current `_crawl_links()` in `scraper/url_discovery.py` (line 411-474) starts BFS from the start_url only. If the start page has few links (like react.dev with 7 top-level links), the crawl doesn't go deep. PROBLEM: After sitemap+navigation find some URLs, the crawl should use THOSE URLs as seed points, not just the start_url. This way, if navigation found /learn/ and /reference/, the crawl starts from those pages too and discovers their sub-pages. SOLUTION: Add a `seed_urls` parameter to `_crawl_links()`: (1) Accept optional `seed_urls: List[str]` parameter, (2) Initialize BFS queue with start_url + all seed URLs, (3) In `discover_urls()`, after sitemap+navigation merge, pass the discovered URLs as seeds to crawl, (4) Crawl only visits pages NOT already discovered by sitemap/navigation (skip already-known URLs). This makes crawl an efficient gap-filler rather than starting from scratch. IMPORTANT: Seed URLs should be limited to max 50 to avoid overloading the BFS queue. Prioritize seed URLs that look like section pages (short paths, few segments). FILE TO MODIFY: `scraper/url_discovery.py`, methods `_crawl_links` (line 411) and `discover_urls` (line 42).",
       "acceptance_criteria": [
-        "Exact phrase match ('Docker deployment' as substring) gets 3x bonus over individual term matches — verified by unit test",
-        "Proximity within 5 words gets 2x bonus — verified by unit test with crafted content",
-        "Query 'OAuth2 authentication' ranks OAuth2 section higher than generic auth sections — verified by search test on fastapi",
-        "Single-word queries are unaffected (no regression) — verified by regression test",
-        "Search benchmark MRR improves from 0.35 to >= 0.50 — verified by re-running quality benchmark"
+        "`_crawl_links()` accepts optional `seed_urls: List[str]` parameter â€” verified by checking method signature",
+        "BFS queue is initialized with start_url + seed_urls â€” verified by unit test with 3 seed URLs asserting all 3 are visited",
+        "Already-discovered URLs (from sitemap/nav) are pre-added to 'visited' set so crawl skips them â€” verified by unit test showing crawl doesn't re-fetch known URLs",
+        "Seed URLs limited to 50, prioritizing shorter paths â€” verified by unit test with 100 seed URLs asserting only 50 used",
+        "Combined discovery with seed-based crawl finds more URLs than crawl-from-start-only â€” verified by integration test comparing URL counts"
       ],
       "passes": false
     },
     {
-      "group": "Search-Relevance-Tuning",
-      "feature": "Section hierarchy boost for parent-child relevance",
-      "description": "When a section's parent heading matches the query, the child section should get a relevance boost. Example: query 'Pods' should rank sections under the 'Pods' h2 heading higher, even if those child sections don't mention 'Pods' directly. Currently, path matching gives 30 points but is the same for all path depths. Add a depth-weighted path boost: direct parent match = 25pts, grandparent = 15pts, great-grandparent = 10pts.",
+      "group": "Hybrid-Mode-Strategy",
+      "feature": "Discovery mode reporting and statistics",
+      "description": "CONTEXT: The scraper currently logs discovery mode and URL count, but there's no structured reporting that can be used for monitoring and regression testing. The audit tool `tests/e2e/audit_url_coverage.py` needs to know which mode was used and how many URLs each mode contributed. SOLUTION: Enhance the return dict from `discover_urls()` to include detailed statistics: (1) Add 'mode_stats' dict with per-mode URL counts: {'sitemap': 120, 'navigation': 45, 'crawl': 35, 'total_unique': 180}, (2) Add 'discovery_log' list of strings describing what happened: ['Sitemap: found 120 URLs', 'Navigation: found 60 URLs (45 new)', 'Crawl: seeded with 30 URLs, found 50 (35 new)'], (3) Store the discovery stats in the scraped documentation's metadata.json (via StorageManager) so it persists, (4) Update cli.py to display mode stats after scraping. ALSO: Update `scraper_engine.py` to save discovery_log to metadata when scrape completes. Check `scraper_engine.py` for where metadata is saved (look for `save_metadata` calls). FILE TO MODIFY: `scraper/url_discovery.py` (discover_urls return dict), `scraper/scraper_engine.py` (save discovery stats to metadata), `scraper/cli.py` (display stats).",
       "acceptance_criteria": [
-        "Direct parent title matching query term gets +25 bonus — verified by unit test with nested sections",
-        "Grandparent matching gets +15 bonus — verified by unit test",
-        "Child sections under 'Pods' h2 rank higher for query 'Pods lifecycle' — verified by kubernetes search test",
-        "No regression for top-level section searches — verified by regression test",
-        "Heading hierarchy data (path array) is correctly populated for all doc-sets — verified by index validation test"
+        "discover_urls() return dict includes 'mode_stats' with per-mode counts â€” verified by unit test checking mode_stats keys",
+        "discover_urls() return dict includes 'discovery_log' list of human-readable strings â€” verified by unit test checking log entries",
+        "ScraperEngine saves discovery_log to metadata.json after scrape â€” verified by checking metadata file after test scrape",
+        "cli.py prints mode stats after scraping (e.g., 'Discovery: 120 sitemap + 45 nav + 35 crawl = 180 total') â€” verified by running cli.py add with --url and checking stdout",
+        "Existing tests still pass â€” verified by running python -m pytest tests/e2e/ -v"
       ],
-      "passes": true
+      "passes": false
     },
     {
-      "group": "Search-Relevance-Tuning",
-      "feature": "Stop word removal and query preprocessing",
-      "description": "Queries like 'how to deploy with Docker' score 'how', 'to', 'deploy', 'with', 'Docker' equally. Common stop words ('how', 'to', 'with', 'the', 'a', 'is', etc.) dilute relevance scores. Add stop word filtering: remove common English stop words from queries before scoring. Also add query normalization: strip punctuation, collapse whitespace, handle camelCase splitting (e.g., 'useState' → 'use state').",
+      "group": "Content-Type-Classification",
+      "feature": "Generic documentation page classifier for URL filtering",
+      "description": "CONTEXT: The current `_is_doc_page()` in `scraper/url_discovery.py` (line 504-519) only checks file extensions and a small list of skip_paths (/search, /login, etc.). It does NOT distinguish between documentation pages, blog posts, changelogs, community pages, or marketing pages. PROBLEM: Node.js scraper found 235 blog posts instead of API docs because _is_doc_page returned True for /en/blog/* URLs. golang scraper picked up /blog/ and /play/ URLs. The hyperapp audit shows github.com/features/* URLs being counted. SOLUTION: Create a new method `_classify_url(url, base_url)` in URLDiscovery class that returns a classification: 'documentation', 'blog', 'changelog', 'community', 'marketing', 'api-reference', 'tutorial', or 'unknown'. Classification rules (ALL generic, NO site-specific): (1) Path contains /blog/, /news/, /changelog/, /releases/ -> 'blog'/'changelog', (2) Path contains /community/, /forum/, /discuss/, /team/, /careers/ -> 'community', (3) Path contains /pricing/, /enterprise/, /contact/, /about/, /legal/, /terms/, /privacy/ -> 'marketing', (4) Path contains /docs/, /documentation/, /guide/, /reference/, /api/, /learn/, /tutorial/, /handbook/, /manual/ -> 'documentation'/'tutorial'/'api-reference', (5) If none match -> 'unknown' (treated as potential documentation). Use this classifier in discover_urls() to filter out non-doc URLs AFTER discovery but BEFORE returning results. Add a parameter `include_types=['documentation', 'tutorial', 'api-reference', 'unknown']` to discover_urls(). FILE TO MODIFY: `scraper/url_discovery.py`, add method `_classify_url`, integrate into `discover_urls`.",
       "acceptance_criteria": [
-        "Stop word list has >= 50 common English words (the, a, is, how, to, with, etc.) — verified by list length check",
-        "Query 'how to deploy with Docker' is preprocessed to ['deploy', 'docker'] — verified by unit test",
-        "camelCase splitting: 'useState' → ['use', 'state'] for search — verified by unit test",
-        "Query 'What is a ConfigMap?' preprocessed to ['configmap'] — verified by unit test",
-        "Search results for 'how to deploy with Docker' are same quality as 'deploy Docker' — verified by result comparison test"
+        "New method `_classify_url(url, base_url)` returns one of the defined type strings â€” verified by unit test with 10 different URL patterns",
+        "/blog/2024/my-post classifies as 'blog' â€” verified by unit test",
+        "/docs/getting-started classifies as 'documentation' â€” verified by unit test",
+        "/pricing and /about classify as 'marketing' â€” verified by unit test",
+        "discover_urls() filters out 'blog', 'changelog', 'community', 'marketing' URLs by default â€” verified by integration test showing /blog/* URLs removed from results",
+        "Unknown URLs (no pattern match) are kept by default (not filtered) â€” verified by unit test with /some-random-path returning 'unknown' and being included"
       ],
-      "passes": true
+      "passes": false
     },
     {
-      "group": "Search-Relevance-Tuning",
-      "feature": "Search result diversity and file-level deduplication",
-      "description": "When a large file has 50 sections all mentioning 'configuration', search results are dominated by that single file. Add file-level diversity: after scoring, ensure no more than 3 results from the same file in the top 10. Promote the highest-scoring section from each file, then fill remaining slots with next-best from other files. This gives users a broader view across the documentation.",
+      "group": "Content-Type-Classification",
+      "feature": "Version and language duplicate detection in URL lists",
+      "description": "CONTEXT: Many documentation sites have the same content available under multiple URL paths for different versions or languages. For example, Django has /en/5.0/, /en/4.2/, /en/stable/ all containing the same pages. FastAPI has /de/, /ja/, /fr/ translations. The current locale filter handles SOME of this but it's incomplete. PROBLEM: The audit showed Django at 26% coverage, but many 'missing' URLs are old versions (/en/1.8/, /en/1.10/) that shouldn't be scraped. FastAPI's 'missing' 57 URLs are 47 translation pages. The scraper needs to detect and skip version/language duplicates generically. SOLUTION: Add method `_deduplicate_versioned_urls(urls, start_url)` to URLDiscovery: (1) Group URLs by their 'content path' â€” the path with version/locale segments removed. E.g., /en/5.0/topics/db/ and /en/4.2/topics/db/ have the same content path /topics/db/, (2) For each content path group, keep only the URL matching the version/locale from start_url (or 'stable'/'latest'), (3) Detect version patterns in URLs: /vN/, /N.N/, /stable/, /latest/, /current/, (4) Detect locale patterns: /xx/ where xx is a 2-letter code. This should run AFTER all discovery modes but BEFORE returning results. FILE TO MODIFY: `scraper/url_discovery.py`, add method `_deduplicate_versioned_urls`, call from `discover_urls` before return.",
       "acceptance_criteria": [
-        "Top 10 results contain sections from at least 3 different files (when available) — verified by file diversity test on kubernetes",
-        "No more than 3 results from same file in top 10 — verified by count-per-file assertion",
-        "Highest-scoring section per file is always included — verified by score ordering test",
-        "File diversity does not apply when maxResults <= 3 — verified by small result set test",
-        "Search benchmark overall score does not decrease — verified by before/after benchmark comparison"
+        "Method groups URLs by content path (path minus version/locale segments) â€” verified by unit test with Django-like URLs /en/5.0/topics/db/ and /en/4.2/topics/db/ grouped together",
+        "Only the version matching start_url is kept (e.g., start_url has /en/stable/ -> keep /en/stable/* URLs) â€” verified by unit test",
+        "Translation duplicates removed: /de/docs/intro and /fr/docs/intro removed when start_url is /en/ â€” verified by unit test",
+        "URLs without version/locale segments are always kept â€” verified by unit test with /docs/intro (no version) being preserved",
+        "The locale filter in _apply_locale_filter still works alongside this â€” verified by existing locale tests passing"
       ],
-      "passes": true
+      "passes": false
     },
     {
-      "group": "Query-Suite-Calibration",
-      "feature": "Manual ground-truth query annotations for 5 core doc-sets",
-      "description": "The current query-suite.json uses fuzzy-matched expected_top_title which often maps to wrong headings. For 5 core doc-sets (react, fastapi, kubernetes, tailwind, golang), manually create ground-truth annotations: for each query, specify the exact section title AND section ID from the actual MCP index that should be the correct top result. Build an annotation tool that loads the MCP index, shows search results, and lets the annotator mark the correct answer. Store annotations in tests/fixtures/real-world/query-annotations/{doc-name}.json.",
+      "group": "Content-Type-Classification",
+      "feature": "Pagination and anchor-only URL deduplication",
+      "description": "CONTEXT: Some documentation sites generate many URLs that are the same page with different query parameters or anchors: /docs/api?page=2, /docs/api#section-3, /docs/api?tab=examples. These are not separate documentation pages. PROBLEM: The crawl mode in `_crawl_links()` already strips fragments (#) in `_normalize_url()`, but it does NOT handle query parameters. Sites with search pages, paginated lists, or tabbed content generate many ?param=value URLs that inflate the URL count without adding real content. SOLUTION: Enhance `_normalize_url()` in `scraper/url_discovery.py` (line 476-491): (1) Strip query parameters by default (everything after '?'), (2) Add an exception list for query params that indicate real pages: 'page', 'id', 'section', 'v' (version), (3) Keep the path-only URL as canonical. Also add deduplication after all discovery: normalize all URLs to their canonical form and remove duplicates. FILE TO MODIFY: `scraper/url_discovery.py`, method `_normalize_url` (line 476). Also add a `_deduplicate_urls(urls)` helper method.",
       "acceptance_criteria": [
-        "Annotation tool script that loads MCP index and presents search results for review — verified by script existence and --help output",
-        "Each of 5 core doc-sets has annotation file with >= 8 annotated queries — verified by file existence and count",
-        "Each annotation has: query, correct_section_id, correct_title, correct_file, relevance_grade (exact/partial/none) — verified by JSON schema validation",
-        "Total >= 40 manually verified query-answer pairs — verified by counting across all annotation files",
-        "Annotation format is compatible with eval-realworld.ts evaluation script — verified by integration test"
+        "`_normalize_url` strips query parameters from URLs â€” verified by unit test: /docs/api?tab=js normalizes to /docs/api",
+        "Fragment (#) stripping still works â€” verified by unit test: /docs/api#methods normalizes to /docs/api",
+        "URLs that differ only by query params are deduplicated â€” verified by unit test with /docs/api and /docs/api?page=1 resulting in one URL",
+        "New `_deduplicate_urls(urls)` method removes duplicate URLs keeping the first occurrence â€” verified by unit test",
+        "Existing tests pass â€” verified by running python -m pytest tests/e2e/ -v"
       ],
-      "passes": true
+      "passes": false
     },
     {
-      "group": "Query-Suite-Calibration",
-      "feature": "Query type distribution across conceptual, API, code, and troubleshooting queries",
-      "description": "Current query-suite.json has mostly conceptual queries ('React hooks', 'Kubernetes pods'). Real users also search for: API signatures ('useState parameters'), code patterns ('fetch data useEffect'), error messages ('CORS error'), and how-to queries ('deploy to production'). Rebalance the query suite to have 25% conceptual, 25% API/reference, 25% code patterns, 25% how-to/troubleshooting. Add query_type field to each query.",
+      "group": "Coverage-Validation",
+      "feature": "Post-discovery coverage estimator",
+      "description": "CONTEXT: After URL discovery completes, there is currently no way to know if the discovered URL list is complete or severely incomplete. The user only finds out after scraping and manually inspecting results. PROBLEM: The audit showed that 8 out of 12 scraped sites have <30% coverage. A coverage estimator that runs DURING discovery (not after) would flag incomplete results before expensive scraping begins. SOLUTION: Add method `_estimate_coverage(discovered_urls, start_url, base_url)` to URLDiscovery in `scraper/url_discovery.py`: (1) Fetch the start page and count total internal links (same-domain links found anywhere on the page), (2) Fetch 3-5 random discovered URLs and count THEIR internal links, (3) Use the ratio of discovered URLs to unique internal links as a rough coverage estimate, (4) If coverage estimate is <50%, log a warning: 'WARNING: Low coverage estimate ({pct}%). Discovery may be incomplete. Consider using --max-pages={suggested} or WebDriver mode.', (5) Return the estimate as part of discover_urls() result dict under key 'coverage_estimate'. Call this method at the end of discover_urls() before returning. IMPORTANT: This is a HEURISTIC estimate, not exact. It's meant to flag obviously incomplete scrapes, not provide precise numbers. The goal is to catch cases like react.dev (7 pages found, but the page has 50+ internal links) and alert the user. FILE TO MODIFY: `scraper/url_discovery.py`, add method `_estimate_coverage`, call at end of `discover_urls`.",
       "acceptance_criteria": [
-        "Each query has query_type field: 'conceptual', 'api_reference', 'code_pattern', or 'howto' — verified by schema check",
-        "Distribution is within 20-30% per type (no type below 20%) — verified by count per type",
-        "At least 15 queries per doc-set (up from current 5-10) — verified by per-doc count",
-        "Total query count >= 100 — verified by total count",
-        "New query types include API signatures, error messages, and code snippets — verified by content check"
+        "New method `_estimate_coverage()` returns a float 0.0-1.0 â€” verified by unit test with mock pages",
+        "discover_urls() result dict includes 'coverage_estimate' field â€” verified by checking return dict",
+        "Warning logged when coverage_estimate < 0.5 â€” verified by capturing print output in test",
+        "Estimate correctly flags a case where 7 URLs found but start page has 50 internal links (estimate ~14%) â€” verified by unit test with mock HTML",
+        "Estimate does not slow down discovery significantly (max 5 extra HTTP requests) â€” verified by counting requests in test"
       ],
-      "passes": true
+      "passes": false
     },
     {
-      "group": "Query-Suite-Calibration",
-      "feature": "Automated query generation from section titles and code blocks",
-      "description": "Manually writing 100+ queries is slow and biased. Create a script that auto-generates candidate queries from the MCP index: extract section titles as 'conceptual' queries, extract function/class names from code blocks as 'api_reference' queries, extract error strings as 'troubleshooting' queries. Human reviews and filters the candidates. The correct answer is the section the query was generated from.",
+      "group": "Coverage-Validation",
+      "feature": "Automated URL coverage regression test suite",
+      "description": "CONTEXT: The audit tool `tests/e2e/audit_url_coverage.py` runs a deep crawl and compares against scraped URLs. The crawl results are cached in `tests/e2e/fixtures/real-world/url-coverage/*.json`. These cached results can serve as ground truth for regression testing â€” if a code change makes discovery WORSE, the test should fail. SOLUTION: Create a new test file `tests/e2e/test_url_coverage.py` that: (1) Reads the cached crawl results from `tests/e2e/fixtures/real-world/url-coverage/*.json` for each of the 12 audited sites, (2) For each site, runs `discover_urls()` against a MOCK HTTP server that serves the cached pages (not live â€” use `FixtureHTTPServer` from existing test infrastructure or mock the HTTP calls), (3) Compares the discovered URLs against the crawled ground-truth URLs, (4) Asserts minimum coverage thresholds per site. IMPORTANT: These tests must NOT make live HTTP calls. Mock all network access using the cached crawl data. If a mock server isn't feasible, mock `requests.Session.get()` to return cached responses. COVERAGE TARGETS (minimum thresholds, to be raised as discovery improves): tailwind >=80%, nextjs >=80%, fastapi >=60%, django >=40%, golang >=30%, python3 >=20%, kubernetes >=20%, react >=20%, typescript >=15%, rust-book >=10%, nodejs >=10%, hyperapp >=5%. FILE TO CREATE: `tests/e2e/test_url_coverage.py`. DEPENDENCY: cached JSON files in tests/e2e/fixtures/real-world/url-coverage/.",
       "acceptance_criteria": [
-        "Generator script produces candidate queries from section titles — verified by script output with >= 50 candidates per doc-set",
-        "Code block extraction finds function names, class names, API endpoints — verified by regex pattern tests",
-        "Generated queries have automatic correct_section_id (the source section) — verified by ID validity check",
-        "Human review workflow: script outputs candidates to review file, human marks keep/discard — verified by review file format",
-        "At least 20 auto-generated queries pass human review per core doc-set — verified by approved count"
+        "Test file `tests/e2e/test_url_coverage.py` exists with parametrized tests for all 12 cached sites â€” verified by file existence and pytest collection",
+        "Tests do NOT make live HTTP calls (all network mocked) â€” verified by running tests with network disabled or checking for mock usage",
+        "Each site has a minimum coverage threshold that must be met â€” verified by checking test assertions",
+        "Tests pass for sites that already have good coverage (tailwind, nextjs) â€” verified by running pytest on just those parametrized cases",
+        "Tests fail gracefully (skip, not error) when cached crawl data is missing â€” verified by deleting one cache file and running test"
       ],
-      "passes": true
+      "passes": false
     },
     {
-      "group": "Query-Suite-Calibration",
-      "feature": "Cross-doc-set query deduplication and difficulty grading",
-      "description": "Some queries appear across multiple doc-sets with different expected answers (e.g., 'authentication' appears in fastapi, django, synthflow). Ensure each query is unique per doc-set and add difficulty grading: 'easy' (exact title match exists), 'medium' (topic exists but title differs), 'hard' (requires semantic understanding). Report search benchmark broken down by difficulty level.",
+      "group": "Coverage-Validation",
+      "feature": "Discovery dry-run mode for coverage preview",
+      "description": "CONTEXT: Users currently have to run the full scrape to see how many pages will be found. A dry-run mode that only runs discovery (no content fetching) would let users preview coverage before committing to a full scrape. SOLUTION: Add `--dry-run` flag to `cli.py` commands `add` and `update`: (1) Run SiteAnalyzer and URLDiscovery as normal, (2) Print discovered URL count, mode used, scope, and coverage estimate, (3) Print first 20 discovered URLs as preview, (4) Print estimated scrape time (based on URL count * ~2 seconds per page), (5) Do NOT proceed to actual scraping, (6) Return exit code 0 if coverage looks good (>=50%), exit code 1 if low coverage detected. ALSO add `--dry-run` support in `scraper_engine.py` â€” the engine should skip `scrape_all()` when dry_run=True and just return the discovery result. FILE TO MODIFY: `scraper/cli.py` (add --dry-run flag to `add` and `update` commands), `scraper/scraper_engine.py` (add dry_run parameter). NOTE: When used via MCP server (index.ts spawns cli.py), the --dry-run flag should be passable via a new `dryRun` parameter in the `scrape_documentation` tool. But the MCP changes are optional â€” focus on CLI first.",
       "acceptance_criteria": [
-        "No duplicate queries within the same doc-set — verified by uniqueness check",
-        "Each query has difficulty field: 'easy', 'medium', or 'hard' — verified by schema check",
-        "Difficulty distribution: ~30% easy, ~40% medium, ~30% hard — verified by count per difficulty",
-        "Search benchmark reports precision broken down by difficulty — verified by benchmark output format",
-        "Easy queries achieve precision@1 >= 0.80 — verified by benchmark result"
+        "cli.py `add` command accepts --dry-run flag â€” verified by running `python cli.py add --url X --name Y --dry-run` without error",
+        "Dry-run prints URL count, discovery mode, scope, and coverage estimate â€” verified by checking stdout output",
+        "Dry-run prints first 20 discovered URLs â€” verified by checking stdout",
+        "Dry-run does NOT create any files in storage (no version dir, no .md files) â€” verified by checking AppData directory before and after",
+        "Dry-run returns exit code 1 when coverage estimate < 50% â€” verified by test with site that has known low coverage"
       ],
-      "passes": true
+      "passes": false
     },
     {
-      "group": "Query-Suite-Calibration",
-      "feature": "Django English-only re-scrape and query suite fix",
-      "description": "Django's AppData contains Greek translations (v1 scraped /el/ URLs). Re-scrape Django with the correct English start URL (https://docs.djangoproject.com/en/stable/) and locale filter. Update the query-suite with proper English Django queries targeting real section titles like 'Models', 'Views', 'Templates', 'Forms', 'Admin'. Verify search works correctly on the English content.",
+      "group": "Extended-Site-Verification",
+      "feature": "Scrape and audit all 12 previously-scraped README sites with improved discovery",
+      "description": "CONTEXT: After implementing Groups 1-5 (Scope-Boundary-Detection, Recursive-Navigation-Discovery, Hybrid-Mode-Strategy, Content-Type-Classification, Coverage-Validation), the 12 previously-scraped sites need to be re-scraped to verify coverage improvements. The audit tool `tests/e2e/audit_url_coverage.py` has cached crawl results in `tests/e2e/fixtures/real-world/url-coverage/`. CURRENT BASELINES (from Feb 7 2026 audit): tailwind 93%, nextjs 97.5%, fastapi 71.5%, django 26%, golang 24%, python3 9.5%, kubernetes 8.5%, typescript 3.5%, react 3.5%, hyperapp 3.5%, rust-book 1.5%, nodejs 1.0%. TARGET (minimum after improvements): tailwind >=93%, nextjs >=95%, fastapi >=80%, django >=60%, golang >=50%, python3 >=40%, kubernetes >=40%, typescript >=40%, react >=50%, hyperapp >=20%, rust-book >=30%, nodejs >=40%. PROCESS: (1) Re-scrape each site using `python cli.py update --name X --force`, (2) Run `python tests/e2e/audit_url_coverage.py --all --quick --max-pages 200` to generate new coverage report, (3) Compare new coverage against targets, (4) If any site is below target, investigate and log the gap. IMPORTANT: Do NOT add site-specific hacks to improve coverage. If a site is below target, the fix must be in the generic discovery code (Groups 1-4). Document any remaining gaps with specific URLs that are missing. FILE TO RUN: `scraper/cli.py update`, `tests/e2e/audit_url_coverage.py`.",
       "acceptance_criteria": [
-        "Django re-scraped from /en/stable/ with locale_filter='en' — verified by config.json start_url check",
-        "All Django .md files contain English content (no Greek characters) — verified by encoding scan",
-        "Django query-suite has 10 queries with manually verified English expected_top_title — verified by annotation file",
-        "Django search precision@1 >= 0.50 (up from 0.00) — verified by search benchmark",
-        "Django .md file count >= 40 (similar to v1's 60 but all English) — verified by file count"
+        "All 12 sites re-scraped with `cli.py update --force` without errors â€” verified by exit code 0 for each",
+        "Coverage audit run and results saved to url-coverage/ directory â€” verified by summary JSON file existence",
+        "At least 8 of 12 sites meet their coverage targets â€” verified by comparing audit results against target thresholds",
+        "Sites that miss targets have gap analysis documented (which URLs are missing and why) â€” verified by checking audit JSON missing_urls field",
+        "No site has WORSE coverage than the Feb 7 baseline â€” verified by comparing new vs old summary JSON"
       ],
-      "passes": true
+      "passes": false
     },
     {
-      "group": "E2E-Pipeline-Hardening",
-      "feature": "Full-site E2E test: capture → discover → scrape → index → search → score",
-      "description": "Create the definitive E2E test that runs the COMPLETE pipeline for each of the 10 reference doc-sets: (1) serve all captured HTML via CaptureServer, (2) run URLDiscovery against the server, (3) run ScraperEngine.scrape_all(), (4) run MarkdownParser.buildIndex(), (5) run search queries from query-suite, (6) compute quality scores. Each step feeds into the next. A single test run produces a complete quality dashboard. This replaces the current piecemeal tests.",
+      "group": "Extended-Site-Verification",
+      "feature": "Scrape the 39 remaining README documentation sites",
+      "description": "CONTEXT: The README lists 50 documentation sites as 'verified'. Currently only 11 have been fully scraped (the 12 audited minus hyperapp which is GitHub-only). The remaining 39 sites have NEVER been scraped. They span diverse categories: Programming Languages (java, kotlin, dotnet), Tools (git, swagger, grpc, webpack, eslint, vite), Frontend Frameworks (vuejs, nuxt, angular, svelte, sveltekit), Backend Frameworks (flask, rails, laravel, spring-boot), Databases (postgresql, mysql, sqlite, redis, mongodb, elasticsearch), Message Queues (kafka, rabbitmq), DevOps (docker, helm, terraform, ansible, nginx), Cloud/APIs (github, aws, gcloud, azure, openai, stripe, twilio). PROCESS: (1) For each site, run `python cli.py add --url URL --name NAME --display-name DISPLAY`, (2) Record success/failure and page count, (3) Run coverage audit on newly-scraped sites, (4) Target: each site should discover >= 20 documentation URLs (not counting blog/marketing). The full URL-to-name mapping is in `tests/e2e/audit_url_coverage.py` in the README_SITES dict. IMPORTANT: Some sites will require WebDriver mode (bot-protected). Some will have very large sitemaps (>1000 URLs) requiring LLM filtering. The generic improvements from Groups 1-4 should handle most cases. If a site fails completely, document the failure reason but do NOT add site-specific code. FILE TO RUN: `scraper/cli.py add` for each site, then `tests/e2e/audit_url_coverage.py --all --quick`.",
       "acceptance_criteria": [
-        "Single pytest command runs full pipeline for all 10 doc-sets — verified by pytest tests/e2e/test_pipeline_full.py -v",
-        "Each doc-set pipeline step is timed and logged — verified by timing output per step",
-        "Pipeline produces quality-dashboard.json with per-doc-set and aggregate scores — verified by JSON output",
-        "Any doc-set with overall_score < 0.50 is flagged as FAILING — verified by status field in dashboard",
-        "Total pipeline runtime < 5 minutes for all 10 doc-sets — verified by total time assertion"
+        "All 39 sites attempted with cli.py add â€” verified by running `python cli.py list` showing all 50 README sites",
+        "At least 35 of 39 sites scrape successfully (exit code 0, >0 pages) â€” verified by scrape logs",
+        "At least 30 of 39 sites discover >= 20 documentation URLs â€” verified by checking metadata page counts",
+        "Coverage audit run on all 50 sites with results saved â€” verified by summary JSON",
+        "Sites that fail are documented with failure reason (bot-protection, empty sitemap, JS-only, etc.) â€” verified by checking failure log"
       ],
-      "passes": true
+      "passes": false
     },
     {
-      "group": "E2E-Pipeline-Hardening",
-      "feature": "Regression detection via golden output comparison",
-      "description": "Store the current scraper .md output for 5 key pages as golden baselines. On each E2E run, compare new output against golden baselines using diff. Flag regressions: lost headings, lost code blocks, new HTML residue, content truncation, encoding errors. This catches unintended side effects of code changes. Use semantic diff (ignore whitespace changes, focus on structure).",
+      "group": "Extended-Site-Verification",
+      "feature": "Final coverage dashboard and README update",
+      "description": "CONTEXT: After all 50 sites are scraped and audited, a coverage dashboard should summarize the state of the system. This serves as the final acceptance gate for the URL-Discovery-Upgrade project. SOLUTION: (1) Run the full audit (`audit_url_coverage.py --all --quick --max-pages 300`), (2) Generate a markdown report `COVERAGE-REPORT.md` in the project root with: a table of all 50 sites showing coverage %, page count, discovery mode, and status (PASS/FAIL/WARN), (3) Update the README.md 'Verified Documentation Sites' section to accurately reflect current status â€” replace '50/50' with actual numbers, add coverage % per site, (4) Calculate overall system metrics: mean coverage %, median coverage %, number of sites >=80% coverage, number of sites >=50% coverage. TARGET: Overall mean coverage >= 60%, at least 35 sites >= 50% coverage, at least 25 sites >= 80% coverage. FILE TO CREATE: `COVERAGE-REPORT.md`. FILE TO MODIFY: `README.md` (Verified Documentation Sites section). FILE TO RUN: `tests/e2e/audit_url_coverage.py --all`.",
       "acceptance_criteria": [
-        "Golden baselines stored for 5 pages (1 per core site: react, fastapi, kubernetes, tailwind, golang) — verified by file existence",
-        "Diff tool compares: heading count, code block count, content length, encoding errors — verified by diff output format",
-        "Regression detected when heading count drops by >10% — verified by test with intentionally broken cleaner",
-        "Regression detected when new HTML tags appear in output — verified by test with broken selector",
-        "Clean run (no code changes) produces 0 regressions — verified by baseline comparison"
+        "COVERAGE-REPORT.md exists with table of all 50 sites and their coverage metrics â€” verified by file existence and content check",
+        "README.md updated with accurate site verification numbers â€” verified by checking the '## Verified Documentation Sites' section",
+        "Overall mean coverage >= 60% â€” verified by calculating from COVERAGE-REPORT.md data",
+        "At least 35 sites have >= 50% coverage â€” verified by counting PASS entries in report",
+        "Report includes discovery mode breakdown (how many sites use sitemap vs navigation vs crawl vs combined) â€” verified by checking report content"
       ],
-      "passes": true
-    },
-    {
-      "group": "E2E-Pipeline-Hardening",
-      "feature": "Quality score trend tracking across runs",
-      "description": "Store quality dashboard results from each test run in a history file (tests/e2e/quality-history.jsonl, one JSON line per run). Add trend analysis: compare current run against last 3 runs, flag improvements and regressions per dimension. Display a summary showing score trajectory. This enables tracking whether code changes improve or degrade quality over time.",
-      "acceptance_criteria": [
-        "Each benchmark run appends results to quality-history.jsonl — verified by line count increasing after run",
-        "Trend report compares current vs previous run per dimension — verified by trend output format",
-        "Improvements (score increase >= 0.05) are highlighted as IMPROVED — verified by test with mock history",
-        "Regressions (score decrease >= 0.05) are highlighted as REGRESSED — verified by test with mock history",
-        "History file is capped at 50 entries (oldest pruned) — verified by max line count check"
-      ],
-      "passes": true
-    },
-    {
-      "group": "E2E-Pipeline-Hardening",
-      "feature": "Error resilience test: malformed HTML, timeouts, encoding edge cases",
-      "description": "The scraper should handle real-world edge cases gracefully: malformed HTML (unclosed tags), timeout responses, binary content served as text/html, enormous pages (>5MB), empty responses, redirect chains, and mixed encoding (UTF-8 BOM, Latin-1 declared as UTF-8). Create fixture files for each edge case and verify the scraper produces reasonable output (or skips gracefully) rather than crashing.",
-      "acceptance_criteria": [
-        "Scraper handles malformed HTML (unclosed tags) without crash — verified by test with malformed fixture",
-        "Scraper handles empty response body gracefully (skips page) — verified by test with empty fixture",
-        "Scraper handles >5MB page by truncating (not OOM) — verified by test with large fixture",
-        "Scraper handles Latin-1 content declared as UTF-8 — verified by test with mismatched encoding fixture",
-        "All edge case tests complete in < 10 seconds total — verified by timing assertion"
-      ],
-      "passes": true
-    },
-    {
-      "group": "E2E-Pipeline-Hardening",
-      "feature": "CI-ready test runner with quality gate enforcement",
-      "description": "Create a CI-compatible test runner script (run_quality_gate.py) that: (1) runs all E2E tests, (2) generates quality dashboard, (3) compares against minimum quality thresholds, (4) exits with non-zero code if any threshold is violated. Thresholds: avg_markdown_score >= 0.80, avg_search_score >= 0.50, avg_overall_score >= 0.65. Include GitHub Actions workflow YAML for automated quality gate checks on PRs.",
-      "acceptance_criteria": [
-        "run_quality_gate.py runs all E2E tests and produces dashboard — verified by script execution",
-        "Script exits 0 when all thresholds met — verified by test with good scores",
-        "Script exits 1 with clear error when markdown score < 0.80 — verified by test with mock low score",
-        "Script exits 1 with clear error when search score < 0.50 — verified by test with mock low score",
-        "GitHub Actions workflow YAML (.github/workflows/quality-gate.yml) triggers on PR — verified by YAML schema validation"
-      ],
-      "passes": true
+      "passes": false
     }
   ]
 }

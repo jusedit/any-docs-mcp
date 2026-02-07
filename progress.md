@@ -224,3 +224,48 @@
 | E2E-Pipeline-Hardening | 5 | Full-site E2E, golden regression, trend tracking, error resilience, CI quality gate |
 
 **Target:** Overall score 0.70 -> 0.85+, Search score 0.35 -> 0.60+
+
+---
+
+## Plan v4: URL-Discovery-Upgrade
+
+### Session 1 — 2026-02-07
+
+- [x] LLM-based site_type detection (replaced hardcoded URL matching)
+- [x] Code-block language detection fix (Python/JSX before Dockerfile)
+- [x] Reality-check: 5 sites scraped (react, fastapi, tailwind, kubernetes, django)
+- [x] Version comparison tool created (tests/e2e/compare_versions.py)
+- [x] URL coverage audit tool created (tests/e2e/audit_url_coverage.py)
+- [x] Deep-crawl audit of 12 scraped sites — results cached in fixtures/real-world/url-coverage/
+- [x] Deep-Init v4: 19 tasks across 6 groups defined in prd.json
+
+#### URL Coverage Audit Baselines (Feb 7 2026)
+
+| Site | Crawled | Scraped | Coverage | Target |
+|------|---------|---------|----------|--------|
+| nextjs | 200 | 407 | 97.5% | >=95% |
+| tailwind | 200 | 186 | 93.0% | >=93% |
+| fastapi | 200 | 146 | 71.5% | >=80% |
+| django | 200 | 52 | 26.0% | >=60% |
+| golang | 200 | 48 | 24.0% | >=50% |
+| python3 | 200 | 19 | 9.5% | >=40% |
+| kubernetes | 200 | 32 | 8.5% | >=40% |
+| typescript | 143 | 5 | 3.5% | >=40% |
+| react | 200 | 7 | 3.5% | >=50% |
+| hyperapp | 200 | 7 | 3.5% | >=20% |
+| rust-book | 200 | 3 | 1.5% | >=30% |
+| nodejs | 200 | 235 | 1.0% | >=40% |
+
+**Root causes:** Scope too narrow/broad, single-page nav extraction, first-wins mode strategy, no content-type filtering.
+**39 README sites not scraped yet.**
+
+#### v4 Task Groups (19 tasks, 0 passes)
+
+| Group | Tasks | Focus |
+|-------|-------|-------|
+| Scope-Boundary-Detection | 3 | Adaptive multi-scope, doc-path analysis, multi-scope filtering |
+| Recursive-Navigation-Discovery | 4 | Multi-page nav, SPA extraction, WebDriver escalation, sitemap-assisted nav |
+| Hybrid-Mode-Strategy | 3 | Combined discovery, seed-based crawl, mode reporting |
+| Content-Type-Classification | 3 | URL classifier, version/locale dedup, pagination dedup |
+| Coverage-Validation | 3 | Coverage estimator, regression tests, dry-run mode |
+| Extended-Site-Verification | 3 | Re-audit 12 sites, scrape 39 new sites, coverage dashboard |
