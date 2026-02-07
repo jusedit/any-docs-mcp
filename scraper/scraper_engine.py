@@ -308,7 +308,38 @@ class ScraperEngine:
         
         return (group, content_hash)
     
-    def scrape_all(self, version: str, max_pages: int = 500) -> Dict[str, int]:
+    def compute_quality_metrics(self, page_contents: List[Tuple[str, int]]) -> Dict[str, any]:
+        """Compute quality metrics from scraped content."""
+        if not page_contents:
+            return {}
+        
+        total_length = sum(length for _, length in page_contents)
+        avg_length = total_length / len(page_contents)
+        
+        pages_with_code = sum(1 for content, _ in page_contents if '```' in content)
+        pages_below_100 = sum(1 for _, length in page_contents if length < 100)
+        
+        # Heading count (approximate by counting # at start of lines)
+        total_headings = 0
+        for content, _ in page_contents:
+            total_headings += len([line for line in content.split('\n') if line.strip().startswith('#')])
+        avg_headings = total_headings / len(page_contents) if page_contents else 0
+        
+        metrics = {
+            'avg_content_length': round(avg_length, 1),
+            'pages_with_code_blocks': pages_with_code,
+            'pages_below_100_chars': pages_below_100,
+            'avg_headings_per_page': round(avg_headings, 1),
+            'total_pages': len(page_contents)
+        }
+        
+        # Warn if too many short pages
+        if pages_below_100 > len(page_contents) * 0.2:
+            print(f"[WARNING] {pages_below_100} pages ({pages_below_100/len(page_contents)*100:.1f}%) have <100 chars - possible extraction failures", file=sys.stderr)
+        
+        return metrics
+
+    def scrape_all(self, version: str, max_pages: int = 500) -> Dict[str, any]:
         self._report_progress('discovering', message='Discovering documentation URLs...')
         links = self.extract_navigation_links(self.config.start_url, max_pages)
         

@@ -73,10 +73,15 @@ export class MarkdownParser {
   private docsPath: string;
   private index: DocumentIndex | null = null;
   private docName: string;
+  private lastBuildTimeMs: number = 0;
 
   constructor(docsPath: string, docName: string) {
     this.docsPath = docsPath;
     this.docName = docName;
+  }
+
+  public getLastBuildTimeMs(): number {
+    return this.lastBuildTimeMs;
   }
 
   private extractCodeBlocks(content: string): { cleanContent: string; codeBlocks: CodeBlock[] } {
@@ -219,6 +224,8 @@ export class MarkdownParser {
   }
 
   public buildIndex(): DocumentIndex {
+    const startTime = performance.now();
+    
     const files = new Map<string, Section[]>();
     const allSections: Section[] = [];
     const tocByFile = new Map<string, string>();
@@ -237,6 +244,11 @@ export class MarkdownParser {
     }
 
     this.index = { files, allSections, tocByFile };
+    
+    const endTime = performance.now();
+    this.lastBuildTimeMs = endTime - startTime;
+    console.error(`Index built in ${this.lastBuildTimeMs.toFixed(0)}ms (${allSections.length} sections from ${mdFiles.length} files)`);
+    
     return this.index;
   }
 

@@ -232,7 +232,7 @@
         "Query suite updated with 2 code-focused queries (e.g., 'useState example', 'fetch API code') — verify: expected results defined",
         "Overall precision@1 stays >= 0.8 — verify: npm test passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Performance-Observability",
