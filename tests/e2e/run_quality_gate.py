@@ -115,45 +115,47 @@ def main():
             print(f"  {metric}: {value:.2f}")
         return 0
     
-    print("=" * 60)
-    print("QUALITY GATE RUNNER")
-    print("=" * 60)
+    log = print if not args.json else lambda *a, **k: print(*a, file=sys.stderr, **k)
+    
+    log("=" * 60)
+    log("QUALITY GATE RUNNER")
+    log("=" * 60)
     
     # Run E2E tests
-    print("\n[1/3] Running E2E tests...")
+    log("\n[1/3] Running E2E tests...")
     tests_passed, test_output = run_e2e_tests()
-    print(test_output)
+    log(test_output)
     
     if not tests_passed:
-        print("\n❌ E2E tests failed - Quality Gate BLOCKED")
+        log("\n❌ E2E tests failed - Quality Gate BLOCKED")
         return 1
     
     # Generate dashboard
-    print("\n[2/3] Generating quality dashboard...")
+    log("\n[2/3] Generating quality dashboard...")
     dashboard = generate_dashboard()
     
     if args.json:
         print(json.dumps(dashboard, indent=2))
     else:
-        print(f"Test Results: {dashboard['test_results']['passed']}/{dashboard['test_results']['total_tests']} passed")
-        print(f"Markdown Score: {dashboard['quality_scores']['avg_markdown_score']:.2f} (threshold: {THRESHOLDS['avg_markdown_score']:.2f})")
-        print(f"Search Score: {dashboard['quality_scores']['avg_search_score']:.2f} (threshold: {THRESHOLDS['avg_search_score']:.2f})")
-        print(f"Overall Score: {dashboard['quality_scores']['avg_overall_score']:.2f} (threshold: {THRESHOLDS['avg_overall_score']:.2f})")
+        log(f"Test Results: {dashboard['test_results']['passed']}/{dashboard['test_results']['total_tests']} passed")
+        log(f"Markdown Score: {dashboard['quality_scores']['avg_markdown_score']:.2f} (threshold: {THRESHOLDS['avg_markdown_score']:.2f})")
+        log(f"Search Score: {dashboard['quality_scores']['avg_search_score']:.2f} (threshold: {THRESHOLDS['avg_search_score']:.2f})")
+        log(f"Overall Score: {dashboard['quality_scores']['avg_overall_score']:.2f} (threshold: {THRESHOLDS['avg_overall_score']:.2f})")
     
     # Check thresholds
-    print("\n[3/3] Checking quality thresholds...")
+    log("\n[3/3] Checking quality thresholds...")
     thresholds_passed, violations = check_thresholds(dashboard)
     
     if violations:
-        print("\n❌ Threshold violations:")
+        log("\n❌ Threshold violations:")
         for v in violations:
-            print(f"  - {v}")
+            log(f"  - {v}")
     
     if tests_passed and thresholds_passed:
-        print("\n✅ Quality Gate PASSED - All checks successful")
+        log("\n✅ Quality Gate PASSED - All checks successful")
         return 0
     else:
-        print("\n❌ Quality Gate FAILED - See violations above")
+        log("\n❌ Quality Gate FAILED - See violations above")
         return 1
 
 

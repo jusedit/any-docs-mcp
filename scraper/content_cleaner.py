@@ -303,13 +303,13 @@ class ContentCleaner:
             if '[' in code and any(x in code for x in ['[package]', '[dependencies]', '[section]']):
                 return 'toml'
             
-            # Dockerfile
-            if any(x in code_lower for x in ['from ', 'run ', 'cmd ', 'entrypoint ', 'copy ', 'add ']):
-                return 'dockerfile'
-            
-            # JavaScript/TypeScript
+            # JavaScript/TypeScript (must check BEFORE Dockerfile, since 'from ' triggers both)
             if any(x in code for x in ['import React', 'useState', 'useEffect', 'export default function', 'const Component']):
                 return 'jsx'
+            
+            # Dockerfile (after JS check to avoid 'import X from' false positive)
+            if any(x in code_lower for x in ['from ', 'run ', 'cmd ', 'entrypoint ', 'copy ', 'add ']):
+                return 'dockerfile'
             if any(x in code for x in ['interface ', 'type ', ': string', ': number', ': boolean']):
                 return 'typescript'
             if any(x in code for x in ['const ', 'let ', 'function ', '=>', 'async ', 'await ']):

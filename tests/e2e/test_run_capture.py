@@ -40,7 +40,8 @@ class TestDiscoverAndCapture:
         mock_capture.save.return_value = (Path('test.meta.json'), Path('test.body.html'))
         
         results = run_capture.discover_and_capture(
-            'test-site', 'https://example.com/', 10, mock_capture
+            'test-site', 'https://example.com/', 10, mock_capture,
+            fixtures_dir=Path('tests/fixtures/real-world')
         )
         
         # Verify capture was attempted (actual URL count may vary due to real discovery)

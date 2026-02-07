@@ -400,11 +400,12 @@ export class MarkdownParser {
         score += Math.min(codeBlockScore, 40);
       }
 
-      // Section hierarchy boost: top-level sections get bonus
-      // h1: +25, h2: +15, h3: +5, h4+: 0
-      if (section.level <= 1) score += 25;
-      else if (section.level === 2) score += 15;
-      else if (section.level === 3) score += 5;
+      // Section hierarchy boost: only apply when there's at least one term match
+      if (score > 0) {
+        if (section.level <= 1) score += 25;
+        else if (section.level === 2) score += 15;
+        else if (section.level === 3) score += 5;
+      }
 
       return { section, score };
     });

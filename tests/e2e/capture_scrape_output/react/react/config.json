@@ -1,7 +1,7 @@
 {
   "name": "react",
   "display_name": "React",
-  "start_url": "http://127.0.0.1:49420",
+  "start_url": "http://127.0.0.1:29753",
   "site_analysis": {
     "content_selectors": [
       "main",
@@ -19,13 +19,13 @@
       ".sidebar"
     ],
     "url_pattern": ".*",
-    "base_url": "http://127.0.0.1:49420",
+    "base_url": "http://127.0.0.1:29753",
     "grouping_strategy": "path_depth_2",
     "notes": ""
   },
   "version": "v1",
-  "created_at": "2026-02-07T17:16:18.005469",
-  "updated_at": "2026-02-07T17:16:18.005511",
+  "created_at": "2026-02-07T19:26:59.550084",
+  "updated_at": "2026-02-07T19:26:59.550096",
   "metadata": {},
   "content_hash": null
 }

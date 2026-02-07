@@ -1,7 +1,7 @@
 {
   "name": "kubernetes",
   "display_name": "Kubernetes",
-  "start_url": "http://127.0.0.1:49450",
+  "start_url": "http://127.0.0.1:29789",
   "site_analysis": {
     "content_selectors": [
       "main",
@@ -19,13 +19,13 @@
       ".feedback"
     ],
     "url_pattern": ".*",
-    "base_url": "http://127.0.0.1:49450",
+    "base_url": "http://127.0.0.1:29789",
     "grouping_strategy": "path_depth_2",
     "notes": ""
   },
   "version": "v1",
-  "created_at": "2026-02-07T17:16:31.546928",
-  "updated_at": "2026-02-07T17:16:31.546940",
+  "created_at": "2026-02-07T19:27:14.202275",
+  "updated_at": "2026-02-07T19:27:14.202294",
   "metadata": {},
   "content_hash": null
 }

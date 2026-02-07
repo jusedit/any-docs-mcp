@@ -1,7 +1,7 @@
 {
   "name": "e2e-testdocs",
   "display_name": "E2E Test Documentation",
-  "start_url": "http://127.0.0.1:12083/docs/",
+  "start_url": "http://127.0.0.1:25301/docs/",
   "site_analysis": {
     "content_selectors": [
       "main"
@@ -13,14 +13,14 @@
     "exclude_selectors": [
       "nav"
     ],
-    "url_pattern": "http://127.0.0.1:12083/docs/.*",
-    "base_url": "http://127.0.0.1:12083",
+    "url_pattern": "http://127.0.0.1:25301/docs/.*",
+    "base_url": "http://127.0.0.1:25301",
     "grouping_strategy": "path_depth_2",
     "notes": "E2E test fixture site"
   },
   "version": "v1",
-  "created_at": "2026-02-07T17:00:14.621970",
-  "updated_at": "2026-02-07T17:00:14.621993",
+  "created_at": "2026-02-07T19:25:24.030597",
+  "updated_at": "2026-02-07T19:25:24.030605",
   "metadata": {},
   "content_hash": null
 }

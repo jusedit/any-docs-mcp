@@ -74,14 +74,27 @@ class TestScopeDetectionAccuracy:
         if not urls:
             pytest.skip(f"Empty ground-truth for {doc_name}")
         
-        # Determine scope from first URL
-        scope = discovery._determine_scope(urls[0])
+        # Determine scope from common path prefix of all URLs (more robust)
+        from urllib.parse import urlparse
+        paths = [urlparse(u).path for u in urls]
+        # Find common prefix at path-segment level
+        if paths:
+            segments = [p.strip("/").split("/") for p in paths]
+            common = []
+            for parts in zip(*segments):
+                if len(set(parts)) == 1:
+                    common.append(parts[0])
+                else:
+                    break
+            scope = "/" + "/".join(common) + "/" if common else "/"
+        else:
+            scope = discovery._determine_scope(urls[0])
         
         # Check each ground-truth URL is in scope
+        parsed_first = urlparse(urls[0])
+        base = f"{parsed_first.scheme}://{parsed_first.netloc}"
         in_scope_count = 0
         for url in urls:
-            parsed = urlparse(url)
-            base = f"{parsed.scheme}://{parsed.netloc}"
             if discovery._url_in_scope(url, base, scope):
                 in_scope_count += 1
         

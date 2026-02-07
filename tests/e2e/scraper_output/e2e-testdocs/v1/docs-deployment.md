@@ -6,7 +6,7 @@
 
 ## Deployment Guide
 
-**Source:** http://127.0.0.1:12083/docs/deployment
+**Source:** http://127.0.0.1:25301/docs/deployment
 
 # Deployment Guide
 Deploy AnyDocsMCP to production using Docker or traditional server setups.

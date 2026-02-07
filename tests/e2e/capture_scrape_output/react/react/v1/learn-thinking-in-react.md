@@ -6,7 +6,7 @@
 
 ## Thinking in React
 
-**Source:** http://127.0.0.1:49420/learn/thinking-in-react
+**Source:** http://127.0.0.1:29753/learn/thinking-in-react
 
 [Learn React](/learn)
 [Quick Start](/learn)
@@ -138,7 +138,7 @@ const PRODUCTS = [
 export default function App() {
   return <FilterableProductTable products={PRODUCTS} />;
 }
-```dockerfile
+```jsx
 (If this code looks intimidating, go through the [Quick Start](/learn) first!)
 After building your components, you'll have a library of reusable components that render your data model. Because this is a static app, the components will only return JSX. The component at the top of the hierarchy (`FilterableProductTable`) will take your data model as a prop. This is called *one-way data flow* because the data flows down from the top-level component to the ones at the bottom of the tree.
 ### Pitfall
@@ -203,7 +203,7 @@ products={products}
 filterText={filterText}
 inStockOnly={inStockOnly} />
 </div>
-```dockerfile
+```jsx
 You can start seeing how your application will behave. Edit the `filterText` initial value from `useState('')` to `useState('fruit')` in the sandbox code below. You'll see both the search input text and the table update:
 App.js
 App.js

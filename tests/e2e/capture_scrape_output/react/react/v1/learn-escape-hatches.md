@@ -6,7 +6,7 @@
 
 ## Escape Hatches
 
-**Source:** http://127.0.0.1:49420/learn/escape-hatches
+**Source:** http://127.0.0.1:29753/learn/escape-hatches
 
 [Learn React](/learn)
 # Escape Hatches
@@ -323,7 +323,7 @@ const serverUrl = 'https://localhost:1234';
     connection.connect();
     return () => connection.disconnect();
   }, [roomId]);
-```dockerfile
+```jsx
 Notice that you didn't start by editing the dependency list to remove the `options` dependency. That would be wrong. Instead, you changed the surrounding code so that the dependency became *unnecessary.* Think of the dependency list as a list of all the reactive values used by your Effect's code. You don't intentionally choose what to put on that list. The list describes your code. To change the dependency list, change the code.
 ## Ready to learn this topic?
 Read **[Removing Effect Dependencies](/learn/removing-effect-dependencies)** to learn how to make your Effect re-run less often.

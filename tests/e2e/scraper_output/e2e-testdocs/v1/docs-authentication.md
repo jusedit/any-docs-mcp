@@ -6,7 +6,7 @@
 
 ## Authentication
 
-**Source:** http://127.0.0.1:12083/docs/authentication
+**Source:** http://127.0.0.1:25301/docs/authentication
 
 # Authentication
 AnyDocsMCP supports multiple authentication methods to secure your documentation server.
