@@ -61,6 +61,7 @@ export interface DocumentIndex {
   files: Map<string, Section[]>;
   allSections: Section[];
   tocByFile: Map<string, string>;
+  documentFrequency?: Map<string, number>; // word -> number of sections containing it
 }
 
 export class MarkdownParser {
@@ -245,11 +246,34 @@ export class MarkdownParser {
 
     this.index = { files, allSections, tocByFile };
     
+    // Compute document frequency for TF-IDF scoring
+    this.computeDocumentFrequency();
+    
     const endTime = performance.now();
     this.lastBuildTimeMs = endTime - startTime;
     console.error(`Index built in ${this.lastBuildTimeMs.toFixed(0)}ms (${allSections.length} sections from ${mdFiles.length} files)`);
     
     return this.index;
+  }
+
+  private computeDocumentFrequency(): void {
+    if (!this.index) return;
+    
+    const df = new Map<string, number>();
+    const totalSections = this.index.allSections.length;
+    
+    for (const section of this.index.allSections) {
+      // Get unique words from section content and title
+      const text = (section.title + ' ' + section.content).toLowerCase();
+      const words = new Set(text.split(/\s+/).filter(w => w.length > 2));
+      
+      for (const word of words) {
+        df.set(word, (df.get(word) || 0) + 1);
+      }
+    }
+    
+    this.index.documentFrequency = df;
+    console.error(`Document frequency computed: ${df.size} unique terms across ${totalSections} sections`);
   }
 
   public getIndex(): DocumentIndex {
@@ -289,14 +313,21 @@ export class MarkdownParser {
       for (const term of queryTerms) {
         const stemmedTerm = simpleStem(term);
         
+        // TF-IDF: weight rare terms higher
+        const df = index.documentFrequency?.get(term.toLowerCase()) || 1;
+        const N = index.allSections.length || 1;
+        const idf = Math.log(N / (df + 1)) + 1; // Add 1 to avoid log(1) = 0
+        
         if (searchIn === 'title' || searchIn === 'all') {
-          if (titleLower.includes(term)) score += 20;
+          if (titleLower.includes(term)) score += 20 * idf;
           // Stemmed match bonus
-          if (titleLower.split(/\s+/).map(simpleStem).includes(stemmedTerm)) score += 10;
+          if (titleLower.split(/\s+/).map(simpleStem).includes(stemmedTerm)) score += 10 * idf;
         }
         if (searchIn === 'content' || searchIn === 'all') {
           const matches = (contentLower.match(new RegExp(term, 'g')) || []).length;
-          score += Math.min(matches * 2, 20);
+          // TF-IDF scoring: tf * log(N/df)
+          const tf = Math.min(matches, 10); // Cap tf at 10
+          score += tf * idf * 2; // Weight content matches with TF-IDF
           
           // Check stemmed content matches
           const contentWords = contentLower.split(/\s+/);
@@ -304,7 +335,7 @@ export class MarkdownParser {
           for (const word of contentWords) {
             if (simpleStem(word) === stemmedTerm) stemmedMatches++;
           }
-          score += Math.min(stemmedMatches, 10);
+          score += Math.min(stemmedMatches, 5) * idf;
         }
       }
 
