@@ -298,12 +298,34 @@ export class MarkdownParser {
 
       if (section.codeBlocks.length > 0) {
         const codeContent = section.codeBlocks.map(c => c.code.toLowerCase()).join(' ');
+        let codeBlockScore = 0;
+        let titleCodeMatchCount = 0;
+        
         for (const term of queryTerms) {
           const stemmedTerm = simpleStem(term);
-          if (codeContent.includes(term)) score += 15;
+          let termScore = 0;
+          
+          if (codeContent.includes(term)) termScore += 15;
           // Stemmed code match
-          if (codeContent.split(/\s+/).map(simpleStem).includes(stemmedTerm)) score += 8;
+          if (codeContent.split(/\s+/).map(simpleStem).includes(stemmedTerm)) termScore += 8;
+          
+          // 2x multiplier if term also in title
+          if (titleLower.includes(term) || 
+              titleLower.split(/\s+/).map(simpleStem).includes(stemmedTerm)) {
+            termScore *= 2;
+            titleCodeMatchCount++;
+          }
+          
+          codeBlockScore += termScore;
         }
+        
+        // Diversity bonus for sections with 3+ code blocks (tutorial/example sections)
+        if (section.codeBlocks.length >= 3) {
+          codeBlockScore += 5;
+        }
+        
+        // Cap code block contribution at 40
+        score += Math.min(codeBlockScore, 40);
       }
 
       return { section, score };
