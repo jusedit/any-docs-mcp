@@ -135,3 +135,18 @@ def test_extract_content_default_is_html(mock_config, tmp_storage):
     result = engine.extract_content(soup)
     
     assert 'Title' in result
+
+
+def test_short_raw_content_triggers_fallback(mock_config, tmp_storage, capsys):
+    """Very short raw markdown content triggers fallback warning."""
+    engine = ScraperEngine(mock_config, tmp_storage)
+    
+    # Create soup with very short raw markdown div (<50 chars)
+    html = '<html><body><div class="raw-markdown">Short</div></body></html>'
+    soup = BeautifulSoup(html, 'html.parser')
+    
+    content = engine.extract_content(soup, SourceType.RAW_MARKDOWN)
+    
+    # Content should be extracted but very short
+    assert len(content.strip()) < 50
+    assert 'Short' in content

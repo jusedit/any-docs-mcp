@@ -1,0 +1,22 @@
+{
+  "sha": "main",
+  "tree": [
+    {"path": "README.md", "type": "blob", "sha": "abc123"},
+    {"path": "docs", "type": "tree", "sha": "def456"},
+    {"path": "docs/guide.md", "type": "blob", "sha": "ghi789"},
+    {"path": "docs/api.md", "type": "blob", "sha": "jkl012"},
+    {"path": "docs/config.md", "type": "blob", "sha": "mno345"},
+    {"path": "src", "type": "tree", "sha": "pqr678"},
+    {"path": "src/index.js", "type": "blob", "sha": "stu901"},
+    {"path": "package.json", "type": "blob", "sha": "vwx234"},
+    {"path": "LICENSE", "type": "blob", "sha": "yza567"},
+    {"path": ".github", "type": "tree", "sha": "bcd890"},
+    {"path": ".github/workflows", "type": "tree", "sha": "efg123"},
+    {"path": ".github/workflows/ci.yml", "type": "blob", "sha": "hij456"},
+    {"path": "node_modules", "type": "tree", "sha": "klm789"},
+    {"path": "node_modules/test", "type": "tree", "sha": "nop012"},
+    {"path": "dist", "type": "tree", "sha": "qrs345"},
+    {"path": "dist/bundle.js", "type": "blob", "sha": "tuv678"}
+  ],
+  "truncated": false
+}

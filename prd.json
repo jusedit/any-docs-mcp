@@ -102,7 +102,7 @@
         "scraper/tests/test_github_discovery.py mocks requests.get to return the fixture and asserts: only .md files returned, all URLs start with raw.githubusercontent.com, priority sorting works — verify: pytest passes",
         "Test also covers the is_github_repo detection for various URL formats — verify: parametrized test with 5+ URLs"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Source-Selection-Routing",
@@ -114,7 +114,7 @@
         "Normal raw markdown (>50 chars) is NOT re-fetched — verify: test with valid raw fixture shows no double fetch",
         "scraper/tests/test_source_routing.py extended — verify: pytest passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "HTML-Markdown-Quality",

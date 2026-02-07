@@ -247,6 +247,28 @@ class ScraperEngine:
         soup, source_type = result
         
         content = self.extract_content(soup, source_type)
+        
+        # Graceful fallback: if raw markdown content is too short, try HTML extraction
+        if source_type == SourceType.RAW_MARKDOWN and len(content.strip()) < 50:
+            print(f"  [WARNING] Raw markdown content too short ({len(content)} chars), trying HTML fallback for {url}", file=sys.stderr)
+            # Re-fetch as HTML by modifying URL to non-raw version if possible
+            # For GitHub raw URLs, convert to blob URL
+            if 'raw.githubusercontent.com' in url:
+                # Convert back to blob URL: https://github.com/owner/repo/blob/branch/path
+                parts = url.replace('https://raw.githubusercontent.com/', '').split('/')
+                if len(parts) >= 3:
+                    owner, repo, branch = parts[0], parts[1], parts[2]
+                    path = '/'.join(parts[3:])
+                    blob_url = f"https://github.com/{owner}/{repo}/blob/{branch}/{path}"
+                    html_result = self.fetch_page(blob_url)
+                    if html_result:
+                        soup, _ = html_result
+                        content = self.extract_content(soup, SourceType.HTML)
+            
+            if not content or len(content.strip()) < 50:
+                print(f"  [ERROR] Fallback failed or content still too short for {url}", file=sys.stderr)
+                return None
+        
         if not content:
             return None
         
