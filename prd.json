@@ -108,7 +108,7 @@
         "Storage savings >= 30% for sites with >20 pages — verified by comparing raw vs compressed totals",
         "Existing uncompressed captures still work (backward compatible) — verified by regression test with current fixtures"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Full-Scrape-Capture",

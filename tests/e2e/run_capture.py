@@ -1,8 +1,9 @@
 """Capture HTML from reference doc-sets for offline E2E testing."""
 import argparse
 import json
+import shutil
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "scraper"))
@@ -13,7 +14,71 @@ MANIFEST = Path(__file__).parent.parent / "fixtures" / "real-world" / "capture-m
 FIXTURES = Path(__file__).parent.parent / "fixtures" / "real-world"
 
 
-def discover_and_capture(doc_name: str, start_url: str, max_pages: int, capture: ResponseCapture) -> dict:
+def check_freshness(doc_name: str, fixtures_dir: Path, max_age_days: int = 90) -> dict:
+    """Check freshness of captured files for a doc-set.
+    
+    Returns:
+        dict with fresh_count, stale_count, total_count, stale_files list
+    """
+    doc_dir = fixtures_dir / doc_name
+    if not doc_dir.exists():
+        return {"fresh": 0, "stale": 0, "total": 0, "stale_files": []}
+    
+    now = datetime.now()
+    max_age = timedelta(days=max_age_days)
+    
+    fresh = stale = 0
+    stale_files = []
+    
+    for meta_file in doc_dir.glob("*.meta.json"):
+        try:
+            with open(meta_file, 'r', encoding='utf-8') as f:
+                meta = json.load(f)
+            
+            captured_at = meta.get("captured_at")
+            if captured_at:
+                captured_date = datetime.fromisoformat(captured_at.replace('Z', '+00:00').replace('+00:00', ''))
+                age = now - captured_date
+                
+                if age > max_age:
+                    stale += 1
+                    stale_files.append(meta_file.stem.replace('.meta', ''))
+                else:
+                    fresh += 1
+            else:
+                # No timestamp = stale
+                stale += 1
+                stale_files.append(meta_file.stem.replace('.meta', ''))
+        except Exception:
+            stale += 1
+            stale_files.append(meta_file.stem.replace('.meta', ''))
+    
+    return {
+        "fresh": fresh,
+        "stale": stale,
+        "total": fresh + stale,
+        "stale_files": stale_files
+    }
+
+
+def backup_existing_capture(doc_dir: Path, slug: str):
+    """Backup existing capture files before overwriting."""
+    # Backup body files (both .html and .html.gz)
+    for ext in ['.body.html', '.body.html.gz']:
+        body_path = doc_dir / f"{slug}{ext}"
+        if body_path.exists():
+            backup_path = doc_dir / f"{slug}{ext}.bak"
+            shutil.copy2(body_path, backup_path)
+    
+    # Backup meta
+    meta_path = doc_dir / f"{slug}.meta.json"
+    if meta_path.exists():
+        backup_path = doc_dir / f"{slug}.meta.json.bak"
+        shutil.copy2(meta_path, backup_path)
+
+
+def discover_and_capture(doc_name: str, start_url: str, max_pages: int, capture: ResponseCapture, 
+                         fixtures_dir: Path, refresh_mode: bool = False, max_age_days: int = 90) -> dict:
     """Run URL discovery and capture all discovered pages."""
     print(f"\n=== {doc_name}: Discovering URLs ===")
     
@@ -24,12 +89,36 @@ def discover_and_capture(doc_name: str, start_url: str, max_pages: int, capture:
     print(f"  Discovered {len(urls)} URLs (mode: {discovered['mode']})")
     
     if not urls:
-        return {"ok": 0, "fail": 0, "urls": []}
+        return {"ok": 0, "fail": 0, "urls": [], "skipped": 0}
+    
+    # Check freshness if in refresh mode
+    if refresh_mode:
+        freshness = check_freshness(doc_name, fixtures_dir, max_age_days)
+        print(f"  Freshness check: {freshness['fresh']} fresh, {freshness['stale']} stale (>{max_age_days} days)")
+        stale_slugs = set(freshness["stale_files"])
+    else:
+        stale_slugs = None
     
     print(f"\n=== {doc_name}: Capturing {len(urls)} pages ===")
-    results = {"ok": 0, "fail": 0, "urls": []}
+    results = {"ok": 0, "fail": 0, "skipped": 0, "urls": []}
     
     for url in urls:
+        # In refresh mode, skip fresh pages
+        if refresh_mode and stale_slugs is not None:
+            from response_capture import ResponseCapture as RC
+            slug = RC.url_to_slug(url)
+            if slug not in stale_slugs:
+                print(f"  SKIP {url[:60]}... (fresh)")
+                results["skipped"] += 1
+                continue
+        
+        # Backup existing if in refresh mode
+        if refresh_mode:
+            doc_dir = fixtures_dir / doc_name
+            from response_capture import ResponseCapture as RC
+            slug = RC.url_to_slug(url)
+            backup_existing_capture(doc_dir, slug)
+        
         try:
             resp = capture.capture(url, timeout=15)
             meta_path, body_path = capture.save(resp, doc_name)
@@ -56,6 +145,10 @@ def main():
                         help="Specific sites to capture (default: all 10)")
     parser.add_argument("--list", action="store_true",
                         help="List available sites and exit")
+    parser.add_argument("--refresh", action="store_true",
+                        help="Only re-capture stale pages (older than --max-age-days)")
+    parser.add_argument("--max-age-days", type=int, default=90,
+                        help="Max age in days before a capture is considered stale (default: 90)")
     args = parser.parse_args()
     
     with open(MANIFEST, encoding="utf-8") as f:
@@ -83,23 +176,40 @@ def main():
             print(f"Warning: No start URL for {name}")
             continue
         
-        results = discover_and_capture(name, start_url, args.max_pages_per_site, capture)
+        results = discover_and_capture(name, start_url, args.max_pages_per_site, capture, 
+                                         FIXTURES, args.refresh, args.max_age_days)
         all_results[name] = results
     
     # Update manifest with capture info
     update_capture_manifest(manifest, all_results)
     
-    # Print summary
+    # Print summary with freshness info
     print("\n" + "="*50)
     print("CAPTURE SUMMARY")
     print("="*50)
-    total_ok = total_fail = 0
+    
+    # Calculate freshness stats
+    total_fresh = total_stale = total_captured = 0
     for name, r in all_results.items():
-        print(f"  {name:12}: {r['ok']:3} captured, {r['fail']:2} failed")
-        total_ok += r["ok"]
-        total_fail += r["fail"]
+        freshness = check_freshness(name, FIXTURES, args.max_age_days)
+        total_fresh += freshness["fresh"]
+        total_stale += freshness["stale"]
+        total_captured += freshness["total"]
+        
+        skip_info = f", {r.get('skipped', 0)} skipped" if args.refresh else ""
+        print(f"  {name:12}: {r['ok']:3} captured, {r['fail']:2} failed{skip_info}")
+    
     print("-"*50)
-    print(f"  {'TOTAL':12}: {total_ok:3} captured, {total_fail:2} failed")
+    total_ok = sum(r["ok"] for r in all_results.values())
+    total_fail = sum(r["fail"] for r in all_results.values())
+    total_skipped = sum(r.get("skipped", 0) for r in all_results.values())
+    
+    if args.refresh:
+        print(f"  {'TOTAL':12}: {total_ok:3} captured, {total_fail:2} failed, {total_skipped:3} skipped")
+        print(f"  {'FRESHNESS':12}: {total_fresh} fresh, {total_stale} stale (> {args.max_age_days} days)")
+    else:
+        print(f"  {'TOTAL':12}: {total_ok:3} captured, {total_fail:2} failed")
+    
     print(f"\nCaptured at: {datetime.now().isoformat()}")
 
 
