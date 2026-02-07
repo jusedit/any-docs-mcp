@@ -442,7 +442,45 @@ class ContentCleaner:
         return '\n'.join(result)
     
     def fix_encoding_issues(self, content: str) -> str:
-        """Fix common encoding issues."""
+        """Fix common encoding issues including mojibake patterns."""
+        # Mojibake patterns (UTF-8 interpreted as Latin-1)
+        mojibake_fixes = [
+            ('Ã©', 'é'),  # e with acute
+            ('Ã¨', 'è'),  # e with grave
+            ('Ãª', 'ê'),  # e with circumflex
+            ('Ã«', 'ë'),  # e with diaeresis
+            ('Ã ', 'à'),  # a with grave
+            ('Ã¡', 'á'),  # a with acute
+            ('Ã¢', 'â'),  # a with circumflex
+            ('Ã£', 'ã'),  # a with tilde
+            ('Ã¤', 'ä'),  # a with diaeresis
+            ('Ã¥', 'å'),  # a with ring
+            ('Ã¬', 'ì'),  # i with grave
+            ('Ã ', 'í'),  # i with acute (duplicate, keep first)
+            ('Ã®', 'î'),  # i with circumflex
+            ('Ã¯', 'ï'),  # i with diaeresis
+            ('Ã²', 'ò'),  # o with grave
+            ('Ã³', 'ó'),  # o with acute
+            ('Ã´', 'ô'),  # o with circumflex
+            ('Ãµ', 'õ'),  # o with tilde
+            ('Ã¶', 'ö'),  # o with diaeresis
+            ('Ã¹', 'ù'),  # u with grave
+            ('Ãº', 'ú'),  # u with acute
+            ('Ã»', 'û'),  # u with circumflex
+            ('Ã¼', 'ü'),  # u with diaeresis
+            ('Ã½', 'ý'),  # y with acute
+            ('Ã¿', 'ÿ'),  # y with diaeresis
+            ('Ã§', 'ç'),  # c with cedilla
+            ('Ã±', 'ñ'),  # n with tilde
+            ('Ã', 'ß'),  # sharp s
+            ('Ã', 'Ä'),  # A with diaeresis
+            ('Ã', 'Ö'),  # O with diaeresis
+            ('Ã', 'Ü'),  # U with diaeresis
+        ]
+        
+        for old, new in mojibake_fixes:
+            content = content.replace(old, new)
+        
         # Smart quotes and apostrophes
         replacements = [
             ('â', "'"),  # Common UTF-8 encoding issue
