@@ -141,7 +141,7 @@
         "scraper/tests/test_content_cleaner.py extended with table tests — verify: pytest passes",
         "Golden output fixtures updated to reflect improved table rendering — verify: snapshot tests still pass"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "HTML-Markdown-Quality",
@@ -153,7 +153,7 @@
         "Existing language detection (JS, Python, Bash, HTML, CSS, JSON, SQL) unchanged — verify: regression test",
         "scraper/tests/test_content_cleaner.py extended — verify: pytest passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "HTML-Markdown-Quality",
@@ -166,7 +166,7 @@
         "New patterns tested with at least 2 fixture snippets containing the artifacts — verify: pytest passes",
         "Golden output fixtures updated if affected — verify: snapshot tests pass"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "HTML-Markdown-Quality",
@@ -179,7 +179,7 @@
         "Hash-based comparison (MD5 of stripped paragraph) for O(1) lookup — verify: code inspection",
         "scraper/tests/test_deduplication.py tests with synthetic multi-page content — verify: pytest passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Search-Relevance",
@@ -192,7 +192,7 @@
         "search-golden.test.ts rewritten to use evaluateQuerySuite and assert precision@1 >= 0.8 — verify: npm test passes",
         "Report output is JSON-serializable for CI artifact storage — verify: JSON.stringify test"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Search-Relevance",
@@ -205,7 +205,7 @@
         "Exact title match bonus (100 points) unchanged — verify: regression test",
         "Query suite precision@1 stays >= 0.8 (should improve) — verify: search-golden.test.ts passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Search-Relevance",

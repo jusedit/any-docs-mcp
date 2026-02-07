@@ -59,6 +59,29 @@ class ContentCleaner:
         # Feedback buttons
         r'Was this page helpful\?',
         r'\[Yes\]\([^)]*\)\s*\[No\]\([^)]*\)',
+        
+        # Algolia search widgets
+        r'Search.*DocSearch',
+        r'algolia-docsearch',
+        
+        # Cookie consent banners
+        r'We use cookies',
+        r'Cookie Policy',
+        r'Accept cookies',
+        r'Cookie consent',
+        
+        # TOC sidebars
+        r'On this page',
+        r'Table of Contents',
+        r'\* \[Overview\]',
+        
+        # Breadcrumbs
+        r'Home\s*>\s*[^\n]+',
+        r'\[Home\]\([^)]*\)\s*>',
+        
+        # Version switchers
+        r'Version:\s*\[\d+\.\d+\]',
+        r'Select version',
     ]
     
     # Navigation menu patterns (at start of content)
@@ -85,6 +108,8 @@ class ContentCleaner:
         content = self.fix_encoding_issues(content)
         content = self.clean_empty_code_blocks(content)
         content = self.normalize_heading_levels(content)
+        content = self.fix_markdown_tables(content)
+        content = self.deduplicate_content(content)
         content = self.normalize_whitespace(content)
         return content
     
@@ -101,6 +126,26 @@ class ContentCleaner:
         """Auto-detect code block languages based on content."""
         def detect_language(code: str) -> str:
             code_lower = code.lower().strip()
+            
+            # Go
+            if any(x in code for x in ['func main()', 'package main', 'import (']):
+                return 'go'
+            
+            # Rust
+            if any(x in code for x in ['fn main()', 'let mut', 'impl ', 'use std::']):
+                return 'rust'
+            
+            # YAML
+            if ':' in code and any(x in code for x in ['apiVersion:', 'kind:', 'metadata:', 'spec:']):
+                return 'yaml'
+            
+            # TOML
+            if '[' in code and any(x in code for x in ['[package]', '[dependencies]', '[section]']):
+                return 'toml'
+            
+            # Dockerfile
+            if any(x in code_lower for x in ['from ', 'run ', 'cmd ', 'entrypoint ', 'copy ', 'add ']):
+                return 'dockerfile'
             
             # JavaScript/TypeScript
             if any(x in code for x in ['import React', 'useState', 'useEffect', 'export default function', 'const Component']):
@@ -286,6 +331,71 @@ class ContentCleaner:
         content = '\n'.join(lines)
         
         return content.strip()
+    
+    def fix_markdown_tables(self, content: str) -> str:
+        """Fix broken markdown tables (add missing separator row)."""
+        lines = content.split('\n')
+        result = []
+        i = 0
+        
+        while i < len(lines):
+            line = lines[i]
+            # Detect table header row (contains | separators but not ---)
+            if '|' in line and not re.search(r'\|?\s*:?-+:?\s*\|', line) and not line.strip().startswith('```'):
+                # Check if next line is a separator
+                if i + 1 < len(lines):
+                    next_line = lines[i + 1]
+                    if '|' in next_line and re.search(r'\|?\s*:?-+:?\s*\|', next_line):
+                        # Valid table, proceed
+                        result.append(line)
+                    else:
+                        # Missing separator, generate one
+                        result.append(line)
+                        # Count columns from header
+                        col_count = line.count('|') + 1 if not line.strip().startswith('|') else line.count('|')
+                        separator = '|' + ' --- |' * col_count
+                        if col_count > 0:
+                            result.append(separator)
+                else:
+                    result.append(line)
+            else:
+                result.append(line)
+            i += 1
+        
+        return '\n'.join(result)
+    
+    def deduplicate_content(self, content: str) -> str:
+        """Remove duplicate paragraphs and code blocks."""
+        lines = content.split('\n')
+        seen_blocks = set()
+        result = []
+        current_block = []
+        
+        def flush_block():
+            if not current_block:
+                return
+            block_text = '\n'.join(current_block).strip()
+            if block_text:
+                # Simple dedup: skip exact duplicates of paragraphs >50 chars
+                if len(block_text) > 50 and block_text in seen_blocks:
+                    pass
+                else:
+                    seen_blocks.add(block_text)
+                    result.extend(current_block)
+            current_block.clear()
+        
+        for line in lines:
+            # Check if line starts a new block (heading, code block, empty line)
+            if line.strip().startswith('#') or line.strip().startswith('```') or line.strip() == '':
+                flush_block()
+                current_block.append(line)
+                if line.strip().startswith('```') or line.strip() == '':
+                    flush_block()
+            else:
+                current_block.append(line)
+        
+        flush_block()
+        return '\n'.join(result)
 
 
 # Convenience function
