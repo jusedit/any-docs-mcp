@@ -362,8 +362,15 @@ class URLDiscovery:
         
         return urls
     
-    def _try_navigation(self, start_url: str, scopes: List[str], locale_filter: Optional[str] = None) -> List[Dict]:
-        """Try to extract URLs from navigation menus and SPA data."""
+    def _try_navigation(self, start_url: str, scopes: List[str], locale_filter: Optional[str] = None, max_level1_pages: int = 20) -> List[Dict]:
+        """Try to extract URLs from navigation menus and SPA data.
+        
+        Implements 2-level recursive extraction:
+        Level 0: Extract nav links from start page
+        Level 1: For section pages, fetch and extract THEIR nav links
+        """
+        import time
+        
         try:
             response = self.session.get(start_url, timeout=30)
             response.raise_for_status()
@@ -379,7 +386,7 @@ class URLDiscovery:
         urls = []
         seen = set()
         
-        # 1. Try standard navigation selectors
+        # 1. Try standard navigation selectors (Level 0)
         nav_selectors = [
             'nav', 'aside', '.sidebar', '#sidebar', '.toc', '#toc',
             '.navigation', '.nav-menu', '.docs-nav', '.doc-sidebar',
@@ -416,6 +423,42 @@ class URLDiscovery:
             content_urls = self._extract_content_area_links(soup, start_url, base_url, scopes, seen)
             urls.extend(content_urls)
         
+        # 4. Level 1: Recursive extraction from section pages
+        section_urls = [u for u in urls if self._is_section_page(u['url'])]
+        section_urls = section_urls[:max_level1_pages]  # Limit to prevent hammering
+        
+        if section_urls:
+            print(f"  Nav Level 1: scanning {len(section_urls)} section pages...")
+            for section_url_info in section_urls:
+                try:
+                    time.sleep(0.5)  # Rate limit between fetches
+                    response = self.session.get(section_url_info['url'], timeout=15)
+                    if response.status_code != 200:
+                        continue
+                    
+                    section_soup = BeautifulSoup(response.text, 'html.parser')
+                    
+                    # Extract nav links from this section page
+                    for selector in nav_selectors:
+                        try:
+                            for nav in section_soup.select(selector):
+                                for a in nav.find_all('a', href=True):
+                                    href = a.get('href', '')
+                                    full_url = self._normalize_url(href, section_url_info['url'], base_url)
+                                    
+                                    if full_url and full_url not in seen:
+                                        if self._url_in_scope(full_url, base_url, scopes):
+                                            seen.add(full_url)
+                                            urls.append({
+                                                'url': full_url,
+                                                'title': a.get_text(strip=True)[:100]
+                                            })
+                        except Exception:
+                            continue
+                            
+                except Exception:
+                    continue
+        
         # Apply locale filter
         urls = self._apply_locale_filter(urls, locale_filter)
         
@@ -423,6 +466,60 @@ class URLDiscovery:
             print(f"  Navigation: found {len(urls)} URLs ({len([u for u in urls if u.get('source') == 'spa'])} from SPA data)")
         
         return urls
+    
+    def _is_section_page(self, url: str) -> bool:
+        """Check if URL looks like a section page (not a leaf page).
+        
+        Section page heuristic:
+        - URL has fewer than 3 path segments
+        - URL path suggests a category (guide, reference, api, etc.)
+        """
+        parsed = urlparse(url)
+        path = parsed.path.strip('/')
+        
+        if not path:
+            return False
+        
+        segments = path.split('/')
+        
+        # Section pages have fewer segments
+        if len(segments) <= 2:
+            return True
+        
+        # Check if path suggests a category/section
+        section_keywords = ['guide', 'reference', 'api', 'tutorial', 'learn', 
+                          'docs', 'doc', 'manual', 'handbook', 'intro', 'start']
+        
+        # Check if any segment looks like a section
+        for segment in segments:
+            if any(keyword in segment.lower() for keyword in section_keywords):
+                # But not if it looks like a specific doc page
+                if not self._looks_like_leaf_page(url):
+                    return True
+        
+        return False
+    
+    def _looks_like_leaf_page(self, url: str) -> bool:
+        """Check if URL looks like a leaf/individual doc page."""
+        parsed = urlparse(url)
+        path = parsed.path.strip('/')
+        
+        if not path:
+            return False
+        
+        segments = path.split('/')
+        last_segment = segments[-1] if segments else ''
+        
+        # Leaf pages often have specific file-like names or many path segments
+        if len(segments) >= 4:
+            return True
+        
+        # Specific patterns that suggest leaf pages
+        leaf_indicators = ['.html', '.md', 'detail', 'specific', 'example-']
+        if any(ind in last_segment.lower() for ind in leaf_indicators):
+            return True
+        
+        return False
     
     def _extract_spa_navigation(self, html_content: str, start_url: str, base_url: str, scopes: List[str]) -> List[Dict]:
         """Extract navigation from SPA data in script tags (Next.js, Docusaurus)."""

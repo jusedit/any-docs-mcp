@@ -1,24 +1,34 @@
 # AnyDocsMCP Quality & Retrieval Upgrade - Progress Log
 
-## Ralph Batch v4 — Cycle 1/7 ✅ COMPLETE
+## Ralph Batch v4 — Cycle 4/7 ✅ COMPLETE
 
-### Completed: Adaptive scope detection based on start_url and site structure
+### Completed: Multi-page recursive navigation extraction
 
 **Result:** Success
 
 **Changes made:**
-- `_determine_scope()` now returns `List[str]` instead of single string
-- Added `_analyze_documentation_paths()` for root URL analysis
-- Updated `_url_in_scope()` to accept `List[str]` with OR logic
-- Updated all methods: `_try_sitemap`, `_try_navigation`, `_crawl_links`, `discover_urls`
-- Result dict now uses `'scopes'` instead of `'scope'`
-- Tests updated to match new API
+- `_try_navigation()` now implements 2-level recursive extraction
+- Level 0: Extract from start page (existing)
+- Level 1: Extract from section pages (new)
+- Added `_is_section_page()` heuristic (fewer than 3 path segments, doc keywords)
+- Added `_looks_like_leaf_page()` helper
+- Rate limiting: 0.5s delay between Level 1 fetches
+- Max 20 section pages scanned to prevent hammering
 
-**Files modified:**
-- `scraper/url_discovery.py` — main implementation
-- `tests/e2e/test_discovery_accuracy.py` — test assertions updated
+**Tests:** Section/leaf detection working correctly
 
-**Tests:** All discovery accuracy tests passing (10/10)
+---
+
+## Ralph Batch v4 — Cycle 1-3 ✅ COMPLETE
+
+### Scope-Boundary-Detection Group: 3/3 tasks complete
+
+**Tasks completed:**
+1. Adaptive scope detection (multi-scope return)
+2. Documentation path detection (`_analyze_documentation_paths`)
+3. Multi-scope URL filtering (all modes updated)
+
+**Commits:** `5cac36d` — Adaptive multi-scope detection
 
 ## Plan v1: quality-retrieval-upgrade-v1 ✅ COMPLETE
 

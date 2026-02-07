@@ -30,7 +30,7 @@
         "Links found inside <nav>, <aside>, .sidebar elements get higher weight than links in <footer> or <header> — verified by unit test with HTML having same link in nav vs footer",
         "Method correctly identifies /learn/ and /reference/ as React's doc paths when given a page with React-like nav structure (without hardcoding react.dev) — verified by test with mock HTML mimicking a docs site with learn+reference sections"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Scope-Boundary-Detection",
@@ -43,7 +43,7 @@
         "ScraperEngine and cli.py handle the new scope format without errors â€” verified by running python -m pytest tests/e2e/ -v with 0 failures",
         "Crawl mode respects multi-scope: BFS queue only adds URLs matching at least one scope â€” verified by unit test with mock pages linking to in-scope and out-of-scope URLs"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Recursive-Navigation-Discovery",
@@ -56,7 +56,7 @@
         "0.5s delay between Level 1 fetches to respect rate limits â€” verified by timing test (20 fetches should take >= 10s)",
         "Total navigation discovery finds >= 30 URLs for sites with hierarchical nav structure â€” verified by test with mock site having 5 sections x 10 sub-pages"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Recursive-Navigation-Discovery",
