@@ -260,26 +260,28 @@ class URLDiscovery:
         return urls
     
     def _try_navigation(self, start_url: str, scope: str, locale_filter: Optional[str] = None) -> List[Dict]:
-        """Try to extract URLs from navigation menus."""
+        """Try to extract URLs from navigation menus and SPA data."""
         try:
             response = self.session.get(start_url, timeout=30)
             response.raise_for_status()
-            soup = BeautifulSoup(response.text, 'html.parser')
+            html_content = response.text
+            soup = BeautifulSoup(html_content, 'html.parser')
         except Exception as e:
             print(f"  Navigation extraction failed: {e}")
             return []
         
-        # Common navigation selectors
+        parsed_start = urlparse(start_url)
+        base_url = f"{parsed_start.scheme}://{parsed_start.netloc}"
+        
+        urls = []
+        seen = set()
+        
+        # 1. Try standard navigation selectors
         nav_selectors = [
             'nav', 'aside', '.sidebar', '#sidebar', '.toc', '#toc',
             '.navigation', '.nav-menu', '.docs-nav', '.doc-sidebar',
             "[role='navigation']", '.menu', '#menu'
         ]
-        
-        urls = []
-        seen = set()
-        parsed_start = urlparse(start_url)
-        base_url = f"{parsed_start.scheme}://{parsed_start.netloc}"
         
         for selector in nav_selectors:
             try:
@@ -298,8 +300,111 @@ class URLDiscovery:
             except Exception:
                 continue
         
+        # 2. Try extracting from SPA data (Next.js, Docusaurus)
+        if len(urls) < 5:
+            spa_urls = self._extract_spa_navigation(html_content, start_url, base_url, scope)
+            for url_info in spa_urls:
+                if url_info['url'] not in seen:
+                    seen.add(url_info['url'])
+                    urls.append(url_info)
+        
+        # 3. Fallback: extract from content area if still < 5 URLs
+        if len(urls) < 5:
+            content_urls = self._extract_content_area_links(soup, start_url, base_url, scope, seen)
+            urls.extend(content_urls)
+        
         # Apply locale filter
         urls = self._apply_locale_filter(urls, locale_filter)
+        
+        if len(urls) > 0:
+            print(f"  Navigation: found {len(urls)} URLs ({len([u for u in urls if u.get('source') == 'spa'])} from SPA data)")
+        
+        return urls
+    
+    def _extract_spa_navigation(self, html_content: str, start_url: str, base_url: str, scope: str) -> List[Dict]:
+        """Extract navigation from SPA data in script tags (Next.js, Docusaurus)."""
+        import re
+        urls = []
+        
+        # Try to find __NEXT_DATA__ (Next.js)
+        next_data_match = re.search(r'<script[^>]*>window\.__NEXT_DATA__\s*=\s*({.+?})</script>', html_content, re.DOTALL)
+        if next_data_match:
+            try:
+                next_data = json.loads(next_data_match.group(1))
+                # Extract page paths from Next.js data
+                if 'props' in next_data and 'pageProps' in next_data['props']:
+                    page_props = next_data['props']['pageProps']
+                    # Look for navigation structure in various Next.js patterns
+                    if 'navigation' in page_props:
+                        for item in page_props['navigation']:
+                            if 'url' in item:
+                                full_url = self._normalize_url(item['url'], start_url, base_url)
+                                if full_url and self._url_in_scope(full_url, base_url, scope):
+                                    urls.append({
+                                        'url': full_url,
+                                        'title': item.get('title', 'Page'),
+                                        'source': 'spa'
+                                    })
+            except (json.JSONDecodeError, KeyError):
+                pass
+        
+        # Try to find Docusaurus config
+        docusaurus_match = re.search(r'<script[^>]*>window\.__DOCUSAURUS_CONFIG__\s*=\s*({.+?})</script>', html_content, re.DOTALL)
+        if docusaurus_match:
+            try:
+                docusaurus_data = json.loads(docusaurus_match.group(1))
+                # Docusaurus typically has themeConfig with navbar items
+                if 'themeConfig' in docusaurus_data and 'navbar' in docusaurus_data['themeConfig']:
+                    navbar = docusaurus_data['themeConfig']['navbar']
+                    if 'items' in navbar:
+                        for item in navbar['items']:
+                            if 'to' in item or 'href' in item:
+                                href = item.get('to') or item.get('href')
+                                full_url = self._normalize_url(href, start_url, base_url)
+                                if full_url and self._url_in_scope(full_url, base_url, scope):
+                                    urls.append({
+                                        'url': full_url,
+                                        'title': item.get('label', 'Page'),
+                                        'source': 'spa'
+                                    })
+            except (json.JSONDecodeError, KeyError):
+                pass
+        
+        return urls
+    
+    def _extract_content_area_links(self, soup, start_url: str, base_url: str, scope: str, seen: set) -> List[Dict]:
+        """Extract links from content area as fallback when nav selectors fail."""
+        urls = []
+        
+        # Common content area selectors
+        content_selectors = [
+            'main', 'article', '.content', '#content', '.documentation',
+            '.markdown', '.md-content', '[role="main"]'
+        ]
+        
+        for selector in content_selectors:
+            try:
+                for content in soup.select(selector):
+                    # Find all links in content area, but limit to avoid overwhelming
+                    for a in content.find_all('a', href=True, limit=100):
+                        href = a.get('href', '')
+                        full_url = self._normalize_url(href, start_url, base_url)
+                        
+                        if full_url and full_url not in seen:
+                            if self._url_in_scope(full_url, base_url, scope):
+                                if self._is_doc_page(full_url):
+                                    seen.add(full_url)
+                                    urls.append({
+                                        'url': full_url,
+                                        'title': a.get_text(strip=True)[:100],
+                                        'source': 'content'
+                                    })
+                                    
+                                    # Stop after finding reasonable number
+                                    if len(urls) >= 50:
+                                        return urls
+            except Exception:
+                continue
         
         return urls
     
