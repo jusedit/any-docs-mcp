@@ -13,7 +13,7 @@ from typing import Optional, List, Dict, Callable, Tuple
 import requests
 from bs4 import BeautifulSoup
 from markdownify import markdownify as md
-from models import DocumentationConfig, ScrapedPage, SiteAnalysis, ScrapeProgress
+from models import DocumentationConfig, ScrapedPage, SiteAnalysis, ScrapeProgress, SourceType
 from sitemap_parser import SitemapParser
 from storage import StorageManager
 from content_cleaner import ContentCleaner
@@ -62,21 +62,33 @@ class ScraperEngine:
         combined = ''.join(sorted(self.content_hashes))
         return hashlib.md5(combined.encode('utf-8')).hexdigest()
     
-    def fetch_page(self, url: str, max_retries: int = 3) -> Optional[BeautifulSoup]:
-        """Fetch page with exponential backoff on errors. Skips 404/410 immediately."""
+    def fetch_page(self, url: str, max_retries: int = 3) -> Optional[Tuple[BeautifulSoup, SourceType]]:
+        """Fetch page with exponential backoff on errors. Skips 404/410 immediately.
+        
+        Returns:
+            Tuple of (BeautifulSoup, SourceType) or None on failure.
+        """
         for attempt in range(max_retries):
             try:
                 response = requests.get(url, timeout=30)
                 response.raise_for_status()
+                
+                # Check Content-Type header for markdown
+                content_type = response.headers.get('Content-Type', '').lower()
+                if 'text/markdown' in content_type or 'text/x-markdown' in content_type:
+                    # Raw markdown content - wrap in HTML structure
+                    markdown_content = response.text
+                    html_wrapper = f'<html><body><div class="raw-markdown">{markdown_content}</div></body></html>'
+                    return (BeautifulSoup(html_wrapper, 'html.parser'), SourceType.RAW_MARKDOWN)
                 
                 # Special handling for raw GitHub content (plaintext markdown)
                 if 'raw.githubusercontent.com' in url:
                     # Wrap plaintext in a simple HTML structure for consistent processing
                     markdown_content = response.text
                     html_wrapper = f'<html><body><div class="raw-markdown">{markdown_content}</div></body></html>'
-                    return BeautifulSoup(html_wrapper, 'html.parser')
+                    return (BeautifulSoup(html_wrapper, 'html.parser'), SourceType.RAW_MARKDOWN)
                 
-                return BeautifulSoup(response.text, 'html.parser')
+                return (BeautifulSoup(response.text, 'html.parser'), SourceType.HTML)
             except requests.HTTPError as e:
                 # Don't retry 404/410 - page doesn't exist
                 if e.response is not None and e.response.status_code in (404, 410, 403, 401):
@@ -125,13 +137,14 @@ class ScraperEngine:
         
         return urls
     
-    def extract_content(self, soup: BeautifulSoup) -> str:
-        # Special handling for raw.githubusercontent.com (plaintext markdown)
-        raw_markdown_div = soup.find('div', class_='raw-markdown')
-        if raw_markdown_div:
-            # This is raw markdown content from GitHub, return as-is
-            raw_content = raw_markdown_div.get_text()
-            return raw_content.strip()
+    def extract_content(self, soup: BeautifulSoup, source_type: SourceType = SourceType.HTML) -> str:
+        # If raw markdown source, extract directly without markdownify
+        if source_type == SourceType.RAW_MARKDOWN:
+            raw_markdown_div = soup.find('div', class_='raw-markdown')
+            if raw_markdown_div:
+                # This is raw markdown content, return as-is
+                raw_content = raw_markdown_div.get_text()
+                return raw_content.strip()
         
         content_div = None
         
@@ -227,11 +240,13 @@ class ScraperEngine:
         title = link['title']
         group = url_to_group[url]
         
-        soup = self.fetch_page(url)
-        if not soup:
+        result = self.fetch_page(url)
+        if not result:
             return None
         
-        content = self.extract_content(soup)
+        soup, source_type = result
+        
+        content = self.extract_content(soup, source_type)
         if not content:
             return None
         

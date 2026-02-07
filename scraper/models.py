@@ -1,5 +1,12 @@
 from typing import List, Optional, Dict
 from pydantic import BaseModel, Field
+from enum import Enum
+
+
+class SourceType(Enum):
+    """Type of content source for a page."""
+    RAW_MARKDOWN = "raw_markdown"
+    HTML = "html"
 
 
 class SiteAnalysis(BaseModel):

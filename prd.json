@@ -79,7 +79,7 @@
         "Existing HTML extraction path unchanged for source_type=HTML — verify: test with VitePress fixture",
         "scraper/tests/test_source_routing.py tests both paths with fixtures — verify: pytest passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Source-Selection-Routing",
