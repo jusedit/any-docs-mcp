@@ -122,7 +122,12 @@ class TestSectionPageHeuristic:
         ) is False
 
     def test_keyword_section(self, discovery):
-        assert discovery._is_section_page("https://example.com/api/reference/list") is True
+        assert discovery._is_section_page("https://example.com/api/reference") is True
+        assert discovery._is_section_page("https://example.com/docs/guide") is True
+
+    def test_non_keyword_not_section(self, discovery):
+        """3-segment URL with non-keyword last segment is NOT a section."""
+        assert discovery._is_section_page("https://example.com/api/reference/list") is False
 
     def test_html_extension_is_leaf(self, discovery):
         assert discovery._looks_like_leaf_page(
@@ -536,3 +541,266 @@ class TestSitemapSortPerformance:
         discovery._score_and_filter_sitemap_urls(urls, ["/docs/"], "https://example.com")
         elapsed = time.time() - start
         assert elapsed < 5.0, f"Sorting took {elapsed:.1f}s — O(n²) performance issue"
+
+
+# ============================================================
+# D2: Generic Locale Detection
+# ============================================================
+
+class TestGenericLocaleFilter:
+    """Test generic regex-based locale detection (D2 fix)."""
+
+    def test_filters_polish_urls(self, discovery):
+        """Polish (/pl/) was NOT in the old hardcoded set — now detected generically."""
+        urls = [
+            {'url': 'https://example.com/en/docs/intro', 'title': 'EN'},
+            {'url': 'https://example.com/pl/docs/intro', 'title': 'PL'},
+            {'url': 'https://example.com/sv/docs/intro', 'title': 'SV'},
+        ]
+        result = discovery._apply_locale_filter(urls, 'en')
+        assert len(result) == 1
+        assert result[0]['url'].endswith('/en/docs/intro')
+
+    def test_non_locale_segments_not_filtered(self, discovery):
+        """Known non-locale segments like /js/, /go/, /ai/ should not be treated as locales."""
+        urls = [
+            {'url': 'https://example.com/en/js/basics', 'title': 'JS'},
+            {'url': 'https://example.com/en/go/setup', 'title': 'Go'},
+            {'url': 'https://example.com/en/ai/intro', 'title': 'AI'},
+        ]
+        result = discovery._apply_locale_filter(urls, 'en')
+        assert len(result) == 3  # All kept — /js/, /go/, /ai/ are not locales
+
+    def test_urls_without_locale_kept(self, discovery):
+        """URLs with no locale segment should always be kept."""
+        urls = [
+            {'url': 'https://example.com/docs/intro', 'title': 'Intro'},
+            {'url': 'https://example.com/api/reference', 'title': 'API'},
+        ]
+        result = discovery._apply_locale_filter(urls, 'de')
+        assert len(result) == 2
+
+
+# ============================================================
+# D3: SPA Noise Reduction
+# ============================================================
+
+class TestSPANoiseReduction:
+    """Test that noisy asset paths are filtered out (D3 fix)."""
+
+    def test_asset_paths_filtered(self, discovery):
+        html = """
+        <script>
+        var paths = ['/static/bundle.js', '/assets/logo.png', '/docs/intro/setup'];
+        </script>
+        """
+        urls = discovery._extract_spa_navigation(
+            html, "https://example.com", "https://example.com", ["/"]
+        )
+        found = [u['url'] for u in urls]
+        assert not any('/static/' in u for u in found)
+        assert not any('/assets/' in u for u in found)
+
+    def test_single_segment_paths_not_extracted(self, discovery):
+        """Single-segment paths like '/fonts' should no longer be extracted by JS regex."""
+        html = """
+        <script>
+        var x = '/fonts';
+        var y = '/docs/intro';
+        </script>
+        """
+        urls = discovery._extract_spa_navigation(
+            html, "https://example.com", "https://example.com", ["/"]
+        )
+        found = [u['url'] for u in urls]
+        assert not any(u.endswith('/fonts') for u in found)
+
+
+# ============================================================
+# D5: Query Parameter Stripping
+# ============================================================
+
+class TestQueryParamStripping:
+    """Test that _normalize_url strips query params and fragments (D5 fix)."""
+
+    def test_strips_query_params(self, discovery):
+        result = discovery._normalize_url(
+            "/docs/intro?tab=js&theme=dark", "https://example.com/", "https://example.com"
+        )
+        assert result == "https://example.com/docs/intro"
+
+    def test_strips_fragment(self, discovery):
+        result = discovery._normalize_url(
+            "/docs/intro#section-1", "https://example.com/", "https://example.com"
+        )
+        assert result == "https://example.com/docs/intro"
+
+    def test_strips_both(self, discovery):
+        result = discovery._normalize_url(
+            "/docs/intro?tab=js#section", "https://example.com/", "https://example.com"
+        )
+        assert result == "https://example.com/docs/intro"
+
+    def test_fragment_only_returns_none(self, discovery):
+        """Href that is just a fragment should return None."""
+        result = discovery._normalize_url(
+            "#section", "https://example.com/", "https://example.com"
+        )
+        assert result is None
+
+
+# ============================================================
+# D6: Hybrid Discovery Strategy
+# ============================================================
+
+class TestHybridStrategy:
+    """Test that discover_urls uses hybrid strategy instead of first-wins (D6 fix)."""
+
+    def test_merges_sitemap_and_navigation(self, discovery):
+        """Both sitemap and navigation results should be merged."""
+        sitemap_urls = [{'url': f'https://example.com/docs/page{i}', 'title': f'SM {i}'}
+                        for i in range(15)]
+        nav_urls = [{'url': f'https://example.com/docs/nav{i}', 'title': f'Nav {i}'}
+                    for i in range(5)]
+
+        with patch.object(discovery, '_try_sitemap', return_value=sitemap_urls), \
+             patch.object(discovery, '_try_navigation', return_value=nav_urls), \
+             patch.object(discovery, '_determine_scope', return_value=['/docs/']), \
+             patch.object(discovery.github_discovery, 'is_github_repo', return_value=False):
+            result = discovery.discover_urls("https://example.com/docs/")
+
+        urls = {u['url'] for u in result['urls']}
+        # Should contain URLs from BOTH sources
+        assert 'https://example.com/docs/page0' in urls
+        assert 'https://example.com/docs/nav0' in urls
+        assert len(result['urls']) == 20  # 15 + 5 unique
+        assert 'hybrid' in result['mode']
+
+    def test_deduplicates_across_modes(self, discovery):
+        """Same URL found in sitemap and navigation should appear once."""
+        shared_url = {'url': 'https://example.com/docs/intro', 'title': 'Intro'}
+        sitemap_urls = [shared_url, {'url': 'https://example.com/docs/page1', 'title': 'P1'}] * 6
+        nav_urls = [shared_url, {'url': 'https://example.com/docs/nav1', 'title': 'N1'}]
+
+        with patch.object(discovery, '_try_sitemap', return_value=sitemap_urls), \
+             patch.object(discovery, '_try_navigation', return_value=nav_urls), \
+             patch.object(discovery, '_determine_scope', return_value=['/docs/']), \
+             patch.object(discovery.github_discovery, 'is_github_repo', return_value=False):
+            result = discovery.discover_urls("https://example.com/docs/")
+
+        url_list = [u['url'] for u in result['urls']]
+        assert len(url_list) == len(set(url_list)), "Duplicate URLs found in hybrid result"
+
+    def test_crawl_supplements_sparse_results(self, discovery):
+        """Crawl should be used when sitemap+nav yields few results."""
+        sitemap_urls = [{'url': 'https://example.com/docs/page1', 'title': 'P1'}]
+        nav_urls = [{'url': 'https://example.com/docs/nav1', 'title': 'N1'}]
+        crawl_urls = [{'url': f'https://example.com/docs/crawl{i}', 'title': f'C{i}'}
+                      for i in range(20)]
+
+        with patch.object(discovery, '_try_sitemap', return_value=sitemap_urls), \
+             patch.object(discovery, '_try_navigation', return_value=nav_urls), \
+             patch.object(discovery, '_crawl_links', return_value=crawl_urls), \
+             patch.object(discovery, '_determine_scope', return_value=['/docs/']), \
+             patch.object(discovery.github_discovery, 'is_github_repo', return_value=False):
+            result = discovery.discover_urls("https://example.com/docs/")
+
+        urls = {u['url'] for u in result['urls']}
+        assert 'https://example.com/docs/crawl0' in urls
+
+    def test_no_crawl_when_enough_urls(self, discovery):
+        """Crawl should NOT be triggered when sitemap+nav already has enough URLs."""
+        sitemap_urls = [{'url': f'https://example.com/docs/page{i}', 'title': f'P{i}'}
+                        for i in range(100)]
+
+        mock_crawl = MagicMock(return_value=[])
+        with patch.object(discovery, '_try_sitemap', return_value=sitemap_urls), \
+             patch.object(discovery, '_try_navigation', return_value=[]), \
+             patch.object(discovery, '_crawl_links', mock_crawl), \
+             patch.object(discovery, '_determine_scope', return_value=['/docs/']), \
+             patch.object(discovery.github_discovery, 'is_github_repo', return_value=False):
+            discovery.discover_urls("https://example.com/docs/")
+
+        mock_crawl.assert_not_called()
+
+
+# ============================================================
+# D7: use_webdriver parameter
+# ============================================================
+
+class TestUseWebdriverParam:
+    """Test use_webdriver parameter (D7 fix)."""
+
+    def test_discover_urls_accepts_use_webdriver(self, discovery):
+        """discover_urls() should accept use_webdriver parameter."""
+        import inspect
+        sig = inspect.signature(discovery.discover_urls)
+        assert 'use_webdriver' in sig.parameters
+
+    def test_force_webdriver_escalation(self, discovery):
+        """use_webdriver=True should force WebDriver even with many URLs."""
+        links = "\n".join(
+            f'<a href="/docs/page{i}">Page {i}</a>' for i in range(20)
+        )
+        html = f"""
+        <html><body>
+        <nav>{links}</nav>
+        <script>1</script>
+        </body></html>
+        """
+        mock_response = MagicMock()
+        mock_response.text = html
+        mock_response.status_code = 200
+        mock_response.raise_for_status = MagicMock()
+
+        mock_wd = MagicMock()
+        mock_wd.discover_urls.return_value = {
+            'urls': [{'url': 'https://example.com/docs/wd1', 'title': 'WD1'}],
+            'mode': 'webdriver', 'version': None, 'scope': '/', 'stats': {}
+        }
+
+        with patch.object(discovery.session, 'get', return_value=mock_response), \
+             patch('url_discovery.SELENIUM_AVAILABLE', True), \
+             patch('url_discovery.WebDriverDiscovery', return_value=mock_wd):
+            urls = discovery._try_navigation(
+                "https://example.com", ["/docs/"], use_webdriver=True
+            )
+
+        # WebDriver should have been called despite having 20 URLs
+        mock_wd.discover_urls.assert_called_once()
+
+
+# ============================================================
+# D8: Locale-aware Sitemap Scoring
+# ============================================================
+
+class TestLocaleAwareSitemapScoring:
+    """Test that sitemap scoring uses locale_filter instead of hardcoded 'en' (D8 fix)."""
+
+    def _make_urls(self, paths, base="https://example.com"):
+        return [{'url': f"{base}{p}", 'title': p} for p in paths]
+
+    def test_german_locale_favors_de_group(self, discovery):
+        """With locale_filter='de', /de/ groups should NOT be penalized."""
+        urls = self._make_urls([
+            f"/{lang}/docs/page{i}" for lang in ['en', 'de']
+            for i in range(30)
+        ])
+        result = discovery._score_and_filter_sitemap_urls(
+            urls, ["/de/"], "https://example.com", locale_filter='de'
+        )
+        result_paths = [u['url'] for u in result]
+        # /de/ should be kept, /en/ should be penalized
+        assert any("/de/docs/" in p for p in result_paths)
+
+    def test_english_default_when_no_locale(self, discovery):
+        """Without locale_filter, defaults to preferring English."""
+        urls = self._make_urls([
+            f"/{lang}/docs/page{i}" for lang in ['en', 'fr']
+            for i in range(30)
+        ])
+        result = discovery._score_and_filter_sitemap_urls(
+            urls, ["/en/"], "https://example.com", locale_filter=None
+        )
+        result_paths = [u['url'] for u in result]
+        assert any("/en/docs/" in p for p in result_paths)

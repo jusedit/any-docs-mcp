@@ -40,7 +40,7 @@ class URLDiscovery:
         })
         self.github_discovery = GitHubDiscovery()
     
-    def discover_urls(self, start_url: str, max_pages: int = 500, locale_filter: Optional[str] = None) -> Dict:
+    def discover_urls(self, start_url: str, max_pages: int = 500, locale_filter: Optional[str] = None, use_webdriver: bool = False) -> Dict:
         """
         Discover documentation URLs using the best available method.
         
@@ -49,6 +49,8 @@ class URLDiscovery:
             max_pages: Maximum number of pages to discover
             locale_filter: Optional language code to filter URLs (e.g., 'en', 'de').
                           Auto-detected from start_url if not provided.
+            use_webdriver: If True, force WebDriver escalation in navigation mode
+                          regardless of heuristic thresholds.
         
         Returns:
             {
@@ -79,14 +81,10 @@ class URLDiscovery:
         scope_str = ', '.join(scopes[:3]) + ('...' if len(scopes) > 3 else '')
         print(f"  Scopes: {scope_str}")
         
-        # Try modes in order of preference
-        result = None
-        
-        # 0. Check if it's a GitHub repository first
+        # 0. Check if it's a GitHub repository first (exclusive mode)
         if self.github_discovery.is_github_repo(start_url):
             print(f"  Detected GitHub repository")
             github_files = self.github_discovery.discover_markdown_files(start_url, max_pages)
-            # Apply locale filter to GitHub results
             github_files = self._apply_locale_filter(github_files, locale_filter)
             if github_files:
                 result = {
@@ -102,45 +100,73 @@ class URLDiscovery:
             else:
                 print(f"  GitHub discovery found no files, falling back to other modes")
         
-        # 1. Try sitemap first
+        # --- HYBRID STRATEGY: try all modes and merge results ---
+        all_urls = {}  # url -> {url, title, source} — deduplication by URL
+        mode_stats = {}
+        primary_mode = None
+        
+        # 1. Try sitemap
         sitemap_urls = self._try_sitemap(base_url, scopes, max_pages, locale_filter)
-        if sitemap_urls and len(sitemap_urls) >= 10:
-            result = {
-                'mode': 'sitemap',
-                'urls': sitemap_urls[:max_pages],
-                'version': version,
-                'scopes': scopes,
-                'locale': locale_filter,
-                'stats': {'raw': len(sitemap_urls), 'filtered': min(len(sitemap_urls), max_pages)}
-            }
-            print(f"  Mode: SITEMAP ({len(result['urls'])} URLs)")
-            return result
+        if sitemap_urls:
+            mode_stats['sitemap'] = len(sitemap_urls)
+            for u in sitemap_urls:
+                if u['url'] not in all_urls:
+                    all_urls[u['url']] = {**u, 'source': u.get('source', 'sitemap')}
+            if len(sitemap_urls) >= 10:
+                primary_mode = 'sitemap'
+            print(f"  Sitemap: {len(sitemap_urls)} URLs")
         
-        # 2. Try navigation extraction
-        nav_urls = self._try_navigation(start_url, scopes, locale_filter)
-        if nav_urls and len(nav_urls) >= 5:
-            result = {
-                'mode': 'navigation',
-                'urls': nav_urls[:max_pages],
-                'version': version,
-                'scopes': scopes,
-                'locale': locale_filter,
-                'stats': {'raw': len(nav_urls), 'filtered': min(len(nav_urls), max_pages)}
-            }
-            print(f"  Mode: NAVIGATION ({len(result['urls'])} URLs)")
-            return result
+        # 2. Try navigation (always, even if sitemap succeeded)
+        nav_urls = self._try_navigation(start_url, scopes, locale_filter, use_webdriver=use_webdriver)
+        if nav_urls:
+            mode_stats['navigation'] = len(nav_urls)
+            new_from_nav = 0
+            for u in nav_urls:
+                if u['url'] not in all_urls:
+                    all_urls[u['url']] = {**u, 'source': u.get('source', 'navigation')}
+                    new_from_nav += 1
+            if not primary_mode and len(nav_urls) >= 5:
+                primary_mode = 'navigation'
+            print(f"  Navigation: {len(nav_urls)} URLs ({new_from_nav} new)")
         
-        # 3. Fall back to crawling
-        crawl_urls = self._crawl_links(start_url, scopes, max_pages, locale_filter)
+        # 3. Supplement with crawl if combined results are still sparse
+        combined_count = len(all_urls)
+        if combined_count < max(10, max_pages // 10):
+            crawl_budget = max_pages - combined_count
+            crawl_urls = self._crawl_links(start_url, scopes, crawl_budget, locale_filter)
+            if crawl_urls:
+                mode_stats['crawl'] = len(crawl_urls)
+                new_from_crawl = 0
+                for u in crawl_urls:
+                    if u['url'] not in all_urls:
+                        all_urls[u['url']] = {**u, 'source': 'crawl'}
+                        new_from_crawl += 1
+                if not primary_mode:
+                    primary_mode = 'crawl'
+                print(f"  Crawl: {len(crawl_urls)} URLs ({new_from_crawl} new)")
+        
+        # Build final result
+        final_urls = list(all_urls.values())[:max_pages]
+        mode = primary_mode or 'crawl'
+        
+        # Determine display mode (hybrid if multiple modes contributed)
+        contributing_modes = [m for m, c in mode_stats.items() if c > 0]
+        if len(contributing_modes) > 1:
+            mode = f"hybrid({'+'.join(contributing_modes)})"
+        
         result = {
-            'mode': 'crawl',
-            'urls': crawl_urls[:max_pages],
+            'mode': mode,
+            'urls': final_urls,
             'version': version,
             'scopes': scopes,
             'locale': locale_filter,
-            'stats': {'raw': len(crawl_urls), 'filtered': min(len(crawl_urls), max_pages)}
+            'stats': {
+                'raw': sum(mode_stats.values()),
+                'filtered': len(final_urls),
+                'by_mode': mode_stats
+            }
         }
-        print(f"  Mode: CRAWL ({len(result['urls'])} URLs)")
+        print(f"  Mode: {mode.upper()} ({len(final_urls)} URLs total)")
         return result
     
     def _detect_locale(self, url: str) -> Optional[str]:
@@ -173,32 +199,42 @@ class URLDiscovery:
         
         return None
     
+    # Known non-locale 2-letter path segments (would false-positive as locale codes)
+    _NON_LOCALE_SEGMENTS = frozenset({
+        'js', 'cs', 'go', 'py', 'ts', 'ui', 'ci', 'cd', 'qa', 'db', 'io', 'os',
+        'ai', 'ml', 'dl', 'v1', 'v2', 'v3', 'v4', 'v5',
+    })
+    
     def _apply_locale_filter(self, urls: List[Dict], locale_filter: str) -> List[Dict]:
         """Filter URLs to only include those matching the target locale.
         
-        URLs with other locales (e.g., /el/, /ja/) are excluded.
-        URLs without locale (or matching locale) are kept.
+        Uses generic regex detection: any /{xx}/ path segment matching ISO 639-1
+        pattern (2 lowercase letters) is treated as a locale, unless it's a known
+        non-locale segment. URLs with a detected locale different from locale_filter
+        are excluded. URLs without any detected locale are kept.
         """
         if not locale_filter:
             return urls
         
+        target = locale_filter.lower()
         filtered = []
-        other_locales = {'el', 'ja', 'fr', 'de', 'it', 'es', 'zh', 'ko', 'pt', 'ru', 'ar'}
-        other_locales.discard(locale_filter.lower())
         
         for u in urls:
-            url = u['url']
-            parsed = urlparse(url)
-            path = parsed.path
+            parsed = urlparse(u['url'])
+            path = parsed.path.lower()
             
-            # Check for other locale patterns in URL
-            has_other_locale = False
-            for other in other_locales:
-                if f'/{other}/' in path.lower() or path.lower().startswith(f'/{other}/'):
-                    has_other_locale = True
+            # Find all potential locale segments: /{xx}/ at any position
+            locale_matches = re.findall(r'/([a-z]{2})/', path)
+            
+            # Determine detected locale (first match that isn't a known non-locale)
+            detected_locale = None
+            for match in locale_matches:
+                if match not in self._NON_LOCALE_SEGMENTS:
+                    detected_locale = match
                     break
             
-            if not has_other_locale:
+            # Keep URL if no locale detected or if it matches target
+            if detected_locale is None or detected_locale == target:
                 filtered.append(u)
         
         if len(filtered) < len(urls):
@@ -339,7 +375,7 @@ class URLDiscovery:
         
         # When many URLs returned, use intelligent grouping and scoring
         if len(urls) > 50:
-            urls = self._score_and_filter_sitemap_urls(urls, scopes, base_url)
+            urls = self._score_and_filter_sitemap_urls(urls, scopes, base_url, locale_filter)
         
         # Filter by scopes (OR logic - URL must match ANY scope)
         if scopes and scopes != ['/']:
@@ -367,7 +403,7 @@ class URLDiscovery:
         
         return urls
     
-    def _score_and_filter_sitemap_urls(self, urls: List[Dict], scopes: List[str], base_url: str) -> List[Dict]:
+    def _score_and_filter_sitemap_urls(self, urls: List[Dict], scopes: List[str], base_url: str, locale_filter: Optional[str] = None) -> List[Dict]:
         """Group and score sitemap URLs to filter out non-documentation pages."""
         from collections import defaultdict
         
@@ -403,11 +439,12 @@ class URLDiscovery:
             if any(pattern in group_key.lower() for pattern in non_doc_patterns):
                 score -= 10
             
-            # Translation patterns get negative scores
+            # Translation patterns: penalize locales that don't match preferred language
+            preferred_lang = locale_filter.lower() if locale_filter else 'en'
             translation_pattern = re.match(r'^/([a-z]{2})/', group_key)
             if translation_pattern:
                 lang = translation_pattern.group(1)
-                if lang not in ['en']:  # Penalize non-English translations
+                if lang != preferred_lang:
                     score -= 5
             
             # Groups matching current scopes get bonus
@@ -448,7 +485,7 @@ class URLDiscovery:
         
         return filtered_urls
     
-    def _try_navigation(self, start_url: str, scopes: List[str], locale_filter: Optional[str] = None, max_level1_pages: int = 20) -> List[Dict]:
+    def _try_navigation(self, start_url: str, scopes: List[str], locale_filter: Optional[str] = None, max_level1_pages: int = 20, use_webdriver: bool = False) -> List[Dict]:
         """Try to extract URLs from navigation menus and SPA data.
         
         Implements 2-level recursive extraction:
@@ -547,7 +584,8 @@ class URLDiscovery:
         
         # 5. WebDriver escalation: if few URLs found and page has many script tags (likely SPA)
         script_tags = len(soup.find_all('script'))
-        if len(urls) < 10 and script_tags > 3 and SELENIUM_AVAILABLE:
+        should_escalate = (len(urls) < 10 and script_tags > 3) or use_webdriver
+        if should_escalate and SELENIUM_AVAILABLE:
             print(f"  WebDriver escalation: {len(urls)} URLs found, {script_tags} script tags detected")
             try:
                 webdriver_discovery = WebDriverDiscovery()
@@ -585,11 +623,12 @@ class URLDiscovery:
         return urls
     
     def _is_section_page(self, url: str) -> bool:
-        """Check if URL looks like a section page (not a leaf page).
+        """Check if URL looks like a section/index page (not a leaf content page).
         
-        Section page heuristic:
-        - URL has fewer than 3 path segments
-        - URL path suggests a category (guide, reference, api, etc.)
+        Conservative heuristic to avoid excessive HTTP requests in Level 1:
+        - Last segment must look like a category/index name
+        - URLs ending with file extensions are leaf pages
+        - Deep paths (4+ segments) are always leaf pages
         """
         parsed = urlparse(url)
         path = parsed.path.strip('/')
@@ -598,21 +637,27 @@ class URLDiscovery:
             return False
         
         segments = path.split('/')
+        last_segment = segments[-1].lower()
         
-        # Section pages have fewer segments
-        if len(segments) <= 2:
+        # Deep paths are always leaf pages
+        if len(segments) >= 4:
+            return False
+        
+        # File extensions indicate leaf pages
+        if '.' in last_segment:
+            return False
+        
+        # Section/index keywords in the LAST segment indicate a section page
+        section_keywords = {'guide', 'guides', 'reference', 'api', 'tutorial', 'tutorials',
+                           'learn', 'docs', 'doc', 'manual', 'handbook', 'overview',
+                           'getting-started', 'quickstart', 'index', 'introduction'}
+        
+        if last_segment in section_keywords:
             return True
         
-        # Check if path suggests a category/section
-        section_keywords = ['guide', 'reference', 'api', 'tutorial', 'learn', 
-                          'docs', 'doc', 'manual', 'handbook', 'intro', 'start']
-        
-        # Check if any segment looks like a section
-        for segment in segments:
-            if any(keyword in segment.lower() for keyword in section_keywords):
-                # But not if it looks like a specific doc page
-                if not self._looks_like_leaf_page(url):
-                    return True
+        # Single-segment paths that are common section roots
+        if len(segments) == 1 and last_segment in section_keywords:
+            return True
         
         return False
     
@@ -722,24 +767,29 @@ class URLDiscovery:
                     })
         
         # 4. Extract path-like strings from JavaScript using regex
-        # Look for string arrays that contain path-like values (starting with /)
-        # Pattern: ["/docs", "/api", "/guide"] or routes: ["/home", "/about"]
-        path_array_pattern = r'[\'"]\s*(/[a-zA-Z0-9_\-/.]+)\s*[\'"]'
+        # Only match paths with at least 2 segments to reduce noise (e.g., /docs/intro not just /fonts)
+        path_array_pattern = r'[\'"]\s*(/[a-zA-Z0-9_\-]+/[a-zA-Z0-9_\-/.]+)\s*[\'"]'
         path_matches = re.findall(path_array_pattern, html_content)
         
+        # Asset/framework path prefixes that are never documentation
+        _noise_prefixes = ('/static/', '/assets/', '/images/', '/img/', '/fonts/',
+                           '/css/', '/js/', '/media/', '/node_modules/', '/vendor/',
+                           '/_next/', '/__/', '/chunks/', '/build/', '/dist/')
+        
         for path in path_matches:
-            # Filter reasonable paths (not too short, not too long)
-            if len(path) >= 2 and len(path) < 200 and '/' in path:
-                full_url = self._normalize_url(path, start_url, base_url)
-                if full_url and full_url not in seen_urls and self._url_in_scope(full_url, base_url, scopes):
-                    # Only add if it looks like a doc page
-                    if self._is_doc_page(full_url):
-                        seen_urls.add(full_url)
-                        urls.append({
-                            'url': full_url,
-                            'title': path.split('/')[-1] or 'Page',
-                            'source': 'spa'
-                        })
+            if len(path) < 4 or len(path) >= 200:
+                continue
+            if any(path.lower().startswith(p) for p in _noise_prefixes):
+                continue
+            full_url = self._normalize_url(path, start_url, base_url)
+            if full_url and full_url not in seen_urls and self._url_in_scope(full_url, base_url, scopes):
+                if self._is_doc_page(full_url):
+                    seen_urls.add(full_url)
+                    urls.append({
+                        'url': full_url,
+                        'title': path.split('/')[-1] or 'Page',
+                        'source': 'spa'
+                    })
         
         return urls
     
@@ -850,21 +900,27 @@ class URLDiscovery:
         return urls
     
     def _normalize_url(self, href: str, current_url: str, base_url: str) -> Optional[str]:
-        """Normalize a URL to absolute form."""
+        """Normalize a URL to absolute form, stripping query params and fragments."""
         if not href or href.startswith('#') or href.startswith('javascript:'):
             return None
         
+        # Strip fragment before resolving
+        href = href.split('#')[0]
+        if not href:
+            return None
+        
         if href.startswith('//'):
-            return 'https:' + href
+            full = 'https:' + href
+        elif href.startswith('/'):
+            full = base_url + href
+        elif href.startswith('http'):
+            full = href
+        else:
+            full = urljoin(current_url, href)
         
-        if href.startswith('/'):
-            return base_url + href
-        
-        if href.startswith('http'):
-            return href
-        
-        # Relative URL
-        return urljoin(current_url, href)
+        # Strip query parameters to deduplicate (e.g., ?tab=js vs ?tab=python)
+        parsed = urlparse(full)
+        return f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
     
     def _url_in_scope(self, url: str, base_url: str, scopes: List[str]) -> bool:
         """Check if URL is within any of the defined scopes."""
@@ -895,8 +951,8 @@ class URLDiscovery:
         if any(path.endswith(ext) for ext in skip_extensions):
             return False
         
-        # Skip common non-doc paths
-        skip_paths = ['/search', '/login', '/logout', '/admin', '/api/', '/_', '/static/']
+        # Skip common non-doc paths (NOT /api/ — many doc sites serve API reference there)
+        skip_paths = ['/search', '/login', '/logout', '/admin', '/_', '/static/']
         if any(skip in path for skip in skip_paths):
             return False
         

@@ -74,7 +74,7 @@ class TestLocaleFilter:
         assert len(result) == 2
     
     def test_filters_out_fr_urls_when_de_filter(self):
-        """Excludes French URLs when locale_filter='de'."""
+        """Excludes non-German URLs when locale_filter='de'."""
         discovery = URLDiscovery()
         urls = [
             {"url": "https://example.com/de/docs/", "title": "German"},
@@ -82,11 +82,12 @@ class TestLocaleFilter:
             {"url": "https://example.com/en/docs/", "title": "English"},
         ]
         result = discovery._apply_locale_filter(urls, "de")
-        # Should keep German and English (no locale), exclude French
-        assert len(result) == 2
+        # Should keep only German, exclude French and English (both are non-de locales)
+        assert len(result) == 1
         urls_in_result = [u["url"] for u in result]
         assert "https://example.com/de/docs/" in urls_in_result
         assert "https://example.com/fr/docs/" not in urls_in_result
+        assert "https://example.com/en/docs/" not in urls_in_result
 
 
 class TestDiscoverUrlsLocaleParameter:
