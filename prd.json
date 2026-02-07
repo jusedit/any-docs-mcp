@@ -11,24 +11,24 @@
       "feature": "Adaptive scope detection based on start_url and site structure",
       "description": "CONTEXT: The current `_determine_scope()` in `scraper/url_discovery.py` (line 226-236) simply strips the trailing slash from the start_url path and uses that as scope. This causes two critical failures: (1) Sites with root start_url like https://react.dev/ get scope='/' which is too broad (captures blog, community, etc.), and (2) Sites like https://nodejs.org/api/ get scope='/api/' which is correct but the scraper's navigation mode finds blog links outside scope and follows them anyway. PROBLEM: react.dev has 200+ doc pages under /learn/ and /reference/ but the scraper only found 7 top-level pages because navigation mode only extracts links from the start page, not recursively. Node.js scraped 235 blog posts instead of API docs. FIX: Replace `_determine_scope()` with a smarter method that fetches the start page, analyzes the link structure, and determines the actual documentation boundary. The method should: (a) Find the dominant link prefix in navigation/sidebar elements, (b) If start_url is root ('/'), identify the documentation sub-path by looking at nav links (e.g., if most nav links point to /docs/ or /learn/, use those as scope), (c) Return multiple scope prefixes if documentation spans multiple paths (e.g., React has /learn/ AND /reference/). IMPORTANT: Do NOT add site-specific logic. The solution must work for ANY documentation site by analyzing link patterns generically. FILE TO MODIFY: `scraper/url_discovery.py`, method `_determine_scope` (line 226). CURRENT AUDIT TARGETS: react 3.5%->80%, typescript 3.5%->80%, nodejs 1.0%->80%.",
       "acceptance_criteria": [
-        "New `_determine_scope()` returns a list of scope prefixes instead of a single string â€” verified by unit test with mock HTML containing nav links to /docs/, /api/, /guide/",
-        "For root start_urls (path='/'), the method fetches the page and analyzes nav element links to find documentation paths â€” verified by test with mock page having sidebar links to /learn/ and /reference/",
-        "All callers of `_determine_scope` updated to handle list of scopes (check `_url_in_scope`, `_try_sitemap`, `_try_navigation`, `_crawl_links`) â€” verified by grep for _determine_scope and _url_in_scope",
-        "`_url_in_scope()` updated to accept list of scopes and return True if URL matches ANY scope â€” verified by unit test",
-        "Existing tests still pass (run: python -m pytest tests/e2e/ -v) â€” verified by test run with 0 failures"
+        "New `_determine_scope()` returns a list of scope prefixes instead of a single string — verified by unit test with mock HTML containing nav links to /docs/, /api/, /guide/",
+        "For root start_urls (path='/'), the method fetches the page and analyzes nav element links to find documentation paths — verified by test with mock page having sidebar links to /learn/ and /reference/",
+        "All callers of `_determine_scope` updated to handle list of scopes (check `_url_in_scope`, `_try_sitemap`, `_try_navigation`, `_crawl_links`) — verified by grep for _determine_scope and _url_in_scope",
+        "`_url_in_scope()` updated to accept list of scopes and return True if URL matches ANY scope — verified by unit test",
+        "Existing tests still pass (run: python -m pytest tests/e2e/ -v) — verified by test run with 0 failures"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Scope-Boundary-Detection",
       "feature": "Documentation path detection from page link analysis",
       "description": "CONTEXT: When a user provides a root URL like https://react.dev/ the scraper needs to figure out where the actual documentation lives. Currently it just uses '/' as scope which matches everything. PROBLEM: The scraper finds 7 pages for react.dev because it only looks at the start page's nav links (which are top-level like /learn, /reference, /blog) and doesn't recurse into them. SOLUTION: Add a new method `_analyze_documentation_paths(start_url)` to `URLDiscovery` class in `scraper/url_discovery.py` that: (1) Fetches the start page, (2) Extracts ALL links from nav/sidebar elements, (3) Groups links by their first path segment (e.g., /learn/*, /reference/*, /blog/*), (4) Scores each group: links inside nav elements get +2 weight, links with doc-like paths (/docs/, /guide/, /reference/, /api/, /learn/, /tutorial/, /handbook/) get +3 weight, links to /blog/, /community/, /changelog/, /about/ get -5 weight, (5) Returns the top-scoring path groups as documentation scopes. This method should be called by `_determine_scope` when the start_url path is '/' or very short. IMPORTANT: Use ONLY generic heuristics (link density in nav elements, common doc path names). No site-specific rules. FILE TO MODIFY: `scraper/url_discovery.py`, add new method `_analyze_documentation_paths`, call from `_determine_scope`.",
       "acceptance_criteria": [
-        "New method `_analyze_documentation_paths(start_url)` exists in URLDiscovery class â€” verified by reading url_discovery.py",
-        "Method returns list of path prefixes sorted by documentation-likelihood score â€” verified by unit test with crafted HTML having /docs/, /blog/, /about/ links",
-        "Doc-like paths (/docs/, /guide/, /reference/, /api/, /learn/, /tutorial/) score higher than non-doc paths â€” verified by unit test asserting /docs/ outscores /blog/",
-        "Links found inside <nav>, <aside>, .sidebar elements get higher weight than links in <footer> or <header> â€” verified by unit test with HTML having same link in nav vs footer",
-        "Method correctly identifies /learn/ and /reference/ as React's doc paths when given a page with React-like nav structure (without hardcoding react.dev) â€” verified by test with mock HTML mimicking a docs site with learn+reference sections"
+        "New method `_analyze_documentation_paths(start_url)` exists in URLDiscovery class — verified by reading url_discovery.py",
+        "Method returns list of path prefixes sorted by documentation-likelihood score — verified by unit test with crafted HTML having /docs/, /blog/, /about/ links",
+        "Doc-like paths (/docs/, /guide/, /reference/, /api/, /learn/, /tutorial/) score higher than non-doc paths — verified by unit test asserting /docs/ outscores /blog/",
+        "Links found inside <nav>, <aside>, .sidebar elements get higher weight than links in <footer> or <header> — verified by unit test with HTML having same link in nav vs footer",
+        "Method correctly identifies /learn/ and /reference/ as React's doc paths when given a page with React-like nav structure (without hardcoding react.dev) — verified by test with mock HTML mimicking a docs site with learn+reference sections"
       ],
       "passes": false
     },

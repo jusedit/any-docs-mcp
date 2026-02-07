@@ -6,7 +6,7 @@
 
 ## FastAPIclass¶
 
-**Source:** http://127.0.0.1:39488/reference/fastapi
+**Source:** http://127.0.0.1:4017/reference/fastapi
 
 # `FastAPI` class
 Here's the reference information for the `FastAPI` class, with all its parameters, attributes and methods.

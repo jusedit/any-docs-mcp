@@ -1,5 +1,25 @@
 # AnyDocsMCP Quality & Retrieval Upgrade - Progress Log
 
+## Ralph Batch v4 — Cycle 1/7 ✅ COMPLETE
+
+### Completed: Adaptive scope detection based on start_url and site structure
+
+**Result:** Success
+
+**Changes made:**
+- `_determine_scope()` now returns `List[str]` instead of single string
+- Added `_analyze_documentation_paths()` for root URL analysis
+- Updated `_url_in_scope()` to accept `List[str]` with OR logic
+- Updated all methods: `_try_sitemap`, `_try_navigation`, `_crawl_links`, `discover_urls`
+- Result dict now uses `'scopes'` instead of `'scope'`
+- Tests updated to match new API
+
+**Files modified:**
+- `scraper/url_discovery.py` — main implementation
+- `tests/e2e/test_discovery_accuracy.py` — test assertions updated
+
+**Tests:** All discovery accuracy tests passing (10/10)
+
 ## Plan v1: quality-retrieval-upgrade-v1 ✅ COMPLETE
 
 ### Session 1-2 — 2026-02-07

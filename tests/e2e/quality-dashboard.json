@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-02-07T19:53:33.632696",
+  "generated_at": "2026-02-07T20:45:43.420966",
   "doc_sets_evaluated": 10,
   "per_doc_set": {
     "django": {
@@ -20,7 +20,7 @@
       "mcp_index": {
         "total_sections": 1198,
         "total_files_indexed": 8,
-        "build_time_ms": 113,
+        "build_time_ms": 79,
         "sections_with_code": 494,
         "sections_with_source_url": 52,
         "avg_content_length": 1280,
@@ -44,11 +44,11 @@
     },
     "fastapi": {
       "name": "fastapi",
-      "version": "v3",
+      "version": "v4",
       "markdown": {
         "total_files": 133,
-        "total_size_bytes": 2442863,
-        "avg_file_size_bytes": 18367.39097744361,
+        "total_size_bytes": 2438844,
+        "avg_file_size_bytes": 18337.17293233083,
         "total_headings": 3094,
         "total_code_blocks": 2499,
         "files_with_code": 112,
@@ -60,19 +60,19 @@
       "mcp_index": {
         "total_sections": 3094,
         "total_files_indexed": 133,
-        "build_time_ms": 105,
+        "build_time_ms": 242,
         "sections_with_code": 1294,
         "sections_with_source_url": 146,
-        "avg_content_length": 661,
+        "avg_content_length": 660,
         "score": 0.825
       },
       "search": {
         "queries_tested": 10,
-        "precision_at_1": 0.5,
+        "precision_at_1": 0.6,
         "precision_at_3": 0.8,
-        "mrr": 0.617,
+        "mrr": 0.667,
         "zero_result_queries": 0,
-        "score": 0.625
+        "score": 0.68
       },
       "overview": {
         "overview_length": 14361,
@@ -80,7 +80,7 @@
         "toc_total_entries": 3094,
         "score": 1.0
       },
-      "overall_score": 0.818
+      "overall_score": 0.834
     },
     "golang": {
       "name": "golang",
@@ -140,7 +140,7 @@
       "mcp_index": {
         "total_sections": 152,
         "total_files_indexed": 1,
-        "build_time_ms": 10,
+        "build_time_ms": 9,
         "sections_with_code": 77,
         "sections_with_source_url": 20,
         "avg_content_length": 646,
@@ -180,7 +180,7 @@
       "mcp_index": {
         "total_sections": 250,
         "total_files_indexed": 17,
-        "build_time_ms": 10,
+        "build_time_ms": 16,
         "sections_with_code": 0,
         "sections_with_source_url": 32,
         "avg_content_length": 268,
@@ -220,7 +220,7 @@
       "mcp_index": {
         "total_sections": 341,
         "total_files_indexed": 65,
-        "build_time_ms": 37,
+        "build_time_ms": 36,
         "sections_with_code": 79,
         "sections_with_source_url": 161,
         "avg_content_length": 1463,
@@ -260,7 +260,7 @@
       "mcp_index": {
         "total_sections": 87,
         "total_files_indexed": 7,
-        "build_time_ms": 7,
+        "build_time_ms": 12,
         "sections_with_code": 7,
         "sections_with_source_url": 7,
         "avg_content_length": 817,
@@ -300,7 +300,7 @@
       "mcp_index": {
         "total_sections": 15,
         "total_files_indexed": 1,
-        "build_time_ms": 3,
+        "build_time_ms": 2,
         "sections_with_code": 4,
         "sections_with_source_url": 3,
         "avg_content_length": 699,
@@ -380,7 +380,7 @@
       "mcp_index": {
         "total_sections": 1642,
         "total_files_indexed": 186,
-        "build_time_ms": 77,
+        "build_time_ms": 101,
         "sections_with_code": 1040,
         "sections_with_source_url": 186,
         "avg_content_length": 774,
@@ -404,10 +404,10 @@
     }
   },
   "aggregate": {
-    "avg_overall_score": 0.678,
+    "avg_overall_score": 0.679,
     "avg_markdown_score": 0.851,
     "avg_index_score": 0.759,
-    "avg_search_score": 0.315,
+    "avg_search_score": 0.32,
     "avg_overview_score": 0.903,
     "total_files": 571,
     "total_sections": 9795,

@@ -1,26 +1,39 @@
 {
-  "tested_at": "2026-02-07T19:53:38.117422",
+  "tested_at": "2026-02-07T20:45:48.025588",
   "results": {
     "react": {
-      "scope": "/",
+      "scope": [
+        "/learn/",
+        "/reference/",
+        "/versions/",
+        "/facebook/"
+      ],
       "ground_truth_count": 7,
-      "in_scope": 7,
-      "out_of_scope": 0,
-      "precision": 1.0,
-      "recall": 1.0,
-      "passed": true
+      "in_scope": 3,
+      "out_of_scope": 4,
+      "precision": 0.429,
+      "recall": 0.429,
+      "passed": false
     },
     "fastapi": {
-      "scope": "/",
+      "scope": [
+        "/tutorial/",
+        "/reference/",
+        "/advanced/",
+        "/how-to/",
+        "/deployment/"
+      ],
       "ground_truth_count": 146,
-      "in_scope": 146,
-      "out_of_scope": 0,
-      "precision": 1.0,
-      "recall": 1.0,
-      "passed": true
+      "in_scope": 122,
+      "out_of_scope": 24,
+      "precision": 0.836,
+      "recall": 0.836,
+      "passed": false
     },
     "kubernetes": {
-      "scope": "/bn/docs/home/",
+      "scope": [
+        "/bn/docs/home/"
+      ],
       "ground_truth_count": 32,
       "in_scope": 2,
       "out_of_scope": 30,
@@ -29,7 +42,9 @@
       "passed": false
     },
     "django": {
-      "scope": "/en/stable/contents/",
+      "scope": [
+        "/en/stable/contents/"
+      ],
       "ground_truth_count": 52,
       "in_scope": 1,
       "out_of_scope": 51,
@@ -38,7 +53,9 @@
       "passed": false
     },
     "tailwind": {
-      "scope": "/docs/accent-color/",
+      "scope": [
+        "/docs/accent-color/"
+      ],
       "ground_truth_count": 186,
       "in_scope": 1,
       "out_of_scope": 185,

@@ -6,7 +6,7 @@
 
 ## Getting Started
 
-**Source:** http://127.0.0.1:24427/docs/getting-started
+**Source:** http://127.0.0.1:31208/docs/getting-started
 
 # Getting Started
 This guide will help you set up the project from scratch in under 5 minutes.

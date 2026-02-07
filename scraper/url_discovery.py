@@ -54,7 +54,7 @@ class URLDiscovery:
                 'mode': 'sitemap' | 'navigation' | 'crawl',
                 'urls': [{'url': str, 'title': str}],
                 'version': str | None,
-                'scope': str,
+                'scope': List[str],
                 'locale': str | None,
                 'stats': {...}
             }
@@ -69,13 +69,14 @@ class URLDiscovery:
         if locale_filter is None:
             locale_filter = self._detect_locale(start_url)
         
-        # Determine scope (path prefix for filtering)
-        scope = self._determine_scope(start_url)
+        # Determine scopes (path prefixes for filtering)
+        scopes = self._determine_scope(start_url)
         
         print(f"  URL Discovery for: {start_url}")
         print(f"  Detected version: {version or 'none'}")
         print(f"  Locale filter: {locale_filter or 'none'}")
-        print(f"  Scope: {scope}")
+        scope_str = ', '.join(scopes[:3]) + ('...' if len(scopes) > 3 else '')
+        print(f"  Scopes: {scope_str}")
         
         # Try modes in order of preference
         result = None
@@ -91,7 +92,7 @@ class URLDiscovery:
                     'mode': 'github',
                     'urls': github_files,
                     'version': version,
-                    'scope': scope,
+                    'scopes': scopes,
                     'locale': locale_filter,
                     'stats': {'raw': len(github_files), 'filtered': len(github_files)}
                 }
@@ -101,13 +102,13 @@ class URLDiscovery:
                 print(f"  GitHub discovery found no files, falling back to other modes")
         
         # 1. Try sitemap first
-        sitemap_urls = self._try_sitemap(base_url, scope, max_pages, locale_filter)
+        sitemap_urls = self._try_sitemap(base_url, scopes, max_pages, locale_filter)
         if sitemap_urls and len(sitemap_urls) >= 10:
             result = {
                 'mode': 'sitemap',
                 'urls': sitemap_urls[:max_pages],
                 'version': version,
-                'scope': scope,
+                'scopes': scopes,
                 'locale': locale_filter,
                 'stats': {'raw': len(sitemap_urls), 'filtered': min(len(sitemap_urls), max_pages)}
             }
@@ -115,13 +116,13 @@ class URLDiscovery:
             return result
         
         # 2. Try navigation extraction
-        nav_urls = self._try_navigation(start_url, scope, locale_filter)
+        nav_urls = self._try_navigation(start_url, scopes, locale_filter)
         if nav_urls and len(nav_urls) >= 5:
             result = {
                 'mode': 'navigation',
                 'urls': nav_urls[:max_pages],
                 'version': version,
-                'scope': scope,
+                'scopes': scopes,
                 'locale': locale_filter,
                 'stats': {'raw': len(nav_urls), 'filtered': min(len(nav_urls), max_pages)}
             }
@@ -129,12 +130,12 @@ class URLDiscovery:
             return result
         
         # 3. Fall back to crawling
-        crawl_urls = self._crawl_links(start_url, scope, max_pages, locale_filter)
+        crawl_urls = self._crawl_links(start_url, scopes, max_pages, locale_filter)
         result = {
             'mode': 'crawl',
             'urls': crawl_urls[:max_pages],
             'version': version,
-            'scope': scope,
+            'scopes': scopes,
             'locale': locale_filter,
             'stats': {'raw': len(crawl_urls), 'filtered': min(len(crawl_urls), max_pages)}
         }
@@ -223,19 +224,108 @@ class URLDiscovery:
         
         return None
     
-    def _determine_scope(self, url: str) -> str:
-        """Determine the URL scope (path prefix) for filtering."""
+    def _determine_scope(self, url: str) -> List[str]:
+        """Determine the URL scope (path prefixes) for filtering.
+        
+        Returns a list of scope prefixes. For root URLs, analyzes the page
+        to find documentation paths. For specific paths, returns the path prefix.
+        """
         parsed = urlparse(url)
         path = parsed.path.rstrip('/')
         
+        # For root URLs, analyze the page to find doc paths
         if not path or path == '/':
-            return '/'
+            doc_paths = self._analyze_documentation_paths(url)
+            if doc_paths:
+                return doc_paths
+            return ['/']
         
-        # Keep the meaningful path prefix
-        # e.g., /3.13/ -> /3.13/, /docs/latest/ -> /docs/latest/
-        return path + '/'
+        # For specific paths, return the path as scope
+        return [path + '/']
     
-    def _try_sitemap(self, base_url: str, scope: str, max_pages: int, locale_filter: Optional[str] = None) -> List[Dict]:
+    def _analyze_documentation_paths(self, start_url: str) -> List[str]:
+        """Analyze page to find documentation path prefixes.
+        
+        Fetches the start page, extracts links from nav elements,
+        groups by path prefix, and scores each group.
+        Returns top-scoring documentation path prefixes.
+        """
+        try:
+            response = self.session.get(start_url, timeout=30)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, 'html.parser')
+        except Exception as e:
+            print(f"  Doc path analysis failed: {e}")
+            return []
+        
+        parsed_start = urlparse(start_url)
+        base_url = f"{parsed_start.scheme}://{parsed_start.netloc}"
+        
+        # Find all links in navigation elements
+        nav_selectors = [
+            'nav', 'aside', '.sidebar', '#sidebar', '.toc', '#toc',
+            '.navigation', '.nav-menu', '.docs-nav', '.doc-sidebar',
+            "[role='navigation']", '.menu', '#menu', 'header', '.header'
+        ]
+        
+        path_scores = {}
+        
+        for selector in nav_selectors:
+            try:
+                for nav in soup.select(selector):
+                    for a in nav.find_all('a', href=True):
+                        href = a.get('href', '')
+                        full_url = self._normalize_url(href, start_url, base_url)
+                        if not full_url:
+                            continue
+                        
+                        parsed = urlparse(full_url)
+                        path = parsed.path.strip('/')
+                        if not path:
+                            continue
+                        
+                        # Get first path segment
+                        first_segment = path.split('/')[0]
+                        if not first_segment:
+                            continue
+                        
+                        # Score the path
+                        score = 0
+                        
+                        # Links in nav elements get higher weight
+                        score += 2
+                        
+                        # Doc-like paths get bonus
+                        doc_patterns = ['docs', 'documentation', 'guide', 'reference', 
+                                       'api', 'learn', 'tutorial', 'handbook', 'manual']
+                        if any(p in first_segment.lower() for p in doc_patterns):
+                            score += 3
+                        
+                        # Non-doc paths get penalty
+                        non_doc_patterns = ['blog', 'news', 'community', 'forum', 
+                                           'about', 'contact', 'pricing', 'enterprise']
+                        if any(p in first_segment.lower() for p in non_doc_patterns):
+                            score -= 5
+                        
+                        # Track score
+                        prefix = '/' + first_segment + '/'
+                        if prefix not in path_scores:
+                            path_scores[prefix] = 0
+                        path_scores[prefix] += score
+            except Exception:
+                continue
+        
+        # Return paths with positive scores, sorted by score
+        positive_paths = [(p, s) for p, s in path_scores.items() if s > 0]
+        positive_paths.sort(key=lambda x: x[1], reverse=True)
+        
+        if positive_paths:
+            # Return top paths (max 5)
+            return [p for p, _ in positive_paths[:5]]
+        
+        return []
+    
+    def _try_sitemap(self, base_url: str, scopes: List[str], max_pages: int, locale_filter: Optional[str] = None) -> List[Dict]:
         """Try to get URLs from sitemap."""
         parser = SitemapParser(base_url)
         
@@ -246,20 +336,33 @@ class URLDiscovery:
         if not urls:
             return []
         
-        # Filter by scope
-        if scope and scope != '/':
-            urls = [u for u in urls if scope in u['url']]
+        # Filter by scopes (OR logic - URL must match ANY scope)
+        if scopes and scopes != ['/']:
+            filtered_urls = []
+            for u in urls:
+                url = u['url']
+                # Check if URL matches any scope
+                parsed = urlparse(url)
+                matches_scope = False
+                for scope in scopes:
+                    if scope in parsed.path or parsed.path.startswith(scope.rstrip('/')):
+                        matches_scope = True
+                        break
+                if matches_scope:
+                    filtered_urls.append(u)
+            urls = filtered_urls
         
         # Apply locale filter
         urls = self._apply_locale_filter(urls, locale_filter)
         
         # If still too many, use LLM filtering
         if len(urls) > max_pages * 2 and self.client:
-            urls = self._llm_filter_urls(base_url + scope, urls)
+            scope_hint = scopes[0] if scopes else '/'
+            urls = self._llm_filter_urls(base_url + scope_hint, urls)
         
         return urls
     
-    def _try_navigation(self, start_url: str, scope: str, locale_filter: Optional[str] = None) -> List[Dict]:
+    def _try_navigation(self, start_url: str, scopes: List[str], locale_filter: Optional[str] = None) -> List[Dict]:
         """Try to extract URLs from navigation menus and SPA data."""
         try:
             response = self.session.get(start_url, timeout=30)
@@ -291,7 +394,7 @@ class URLDiscovery:
                         full_url = self._normalize_url(href, start_url, base_url)
                         
                         if full_url and full_url not in seen:
-                            if self._url_in_scope(full_url, base_url, scope):
+                            if self._url_in_scope(full_url, base_url, scopes):
                                 seen.add(full_url)
                                 urls.append({
                                     'url': full_url,
@@ -302,7 +405,7 @@ class URLDiscovery:
         
         # 2. Try extracting from SPA data (Next.js, Docusaurus)
         if len(urls) < 5:
-            spa_urls = self._extract_spa_navigation(html_content, start_url, base_url, scope)
+            spa_urls = self._extract_spa_navigation(html_content, start_url, base_url, scopes)
             for url_info in spa_urls:
                 if url_info['url'] not in seen:
                     seen.add(url_info['url'])
@@ -310,7 +413,7 @@ class URLDiscovery:
         
         # 3. Fallback: extract from content area if still < 5 URLs
         if len(urls) < 5:
-            content_urls = self._extract_content_area_links(soup, start_url, base_url, scope, seen)
+            content_urls = self._extract_content_area_links(soup, start_url, base_url, scopes, seen)
             urls.extend(content_urls)
         
         # Apply locale filter
@@ -321,7 +424,7 @@ class URLDiscovery:
         
         return urls
     
-    def _extract_spa_navigation(self, html_content: str, start_url: str, base_url: str, scope: str) -> List[Dict]:
+    def _extract_spa_navigation(self, html_content: str, start_url: str, base_url: str, scopes: List[str]) -> List[Dict]:
         """Extract navigation from SPA data in script tags (Next.js, Docusaurus)."""
         import re
         urls = []
@@ -339,7 +442,7 @@ class URLDiscovery:
                         for item in page_props['navigation']:
                             if 'url' in item:
                                 full_url = self._normalize_url(item['url'], start_url, base_url)
-                                if full_url and self._url_in_scope(full_url, base_url, scope):
+                                if full_url and self._url_in_scope(full_url, base_url, scopes):
                                     urls.append({
                                         'url': full_url,
                                         'title': item.get('title', 'Page'),
@@ -361,7 +464,7 @@ class URLDiscovery:
                             if 'to' in item or 'href' in item:
                                 href = item.get('to') or item.get('href')
                                 full_url = self._normalize_url(href, start_url, base_url)
-                                if full_url and self._url_in_scope(full_url, base_url, scope):
+                                if full_url and self._url_in_scope(full_url, base_url, scopes):
                                     urls.append({
                                         'url': full_url,
                                         'title': item.get('label', 'Page'),
@@ -372,7 +475,7 @@ class URLDiscovery:
         
         return urls
     
-    def _extract_content_area_links(self, soup, start_url: str, base_url: str, scope: str, seen: set) -> List[Dict]:
+    def _extract_content_area_links(self, soup, start_url: str, base_url: str, scopes: List[str], seen: set) -> List[Dict]:
         """Extract links from content area as fallback when nav selectors fail."""
         urls = []
         
@@ -391,7 +494,7 @@ class URLDiscovery:
                         full_url = self._normalize_url(href, start_url, base_url)
                         
                         if full_url and full_url not in seen:
-                            if self._url_in_scope(full_url, base_url, scope):
+                            if self._url_in_scope(full_url, base_url, scopes):
                                 if self._is_doc_page(full_url):
                                     seen.add(full_url)
                                     urls.append({
@@ -408,10 +511,10 @@ class URLDiscovery:
         
         return urls
     
-    def _crawl_links(self, start_url: str, scope: str, max_pages: int, locale_filter: Optional[str] = None) -> List[Dict]:
+    def _crawl_links(self, start_url: str, scopes: List[str], max_pages: int, locale_filter: Optional[str] = None) -> List[Dict]:
         """
-        Crawl links within scope, following links recursively.
-        Uses BFS to discover all reachable pages.
+        Crawl links within scopes, following links recursively.
+        Uses BFS to discover all reachable pages matching any scope.
         """
         parsed_start = urlparse(start_url)
         base_url = f"{parsed_start.scheme}://{parsed_start.netloc}"
@@ -420,7 +523,12 @@ class URLDiscovery:
         to_visit = deque([start_url])
         urls = []
         
-        print(f"  Crawling from {start_url} (scope: {scope})...")
+        # Handle both single scope (backward compat) and list of scopes
+        if isinstance(scopes, str):
+            scopes = [scopes]
+        
+        scope_str = ', '.join(scopes[:3]) + ('...' if len(scopes) > 3 else '')
+        print(f"  Crawling from {start_url} (scopes: {scope_str})...")
         
         while to_visit and len(urls) < max_pages:
             current_url = to_visit.popleft()
@@ -457,7 +565,7 @@ class URLDiscovery:
                     full_url = self._normalize_url(href, current_url, base_url)
                     
                     if full_url and full_url not in visited and full_url not in to_visit:
-                        if self._url_in_scope(full_url, base_url, scope):
+                        if self._url_in_scope(full_url, base_url, scopes):
                             # Skip anchors, downloads, external
                             if self._is_doc_page(full_url):
                                 # Check locale before adding to queue
@@ -490,16 +598,24 @@ class URLDiscovery:
         # Relative URL
         return urljoin(current_url, href)
     
-    def _url_in_scope(self, url: str, base_url: str, scope: str) -> bool:
-        """Check if URL is within the defined scope."""
+    def _url_in_scope(self, url: str, base_url: str, scopes: List[str]) -> bool:
+        """Check if URL is within any of the defined scopes."""
         if not url.startswith(base_url):
             return False
         
-        if scope == '/':
-            return True
+        # Handle both single scope (backward compat) and list of scopes
+        if isinstance(scopes, str):
+            scopes = [scopes]
         
+        # Check if URL matches ANY scope (OR logic)
         parsed = urlparse(url)
-        return scope in parsed.path or parsed.path.startswith(scope.rstrip('/'))
+        for scope in scopes:
+            if scope == '/':
+                return True
+            if scope in parsed.path or parsed.path.startswith(scope.rstrip('/')):
+                return True
+        
+        return False
     
     def _is_doc_page(self, url: str) -> bool:
         """Check if URL looks like a documentation page."""

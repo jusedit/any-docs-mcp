@@ -81,7 +81,7 @@ class TestURLDiscoveryAccuracy:
         # Verify result structure
         assert "mode" in result
         assert "urls" in result
-        assert "scope" in result
+        assert "scopes" in result
         assert "locale" in result
         assert result["mode"] in ["sitemap", "navigation", "crawl", "github"]
         
@@ -95,7 +95,7 @@ class TestURLDiscoveryAccuracy:
         
         # Log results for baseline collection
         print(f"\n  {doc_name}: {url_count} URLs (mode: {result['mode']}, "
-              f"scope: {result['scope']}, locale: {result['locale']})")
+              f"scopes: {result['scopes']}, locale: {result['locale']})")
         
         # Soft assertion: warn if below expected, but don't fail test
         # (servers may change, network issues, etc.)
@@ -172,7 +172,7 @@ class TestURLDiscoveryAccuracy:
             if "error" not in data:
                 assert "mode" in data
                 assert "url_count" in data
-                assert "scope" in data
+                assert "scopes" in data
 
 
 if __name__ == "__main__":
