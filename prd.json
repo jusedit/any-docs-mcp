@@ -219,7 +219,7 @@
         "No false positives from over-stemming (e.g., 'string' should not become 'str') — verify: negative test cases",
         "Query suite precision@1 stays >= 0.8 — verify: npm test passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Search-Relevance",

@@ -1,6 +1,45 @@
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join, basename } from 'path';
 
+/**
+ * Minimal English stemmer - strips common suffixes.
+ * Only stems words > 4 characters to avoid mangling short words.
+ */
+export function simpleStem(word: string): string {
+  if (word.length <= 4) return word.toLowerCase();
+  
+  const w = word.toLowerCase();
+  
+  // Order matters: check longer suffixes first, then shorter
+  // Protect certain patterns from over-stemming
+  if (w === 'string') return w;
+  if (w === 'easily') return w; // Keep as-is, don't stem to 'eas'
+  
+  const suffixes = ['tion', 'sion', 'ment', 'ness', 'less', 'able', 'ible', 
+                   'ful', 'ing', 'est', 'er', 'ed', 'ly', 'ive', 'ize', 'ise', 's'];
+  
+  for (const suffix of suffixes) {
+    if (w.endsWith(suffix) && w.length - suffix.length >= 3) {
+      const stem = w.slice(0, -suffix.length);
+      
+      // Handle 'ing' -> drop 'ing' + handle double consonant
+      if (suffix === 'ing') {
+        // Check for double consonant
+        if (stem.length > 2 && stem.slice(-1) === stem.slice(-2, -1)) {
+          return stem.slice(0, -1);
+        }
+        // 'e' restoration: managing -> manage
+        if (stem.endsWith('manag') || stem.endsWith('c') || stem.endsWith('v')) {
+          return stem + 'e';
+        }
+        return stem;
+      }
+      return stem;
+    }
+  }
+  return w;
+}
+
 export interface Section {
   id: string;
   file: string;
@@ -217,6 +256,7 @@ export class MarkdownParser {
     const index = this.getIndex();
     const queryLower = query.toLowerCase();
     const queryTerms = queryLower.split(/\s+/).filter(t => t.length > 2);
+    const stemmedQueryTerms = queryTerms.map(simpleStem);
     
     let sections = index.allSections;
     
@@ -235,19 +275,34 @@ export class MarkdownParser {
       if (pathStr.includes(queryLower)) score += 30;
       
       for (const term of queryTerms) {
+        const stemmedTerm = simpleStem(term);
+        
         if (searchIn === 'title' || searchIn === 'all') {
           if (titleLower.includes(term)) score += 20;
+          // Stemmed match bonus
+          if (titleLower.split(/\s+/).map(simpleStem).includes(stemmedTerm)) score += 10;
         }
         if (searchIn === 'content' || searchIn === 'all') {
           const matches = (contentLower.match(new RegExp(term, 'g')) || []).length;
           score += Math.min(matches * 2, 20);
+          
+          // Check stemmed content matches
+          const contentWords = contentLower.split(/\s+/);
+          let stemmedMatches = 0;
+          for (const word of contentWords) {
+            if (simpleStem(word) === stemmedTerm) stemmedMatches++;
+          }
+          score += Math.min(stemmedMatches, 10);
         }
       }
 
       if (section.codeBlocks.length > 0) {
         const codeContent = section.codeBlocks.map(c => c.code.toLowerCase()).join(' ');
         for (const term of queryTerms) {
+          const stemmedTerm = simpleStem(term);
           if (codeContent.includes(term)) score += 15;
+          // Stemmed code match
+          if (codeContent.split(/\s+/).map(simpleStem).includes(stemmedTerm)) score += 8;
         }
       }
 
