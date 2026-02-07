@@ -89,6 +89,64 @@ class ContentCleaner:
         'code-block',
     ]
     
+    # CSS class to language mapping for correcting markdownify output
+    CSS_CLASS_TO_LANGUAGE = {
+        # JavaScript variants
+        'language-js': 'javascript',
+        'language-javascript': 'javascript',
+        'language-jsx': 'jsx',
+        'language-ts': 'typescript',
+        'language-typescript': 'typescript',
+        'language-tsx': 'tsx',
+        # Python
+        'language-py': 'python',
+        'language-python': 'python',
+        'language-python3': 'python',
+        'highlight-python': 'python',
+        # Shell/Terminal
+        'language-sh': 'bash',
+        'language-shell': 'bash',
+        'language-bash': 'bash',
+        'language-zsh': 'bash',
+        'language-console': 'bash',
+        'language-terminal': 'bash',
+        # Markup/Data
+        'language-html': 'html',
+        'language-xml': 'xml',
+        'language-css': 'css',
+        'language-scss': 'scss',
+        'language-sass': 'sass',
+        'language-json': 'json',
+        'language-yaml': 'yaml',
+        'language-yml': 'yaml',
+        'language-toml': 'toml',
+        'language-md': 'markdown',
+        'language-markdown': 'markdown',
+        # Systems languages
+        'language-rs': 'rust',
+        'language-rust': 'rust',
+        'language-go': 'go',
+        'language-golang': 'go',
+        'language-c': 'c',
+        'language-cpp': 'cpp',
+        'language-c++': 'cpp',
+        'language-java': 'java',
+        'language-kt': 'kotlin',
+        'language-kotlin': 'kotlin',
+        'language-swift': 'swift',
+        # Web frameworks
+        'language-vue': 'vue',
+        'language-svelte': 'svelte',
+        'language-astro': 'astro',
+        # Other
+        'language-dockerfile': 'dockerfile',
+        'language-docker': 'dockerfile',
+        'language-sql': 'sql',
+        'language-graphql': 'graphql',
+        'language-regex': 'regex',
+        'language-diff': 'diff',
+    }
+    
     # UI artifacts to remove (regex patterns)
     UI_ARTIFACT_PATTERNS = [
         # CodeSandbox/playground buttons
@@ -194,11 +252,34 @@ class ContentCleaner:
     
     def fix_code_block_languages(self, content: str) -> str:
         """Fix or remove bad code block language tags."""
+        # First, apply CSS class to language mapping
+        for css_class, language in self.CSS_CLASS_TO_LANGUAGE.items():
+            content = content.replace(f'```{css_class}', f'```{language}')
+        
+        # Remove known bad language tags
         for bad_lang in self.BAD_LANGUAGES:
             content = content.replace(f'```{bad_lang}', '```')
         
-        # Detect and fix common language mismatches
+        # Detect and fix common language mismatches using content heuristics
         content = self._auto_detect_code_language(content)
+        
+        # Clean up: normalize language tags to lowercase
+        def normalize_lang_tag(match):
+            lang = match.group(1).lower()
+            # Map common variations
+            lang_map = {
+                'js': 'javascript',
+                'py': 'python',
+                'ts': 'typescript',
+                'rs': 'rust',
+                'bash': 'bash',
+                'sh': 'bash',
+                'shell': 'bash',
+            }
+            return f'```{lang_map.get(lang, lang)}'
+        
+        content = re.sub(r'```(\w+)', normalize_lang_tag, content)
+        
         return content
     
     def _auto_detect_code_language(self, content: str) -> str:
@@ -275,7 +356,29 @@ class ContentCleaner:
                 return f'```{lang}\n{code}```'
             return match.group(0)
         
-        return re.sub(pattern, replace_with_language, content, flags=re.DOTALL)
+        content = re.sub(pattern, replace_with_language, content, flags=re.DOTALL)
+        
+        # Also check code blocks with potentially wrong language tags
+        # (e.g., dockerfile tag but content is JavaScript)
+        wrong_tag_pattern = r'```(\w+)\n(.*?)```'
+        
+        def fix_wrong_tag(match):
+            declared_lang = match.group(1)
+            code = match.group(2)
+            detected = detect_language(code)
+            
+            # If detected language differs from declared, and we're confident
+            if detected and detected != declared_lang:
+                # Special case: dockerfile is often misused
+                if declared_lang == 'dockerfile' and detected in ('javascript', 'jsx', 'typescript'):
+                    return f'```{detected}\n{code}```'
+                # If declared is a generic/wrong tag, use detected
+                if declared_lang in ('dockerfile', 'text', 'plain'):
+                    return f'```{detected}\n{code}```'
+            
+            return match.group(0)
+        
+        return re.sub(wrong_tag_pattern, fix_wrong_tag, content, flags=re.DOTALL)
     
     def remove_ui_artifacts(self, content: str) -> str:
         """Remove known UI artifacts from content."""

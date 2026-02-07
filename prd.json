@@ -147,7 +147,7 @@
         "React HTML residue (90) also reduced to <20 — verified by quality scorer",
         "No regression on clean sites (kubernetes, hyperapp-github) — verified by before/after comparison"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Content-Extraction-Quality",
