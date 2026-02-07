@@ -121,7 +121,7 @@
         "Re-capture preserves the old file as .body.html.bak before overwriting — verified by backup file check",
         "Summary report shows: total captures, fresh, stale, re-captured — verified by report JSON output"
       ],
-      "passes": true
+      "passes": false
     },
     {
       "group": "Full-Scrape-Capture",
@@ -147,7 +147,7 @@
         "React HTML residue (90) also reduced to <20 — verified by quality scorer",
         "No regression on clean sites (kubernetes, hyperapp-github) — verified by before/after comparison"
       ],
-      "passes": true
+      "passes": false
     },
     {
       "group": "Content-Extraction-Quality",
@@ -238,7 +238,7 @@
         "No regression for top-level section searches — verified by regression test",
         "Heading hierarchy data (path array) is correctly populated for all doc-sets — verified by index validation test"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Search-Relevance-Tuning",
@@ -251,7 +251,7 @@
         "Query 'What is a ConfigMap?' preprocessed to ['configmap'] — verified by unit test",
         "Search results for 'how to deploy with Docker' are same quality as 'deploy Docker' — verified by result comparison test"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Search-Relevance-Tuning",
@@ -264,7 +264,7 @@
         "File diversity does not apply when maxResults <= 3 — verified by small result set test",
         "Search benchmark overall score does not decrease — verified by before/after benchmark comparison"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Query-Suite-Calibration",
@@ -277,7 +277,7 @@
         "Total >= 40 manually verified query-answer pairs — verified by counting across all annotation files",
         "Annotation format is compatible with eval-realworld.ts evaluation script — verified by integration test"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Query-Suite-Calibration",
@@ -290,7 +290,7 @@
         "Total query count >= 100 — verified by total count",
         "New query types include API signatures, error messages, and code snippets — verified by content check"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Query-Suite-Calibration",
@@ -303,7 +303,7 @@
         "Human review workflow: script outputs candidates to review file, human marks keep/discard — verified by review file format",
         "At least 20 auto-generated queries pass human review per core doc-set — verified by approved count"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Query-Suite-Calibration",
@@ -316,7 +316,7 @@
         "Search benchmark reports precision broken down by difficulty — verified by benchmark output format",
         "Easy queries achieve precision@1 >= 0.80 — verified by benchmark result"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Query-Suite-Calibration",
@@ -329,7 +329,7 @@
         "Django search precision@1 >= 0.50 (up from 0.00) — verified by search benchmark",
         "Django .md file count >= 40 (similar to v1's 60 but all English) — verified by file count"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "E2E-Pipeline-Hardening",
@@ -342,7 +342,7 @@
         "Any doc-set with overall_score < 0.50 is flagged as FAILING — verified by status field in dashboard",
         "Total pipeline runtime < 5 minutes for all 10 doc-sets — verified by total time assertion"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "E2E-Pipeline-Hardening",
@@ -355,7 +355,7 @@
         "Regression detected when new HTML tags appear in output — verified by test with broken selector",
         "Clean run (no code changes) produces 0 regressions — verified by baseline comparison"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "E2E-Pipeline-Hardening",
@@ -368,7 +368,7 @@
         "Regressions (score decrease >= 0.05) are highlighted as REGRESSED — verified by test with mock history",
         "History file is capped at 50 entries (oldest pruned) — verified by max line count check"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "E2E-Pipeline-Hardening",
@@ -381,7 +381,7 @@
         "Scraper handles Latin-1 content declared as UTF-8 — verified by test with mismatched encoding fixture",
         "All edge case tests complete in < 10 seconds total — verified by timing assertion"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "E2E-Pipeline-Hardening",
@@ -394,7 +394,7 @@
         "Script exits 1 with clear error when search score < 0.50 — verified by test with mock low score",
         "GitHub Actions workflow YAML (.github/workflows/quality-gate.yml) triggers on PR — verified by YAML schema validation"
       ],
-      "passes": false
+      "passes": true
     }
   ]
 }
