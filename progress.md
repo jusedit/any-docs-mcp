@@ -21,7 +21,7 @@
 - [x] Deep init complete: 30 tasks across 6 groups
 - [x] prd.json assembled, partials cleaned up
 
-### Backlog Summary (30 tasks, 0 passes)
+### Backlog Summary (30 tasks, 1 passes)
 
 | Group | Tasks | Focus |
 |-------|-------|-------|
@@ -112,3 +112,22 @@
 **Potential challenges:** File selection criteria, path resolution from %APPDATA%
 
 **Result:** Success — 12/12 tests passed. Golden fixtures created for 3 doc-sets (react, fastapi, tailwind), quality_baseline.json with metrics, generate_baseline.py script fully implemented.
+
+## Working on Encoding audit script
+
+**Files to modify/create:**
+- `scraper/encoding_audit.py` — Script to scan markdown and categorize encoding defects
+- `scraper/tests/test_encoding_audit.py` — Tests for audit functionality
+
+**Approach:**
+1. Scan directory of .md files for encoding defects
+2. Categories: mojibake (â€™, â€œ), broken-latin (Â + non-ASCII), permalink-anchors (¶), html-entities
+3. Report includes: file_path, line_number, context (±20 chars), pattern matched
+4. Summary: total_files, affected_files, defects_by_category
+5. CLI: python -m encoding_audit <directory> [--output report.json]
+
+**Verification:** pytest with crafted fixtures containing each defect type
+
+**Potential challenges:** Pattern accuracy, avoiding false positives
+
+**Result:** Success — 16/16 tests passed. EncodingAuditor with mojibake, broken_latin, permalink_anchors, html_entities detection, and CLI fully implemented.
