@@ -1,5 +1,20 @@
 # AnyDocsMCP Quality & Retrieval Upgrade - Progress Log
 
+## Ralph Batch v4 — Cycle 5/7 ✅ COMPLETE
+
+### Completed: SPA deep navigation extraction for Next.js and React-based doc sites
+
+**Result:** Success
+
+**Changes made:**
+- Enhanced `_extract_spa_navigation()` with generic JSON scanning
+- Scan ALL script tags for navigation-like arrays with path/title pairs
+- Extract path-like strings from JS using regex patterns
+- Deduplication with `seen_urls` set
+- Backward compatible with __NEXT_DATA__ and __DOCUSAURUS_CONFIG__
+
+---
+
 ## Ralph Batch v4 — Cycle 4/7 ✅ COMPLETE
 
 ### Completed: Multi-page recursive navigation extraction

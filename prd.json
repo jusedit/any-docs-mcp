@@ -69,7 +69,7 @@
         "Method returns empty list (not error) when no SPA data found â€” verified by unit test with plain HTML page",
         "If main nav has <5 links but SPA extraction finds >10 paths, the SPA paths are included â€” verified by unit test simulating a SPA doc site"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Recursive-Navigation-Discovery",

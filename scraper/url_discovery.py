@@ -522,11 +522,18 @@ class URLDiscovery:
         return False
     
     def _extract_spa_navigation(self, html_content: str, start_url: str, base_url: str, scopes: List[str]) -> List[Dict]:
-        """Extract navigation from SPA data in script tags (Next.js, Docusaurus)."""
+        """Extract navigation from SPA data in script tags (Next.js, Docusaurus, generic SPAs).
+        
+        Scans ALL script tags for:
+        1. Known framework globals (__NEXT_DATA__, __DOCUSAURUS_CONFIG__)
+        2. JSON objects with navigation-like arrays
+        3. JavaScript arrays containing path-like strings
+        """
         import re
         urls = []
+        seen_urls = set()
         
-        # Try to find __NEXT_DATA__ (Next.js)
+        # 1. Try to find __NEXT_DATA__ (Next.js)
         next_data_match = re.search(r'<script[^>]*>window\.__NEXT_DATA__\s*=\s*({.+?})</script>', html_content, re.DOTALL)
         if next_data_match:
             try:
@@ -537,18 +544,20 @@ class URLDiscovery:
                     # Look for navigation structure in various Next.js patterns
                     if 'navigation' in page_props:
                         for item in page_props['navigation']:
-                            if 'url' in item:
-                                full_url = self._normalize_url(item['url'], start_url, base_url)
-                                if full_url and self._url_in_scope(full_url, base_url, scopes):
+                            if 'url' in item or 'href' in item or 'path' in item:
+                                href = item.get('url') or item.get('href') or item.get('path')
+                                full_url = self._normalize_url(href, start_url, base_url)
+                                if full_url and full_url not in seen_urls and self._url_in_scope(full_url, base_url, scopes):
+                                    seen_urls.add(full_url)
                                     urls.append({
                                         'url': full_url,
-                                        'title': item.get('title', 'Page'),
+                                        'title': item.get('title', item.get('label', 'Page')),
                                         'source': 'spa'
                                     })
             except (json.JSONDecodeError, KeyError):
                 pass
         
-        # Try to find Docusaurus config
+        # 2. Try to find Docusaurus config
         docusaurus_match = re.search(r'<script[^>]*>window\.__DOCUSAURUS_CONFIG__\s*=\s*({.+?})</script>', html_content, re.DOTALL)
         if docusaurus_match:
             try:
@@ -561,7 +570,8 @@ class URLDiscovery:
                             if 'to' in item or 'href' in item:
                                 href = item.get('to') or item.get('href')
                                 full_url = self._normalize_url(href, start_url, base_url)
-                                if full_url and self._url_in_scope(full_url, base_url, scopes):
+                                if full_url and full_url not in seen_urls and self._url_in_scope(full_url, base_url, scopes):
+                                    seen_urls.add(full_url)
                                     urls.append({
                                         'url': full_url,
                                         'title': item.get('label', 'Page'),
@@ -569,6 +579,50 @@ class URLDiscovery:
                                     })
             except (json.JSONDecodeError, KeyError):
                 pass
+        
+        # 3. Generic JSON scanning in ALL script tags for navigation-like structures
+        # Find all script tags with content
+        script_matches = re.findall(r'<script[^>]*>(.+?)</script>', html_content, re.DOTALL)
+        for script_content in script_matches:
+            # Skip if it's an external script (no content)
+            if not script_content.strip():
+                continue
+            
+            # Look for JSON objects with arrays containing path/title or url/name pairs
+            # Pattern: [{"path": "/docs", "title": "Docs"}, ...] or [{"url": "/api", "name": "API"}]
+            json_array_matches = re.findall(
+                r'\[\s*{\s*(?:"path"|"url"|"href")\s*:\s*"([^"]+)"[^}]*?(?:"title"|"label"|"name")\s*:\s*"([^"]+)"[^}]*}[^\]]*\]',
+                script_content
+            )
+            for path, title in json_array_matches:
+                full_url = self._normalize_url(path, start_url, base_url)
+                if full_url and full_url not in seen_urls and self._url_in_scope(full_url, base_url, scopes):
+                    seen_urls.add(full_url)
+                    urls.append({
+                        'url': full_url,
+                        'title': title[:100],
+                        'source': 'spa'
+                    })
+        
+        # 4. Extract path-like strings from JavaScript using regex
+        # Look for string arrays that contain path-like values (starting with /)
+        # Pattern: ["/docs", "/api", "/guide"] or routes: ["/home", "/about"]
+        path_array_pattern = r'[\'"]\s*(/[a-zA-Z0-9_\-/.]+)\s*[\'"]'
+        path_matches = re.findall(path_array_pattern, html_content)
+        
+        for path in path_matches:
+            # Filter reasonable paths (not too short, not too long)
+            if len(path) >= 2 and len(path) < 200 and '/' in path:
+                full_url = self._normalize_url(path, start_url, base_url)
+                if full_url and full_url not in seen_urls and self._url_in_scope(full_url, base_url, scopes):
+                    # Only add if it looks like a doc page
+                    if self._is_doc_page(full_url):
+                        seen_urls.add(full_url)
+                        urls.append({
+                            'url': full_url,
+                            'title': path.split('/')[-1] or 'Page',
+                            'source': 'spa'
+                        })
         
         return urls
     
