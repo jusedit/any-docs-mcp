@@ -362,6 +362,35 @@ export class MarkdownParser {
           codeBlockScore += termScore;
         }
         
+        // Phrase matching bonus for exact multi-word matches
+        if (queryTerms.length > 1) {
+          const phrase = queryTerms.join(' ');
+          
+          // Exact phrase in title (high bonus)
+          if (titleLower.includes(phrase)) {
+            score += 75;
+          }
+          
+          // Exact phrase in content
+          if (contentLower.includes(phrase)) {
+            score += 40;
+          }
+          
+          // Proximity bonus: words appear close together
+          const words = contentLower.split(/\s+/);
+          let proximityScore = 0;
+          for (let i = 0; i < words.length - 1; i++) {
+            if (queryTerms.every(term => {
+              // Check if term appears within 5 words window
+              const window = words.slice(i, i + 5);
+              return window.some(w => w.includes(term) || simpleStem(w) === simpleStem(term));
+            })) {
+              proximityScore += 10;
+            }
+          }
+          score += Math.min(proximityScore, 30);
+        }
+        
         // Diversity bonus for sections with 3+ code blocks (tutorial/example sections)
         if (section.codeBlocks.length >= 3) {
           codeBlockScore += 5;
