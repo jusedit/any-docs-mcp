@@ -72,3 +72,23 @@
 **Potential challenges:** Manifest maintenance, URL selection representativeness
 
 **Result:** Success — 15/15 tests passed. capture-manifest.json with 10 doc-sets, capture_all.py runner, and CLI --list flag fully implemented.
+
+## Working on FixtureHTTPServer mock server
+
+**Files to modify/create:**
+- `scraper/tests/fixture_server.py` — FixtureHTTPServer class with ThreadingHTTPServer
+- `scraper/tests/conftest.py` — pytest fixture for mock_http_server
+- `scraper/tests/test_fixture_server.py` — Tests for server functionality
+
+**Approach:**
+1. ThreadingHTTPServer subclass that serves captured fixtures
+2. URL pattern matching: /{doc-name}/{path} → lookup fixture
+3. Returns stored status, headers, body from .meta.json + .body.html
+4. Pytest fixture handles start/stop lifecycle
+5. get_rewritten_url() converts original URLs to localhost URLs
+
+**Verification:** pytest with real server on random port
+
+**Potential challenges:** Concurrent request handling, port allocation, fixture path resolution
+
+**Result:** Success — 14/14 tests passed. FixtureHTTPServer with ThreadingHTTPServer, pytest fixture, and URL rewriting fully implemented.

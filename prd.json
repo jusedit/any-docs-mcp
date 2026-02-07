@@ -44,7 +44,7 @@
         "Server handles 10 concurrent requests without deadlock (ThreadingHTTPServer) — verify: test sends 10 parallel requests with concurrent.futures",
         "FixtureHTTPServer.get_rewritten_url(original_url) rewrites e.g. https://react.dev/learn/state to http://localhost:{port}/react/learn/state — verify: unit test"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Capture-Replay-Infrastructure",
