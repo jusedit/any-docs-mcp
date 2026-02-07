@@ -16,7 +16,7 @@
         "Smoke test scraper/tests/test_imports.py imports ContentCleaner, ScraperEngine, StorageManager, URLDiscovery, GitHubDiscovery, SitemapParser, SiteAnalysis — verify: python -m pytest scraper/tests/test_imports.py -v passes",
         "conftest.py provides a tmp_path-based fixture 'tmp_storage' that returns a StorageManager rooted in a temp dir"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Test-Harness-Fixtures",
