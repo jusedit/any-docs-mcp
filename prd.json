@@ -82,7 +82,7 @@
         "WebDriver escalation is logged: 'WebDriver escalation: found N additional URLs' â€” verified by checking print output in test",
         "If Selenium is not installed, WebDriver escalation is silently skipped (no crash) â€” verified by test mocking SELENIUM_AVAILABLE=False"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Recursive-Navigation-Discovery",

@@ -20,6 +20,7 @@ import os
 
 from sitemap_parser import SitemapParser
 from github_discovery import GitHubDiscovery
+from webdriver_discovery import WebDriverDiscovery, SELENIUM_AVAILABLE
 
 
 class URLDiscovery:
@@ -459,11 +460,36 @@ class URLDiscovery:
                 except Exception:
                     continue
         
+        # 5. WebDriver escalation: if few URLs found and page has many script tags (likely SPA)
+        script_tags = len(soup.find_all('script'))
+        if len(urls) < 10 and script_tags > 3 and SELENIUM_AVAILABLE:
+            print(f"  WebDriver escalation: {len(urls)} URLs found, {script_tags} script tags detected")
+            try:
+                webdriver_discovery = WebDriverDiscovery()
+                wd_urls = webdriver_discovery.discover_urls(start_url, max_pages=50)
+                
+                # Filter and merge WebDriver results
+                for url_info in wd_urls:
+                    if url_info['url'] not in seen:
+                        if self._url_in_scope(url_info['url'], base_url, scopes):
+                            seen.add(url_info['url'])
+                            urls.append({
+                                'url': url_info['url'],
+                                'title': url_info.get('title', 'Page'),
+                                'source': 'webdriver'
+                            })
+                
+                print(f"  WebDriver escalation: found {len(wd_urls)} additional URLs")
+            except Exception as e:
+                print(f"  WebDriver escalation failed: {e}")
+        
         # Apply locale filter
         urls = self._apply_locale_filter(urls, locale_filter)
         
         if len(urls) > 0:
-            print(f"  Navigation: found {len(urls)} URLs ({len([u for u in urls if u.get('source') == 'spa'])} from SPA data)")
+            spa_count = len([u for u in urls if u.get('source') == 'spa'])
+            wd_count = len([u for u in urls if u.get('source') == 'webdriver'])
+            print(f"  Navigation: found {len(urls)} URLs ({spa_count} from SPA, {wd_count} from WebDriver)")
         
         return urls
     

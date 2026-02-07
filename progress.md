@@ -1,5 +1,20 @@
 # AnyDocsMCP Quality & Retrieval Upgrade - Progress Log
 
+## Ralph Batch v4 — Cycle 6/7 ✅ COMPLETE
+
+### Completed: WebDriver escalation for JS-rendered navigation
+
+**Result:** Success
+
+**Changes made:**
+- Added WebDriverDiscovery import to url_discovery.py
+- WebDriver escalation triggers when `<10 URLs` found and `>3 script tags` detected
+- Merges WebDriver-discovered URLs with standard navigation
+- Logs escalation status for visibility
+- Silently skipped if Selenium not installed (no crash)
+
+---
+
 ## Ralph Batch v4 — Cycle 5/7 ✅ COMPLETE
 
 ### Completed: SPA deep navigation extraction for Next.js and React-based doc sites
