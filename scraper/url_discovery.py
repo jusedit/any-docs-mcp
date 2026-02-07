@@ -404,7 +404,7 @@ class URLDiscovery:
                 score -= 10
             
             # Translation patterns get negative scores
-            translation_pattern = re.match(r'^/[a-z]{2}/', group_key)
+            translation_pattern = re.match(r'^/([a-z]{2})/', group_key)
             if translation_pattern:
                 lang = translation_pattern.group(1)
                 if lang not in ['en']:  # Penalize non-English translations
@@ -428,16 +428,21 @@ class URLDiscovery:
         if not positive_groups:
             return urls
         
-        # Combine URLs from positive-scoring groups
+        # Build URL → group_key lookup for O(1) score access
+        url_to_group = {}
+        for group_key in positive_groups:
+            for u in groups[group_key]:
+                url_to_group[u['url']] = group_key
+        
+        # Combine URLs from positive-scoring groups, sorted by score
         filtered_urls = []
         for group_key in positive_groups:
             filtered_urls.extend(groups[group_key])
         
-        # Sort by group score (descending) for priority
-        filtered_urls.sort(key=lambda u: max(
-            [group_scores.get(gk, 0) for gk in groups.keys() if u in groups[gk]],
-            default=0
-        ), reverse=True)
+        filtered_urls.sort(
+            key=lambda u: group_scores.get(url_to_group.get(u['url'], ''), 0),
+            reverse=True
+        )
         
         print(f"  Sitemap: grouped {len(urls)} URLs into {len(groups)} groups, kept {len(filtered_urls)} from {len(positive_groups)} positive-scoring groups")
         
@@ -546,20 +551,26 @@ class URLDiscovery:
             print(f"  WebDriver escalation: {len(urls)} URLs found, {script_tags} script tags detected")
             try:
                 webdriver_discovery = WebDriverDiscovery()
-                wd_urls = webdriver_discovery.discover_urls(start_url, max_pages=50)
-                
-                # Filter and merge WebDriver results
-                for url_info in wd_urls:
-                    if url_info['url'] not in seen:
-                        if self._url_in_scope(url_info['url'], base_url, scopes):
-                            seen.add(url_info['url'])
-                            urls.append({
-                                'url': url_info['url'],
-                                'title': url_info.get('title', 'Page'),
-                                'source': 'webdriver'
-                            })
-                
-                print(f"  WebDriver escalation: found {len(wd_urls)} additional URLs")
+                try:
+                    wd_result = webdriver_discovery.discover_urls(start_url, max_pages=50)
+                    wd_url_list = wd_result.get('urls', []) if isinstance(wd_result, dict) else []
+                    
+                    # Filter and merge WebDriver results
+                    new_count = 0
+                    for url_info in wd_url_list:
+                        if url_info['url'] not in seen:
+                            if self._url_in_scope(url_info['url'], base_url, scopes):
+                                seen.add(url_info['url'])
+                                urls.append({
+                                    'url': url_info['url'],
+                                    'title': url_info.get('title', 'Page'),
+                                    'source': 'webdriver'
+                                })
+                                new_count += 1
+                    
+                    print(f"  WebDriver escalation: found {new_count} additional URLs")
+                finally:
+                    webdriver_discovery.close()
             except Exception as e:
                 print(f"  WebDriver escalation failed: {e}")
         
