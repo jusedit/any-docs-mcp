@@ -12,18 +12,18 @@ class TestPermalinkRemoval:
     def test_removes_trailing_permalink_char(self):
         """Removes trailing ¶ from headings."""
         cleaner = ContentCleaner()
-        content = "## SecurityÂ¶"
+        content = "## Security¶"
         result = cleaner.remove_permalink_anchors(content)
         assert "## Security" in result
-        assert "Â¶" not in result
+        assert "¶" not in result
     
     def test_removes_permalink_link(self):
         """Removes [¶](#anchor) from headings."""
         cleaner = ContentCleaner()
-        content = '## OAuth2[Â¶](#oauth2 "link")'
+        content = '## OAuth2[¶](#oauth2 "link")'
         result = cleaner.remove_permalink_anchors(content)
         assert "## OAuth2" in result
-        assert "[Â¶]" not in result
+        assert "[¶]" not in result
     
     def test_removes_empty_anchor_link(self):
         """Removes []( #anchor) from headings."""
