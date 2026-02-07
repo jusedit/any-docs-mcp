@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-02-07T19:26:14.709260",
+  "generated_at": "2026-02-07T19:33:44.544990",
   "doc_sets_evaluated": 10,
   "per_doc_set": {
     "django": {
@@ -20,7 +20,7 @@
       "mcp_index": {
         "total_sections": 2895,
         "total_files_indexed": 60,
-        "build_time_ms": 236,
+        "build_time_ms": 215,
         "sections_with_code": 474,
         "sections_with_source_url": 500,
         "avg_content_length": 1298,
@@ -60,7 +60,7 @@
       "mcp_index": {
         "total_sections": 3233,
         "total_files_indexed": 132,
-        "build_time_ms": 153,
+        "build_time_ms": 188,
         "sections_with_code": 1403,
         "sections_with_source_url": 145,
         "avg_content_length": 796,
@@ -100,7 +100,7 @@
       "mcp_index": {
         "total_sections": 859,
         "total_files_indexed": 18,
-        "build_time_ms": 59,
+        "build_time_ms": 63,
         "sections_with_code": 334,
         "sections_with_source_url": 48,
         "avg_content_length": 954,
@@ -140,7 +140,7 @@
       "mcp_index": {
         "total_sections": 152,
         "total_files_indexed": 1,
-        "build_time_ms": 11,
+        "build_time_ms": 8,
         "sections_with_code": 77,
         "sections_with_source_url": 20,
         "avg_content_length": 646,
@@ -180,7 +180,7 @@
       "mcp_index": {
         "total_sections": 8666,
         "total_files_indexed": 61,
-        "build_time_ms": 294,
+        "build_time_ms": 285,
         "sections_with_code": 1299,
         "sections_with_source_url": 499,
         "avg_content_length": 681,
@@ -220,7 +220,7 @@
       "mcp_index": {
         "total_sections": 341,
         "total_files_indexed": 65,
-        "build_time_ms": 35,
+        "build_time_ms": 31,
         "sections_with_code": 79,
         "sections_with_source_url": 161,
         "avg_content_length": 1463,
@@ -340,7 +340,7 @@
       "mcp_index": {
         "total_sections": 2157,
         "total_files_indexed": 135,
-        "build_time_ms": 106,
+        "build_time_ms": 89,
         "sections_with_code": 99,
         "sections_with_source_url": 238,
         "avg_content_length": 538,
@@ -380,7 +380,7 @@
       "mcp_index": {
         "total_sections": 1642,
         "total_files_indexed": 186,
-        "build_time_ms": 81,
+        "build_time_ms": 80,
         "sections_with_code": 1040,
         "sections_with_source_url": 186,
         "avg_content_length": 716,

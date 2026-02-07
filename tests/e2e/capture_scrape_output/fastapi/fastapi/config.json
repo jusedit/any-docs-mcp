@@ -1,7 +1,7 @@
 {
   "name": "fastapi",
   "display_name": "Fastapi",
-  "start_url": "http://127.0.0.1:29763",
+  "start_url": "http://127.0.0.1:50857",
   "site_analysis": {
     "content_selectors": [
       ".md-content",
@@ -18,13 +18,13 @@
       ".md-sidebar"
     ],
     "url_pattern": ".*",
-    "base_url": "http://127.0.0.1:29763",
+    "base_url": "http://127.0.0.1:50857",
     "grouping_strategy": "path_depth_2",
     "notes": ""
   },
   "version": "v1",
-  "created_at": "2026-02-07T19:27:04.079971",
-  "updated_at": "2026-02-07T19:27:04.079986",
+  "created_at": "2026-02-07T19:34:19.712478",
+  "updated_at": "2026-02-07T19:34:19.712486",
   "metadata": {},
   "content_hash": null
 }

@@ -30,7 +30,7 @@ class ScraperEngine:
         self.storage = storage
         self.max_workers = max_workers
         self.max_file_size_kb = max_file_size_kb
-        self.content_cleaner = ContentCleaner()
+        self.content_cleaner = ContentCleaner(site_type=self._detect_site_type(config.start_url))
         self.url_discovery = URLDiscovery()
         self.discovery_result = None  # Stores URL discovery result with mode, version, etc.
         self.analysis = config.site_analysis
@@ -43,6 +43,27 @@ class ScraperEngine:
         self._scraped_count = 0
         self._total_count = 0
     
+    @staticmethod
+    def _detect_site_type(start_url: str) -> Optional[str]:
+        """Detect documentation site type from URL for ContentCleaner profile selection."""
+        url_lower = start_url.lower()
+        # Known frameworks by URL patterns
+        if 'readthedocs' in url_lower or 'sphinx' in url_lower:
+            return 'sphinx'
+        if 'mkdocs' in url_lower or '.github.io' in url_lower:
+            return 'mkdocs'
+        if 'docusaurus' in url_lower or 'react.dev' in url_lower:
+            return 'docusaurus'
+        if 'tailwindcss.com' in url_lower:
+            return 'tailwind'
+        if 'kubernetes.io' in url_lower or 'gohugo.io' in url_lower:
+            return 'hugo'
+        if 'djangoproject.com' in url_lower:
+            return 'sphinx'
+        if 'fastapi.tiangolo.com' in url_lower:
+            return 'mkdocs'
+        return None
+
     def _report_progress(self, phase: str, current: int = 0, total: int = 0, 
                          current_url: Optional[str] = None, message: Optional[str] = None):
         progress = ScrapeProgress(
