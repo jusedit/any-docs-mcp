@@ -1,31 +1,40 @@
 {
-  "tested_at": "2026-02-07T19:39:47.609352",
+  "tested_at": "2026-02-07T19:53:38.117422",
   "results": {
     "react": {
-      "scope": "/blog/2025/10/07/react-compiler-1/",
-      "ground_truth_count": 16,
-      "in_scope": 1,
-      "out_of_scope": 15,
-      "precision": 0.062,
-      "recall": 0.062,
-      "passed": false
+      "scope": "/",
+      "ground_truth_count": 7,
+      "in_scope": 7,
+      "out_of_scope": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "passed": true
     },
     "fastapi": {
       "scope": "/",
-      "ground_truth_count": 145,
-      "in_scope": 145,
+      "ground_truth_count": 146,
+      "in_scope": 146,
       "out_of_scope": 0,
       "precision": 1.0,
       "recall": 1.0,
       "passed": true
     },
     "kubernetes": {
-      "scope": "/docs/concepts/",
-      "ground_truth_count": 499,
-      "in_scope": 72,
-      "out_of_scope": 427,
-      "precision": 0.144,
-      "recall": 0.144,
+      "scope": "/bn/docs/home/",
+      "ground_truth_count": 32,
+      "in_scope": 2,
+      "out_of_scope": 30,
+      "precision": 0.062,
+      "recall": 0.062,
+      "passed": false
+    },
+    "django": {
+      "scope": "/en/stable/contents/",
+      "ground_truth_count": 52,
+      "in_scope": 1,
+      "out_of_scope": 51,
+      "precision": 0.019,
+      "recall": 0.019,
       "passed": false
     },
     "tailwind": {

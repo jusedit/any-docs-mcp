@@ -6,7 +6,7 @@
 
 ## Getting Started
 
-**Source:** http://127.0.0.1:55271/docs/getting-started
+**Source:** http://127.0.0.1:24427/docs/getting-started
 
 # Getting Started
 This guide will help you set up the project from scratch in under 5 minutes.
@@ -17,14 +17,14 @@ Before you begin, make sure you have the following installed:
 * Docker (optional, for containerized deployment)
 ## Installation
 Install the package using npm:
-```dockerfile
+```bash
 npm install anydocs-mcp
 cd anydocs-mcp
 npm run build
 ```
 ## Quick Start
 Create a configuration file and start the server:
-```dockerfile
+```javascript
 import { createServer } from 'anydocs-mcp';
 const server = createServer({
   docsPath: './docs',

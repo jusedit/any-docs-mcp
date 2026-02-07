@@ -6,7 +6,7 @@
 
 ## FastAPI¶
 
-**Source:** http://127.0.0.1:43733/index
+**Source:** http://127.0.0.1:39488/index
 
 # FastAPI
 [![FastAPI](https://fastapi.tiangolo.com/img/logo-margin/logo-teal.png)](https://fastapi.tiangolo.com)
@@ -99,7 +99,7 @@ $ pip install "fastapi[standard]"
 ## Example
 ### Create it
 Create a file `main.py` with:
-```dockerfile
+```python
 from fastapi import FastAPI
 app = FastAPI()
 @app.get("/")
@@ -112,7 +112,7 @@ def read_item(item_id: int, q: str | None = None):
 ```
 Or use `async def`...
 If your code uses `async` / `await`, use `async def`:
-```dockerfile
+```python
 from fastapi import FastAPI
 app = FastAPI()
 @app.get("/")
@@ -127,7 +127,7 @@ async def read_item(item_id: int, q: str | None = None):
 If you don't know, check the *"In a hurry?"* section about [`async` and `await` in the docs](https://fastapi.tiangolo.com/async/#in-a-hurry).
 ### Run it
 Run the server with:
-```dockerfile
+```bash
 $ fastapi dev main.py
  ╭────────── FastAPI CLI - Development mode ───────────╮
  │                                                     │
@@ -173,7 +173,7 @@ You will see the alternative automatic documentation (provided by [ReDoc](https:
 ## Example upgrade
 Now modify the file `main.py` to receive a body from a `PUT` request.
 Declare the body using standard Python types, thanks to Pydantic.
-```dockerfile
+```python
 from fastapi import FastAPI
 from pydantic import BaseModel
 app = FastAPI()

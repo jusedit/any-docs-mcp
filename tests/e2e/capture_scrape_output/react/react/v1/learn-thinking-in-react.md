@@ -6,7 +6,7 @@
 
 ## Thinking in React
 
-**Source:** http://127.0.0.1:43725/learn/thinking-in-react
+**Source:** http://127.0.0.1:39478/learn/thinking-in-react
 
 [Learn React](/learn)
 [Quick Start](/learn)
@@ -24,7 +24,7 @@ The JSON API returns some data that looks like this:
 { category: "Vegetables", price: "$4", stocked: false, name: "Pumpkin" },
 { category: "Vegetables", price: "$1", stocked: true, name: "Peas" }
 ]
-```dockerfile
+```python
 The mockup looks like this:
 ![](/images/docs/s_thinking-in-react_ui.png)
 To implement a UI in React, you will usually follow the same five steps.
@@ -282,7 +282,7 @@ return (
 type="text"
 value={filterText}
 placeholder="Search..."/>
-```dockerfile
+```typescript
 However, you haven't added any code to respond to the user actions like typing yet. This will be your final step.
 ## Step 5: Add inverse data flow
 Currently your app renders correctly with props and state flowing down the hierarchy. But to change the state according to user input, you will need to support data flowing the other way: the form components deep in the hierarchy need to update the state in `FilterableProductTable`.
@@ -298,7 +298,7 @@ filterText={filterText}
 inStockOnly={inStockOnly}
 onFilterTextChange={setFilterText}
 onInStockOnlyChange={setInStockOnly} />
-```dockerfile
+```
 Inside the `SearchBar`, you will add the `onChange` event handlers and set the parent state from them:
 ```sp-cm
 function SearchBar({

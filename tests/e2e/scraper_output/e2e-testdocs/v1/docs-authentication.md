@@ -6,7 +6,7 @@
 
 ## Authentication
 
-**Source:** http://127.0.0.1:55271/docs/authentication
+**Source:** http://127.0.0.1:24427/docs/authentication
 
 # Authentication
 AnyDocsMCP supports multiple authentication methods to secure your documentation server.
@@ -17,7 +17,7 @@ curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:3000/search?q=hook
 ```
 ### Generating API Keys
 Use the CLI to generate a new API key:
-```dockerfile
+```python
 from anydocs import auth
 key = auth.generate_api_key(name="my-app", scopes=["read", "search"])
 print(f"Your API key: {key.token}")
@@ -25,7 +25,7 @@ print(f"Your API key: {key.token}")
 ```
 ## OAuth2 Integration
 For production environments, we recommend OAuth2 with PKCE flow:
-```dockerfile
+```javascript
 import { OAuth2Client } from 'anydocs-mcp/auth';
 const oauth = new OAuth2Client({
   clientId: process.env.OAUTH_CLIENT_ID,

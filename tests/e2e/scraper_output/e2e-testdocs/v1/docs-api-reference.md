@@ -6,7 +6,7 @@
 
 ## API Reference
 
-**Source:** http://127.0.0.1:55271/docs/api-reference
+**Source:** http://127.0.0.1:24427/docs/api-reference
 
 # API Reference
 Complete reference for all available API endpoints and data models.
@@ -26,7 +26,7 @@ GET /api/v1/search?q=useState&maxResults=10
 ```
 ## Index Management
 Rebuild the search index after adding or updating documentation files.
-```dockerfile
+```python
 from anydocs import IndexManager
 manager = IndexManager(docs_path="./docs")
 result = manager.rebuild_index()

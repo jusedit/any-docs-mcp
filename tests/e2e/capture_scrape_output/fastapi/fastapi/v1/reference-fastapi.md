@@ -6,12 +6,12 @@
 
 ## FastAPIclass¶
 
-**Source:** http://127.0.0.1:43733/reference/fastapi
+**Source:** http://127.0.0.1:39488/reference/fastapi
 
 # `FastAPI` class
 Here's the reference information for the `FastAPI` class, with all its parameters, attributes and methods.
 You can import the `FastAPI` class directly from `fastapi`:
-```dockerfile
+```python
 from fastapi import FastAPI
 ```
 ## fastapi.FastAPI
@@ -62,7 +62,7 @@ Bases: `Starlette`
 Read more in the
 [FastAPI docs for First Steps](https://fastapi.tiangolo.com/tutorial/first-steps/).
 ### Example
-```dockerfile
+```python
 from fastapi import FastAPI
 app = FastAPI()
 ```
@@ -163,7 +163,7 @@ This is not passed as a parameter to the `FastAPI` class to avoid
 giving the false idea that FastAPI would generate a different OpenAPI
 schema. It is only available as an attribute.
 **Example**
-```dockerfile
+```python
 from fastapi import FastAPI
 app = FastAPI()
 app.openapi_version = "3.0.2"
@@ -223,7 +223,7 @@ Decorate a WebSocket function.
 Read more about it in the
 [FastAPI docs for WebSockets](https://fastapi.tiangolo.com/advanced/websockets/).
 **Example**
-```dockerfile
+```python
 from fastapi import FastAPI, WebSocket
 app = FastAPI()
 @app.websocket("/ws")
@@ -266,7 +266,7 @@ Include an `APIRouter` in the same app.
 Read more about it in the
 [FastAPI docs for Bigger Applications](https://fastapi.tiangolo.com/tutorial/bigger-applications/).
 #### Example
-```dockerfile
+```python
 from fastapi import FastAPI
 from .users import users_router
 app = FastAPI()
@@ -330,7 +330,7 @@ get(
 ```
 Add a *path operation* using an HTTP GET operation.
 #### Example
-```dockerfile
+```python
 from fastapi import FastAPI
 app = FastAPI()
 @app.get("/items/")
@@ -421,7 +421,7 @@ put(
 ```
 Add a *path operation* using an HTTP PUT operation.
 #### Example
-```dockerfile
+```python
 from fastapi import FastAPI
 from pydantic import BaseModel
 class Item(BaseModel):
@@ -469,7 +469,7 @@ post(
 ```
 Add a *path operation* using an HTTP POST operation.
 #### Example
-```dockerfile
+```python
 app = FastAPI()
 @app.post("/items/")
 def create_item(item: Item):
@@ -511,7 +511,7 @@ delete(
 ```
 Add a *path operation* using an HTTP DELETE operation.
 #### Example
-```dockerfile
+```python
 from fastapi import FastAPI
 app = FastAPI()
 @app.delete("/items/{item_id}")
@@ -554,7 +554,7 @@ options(
 ```
 Add a *path operation* using an HTTP OPTIONS operation.
 #### Example
-```dockerfile
+```python
 from fastapi import FastAPI
 app = FastAPI()
 @app.options("/items/")
@@ -597,7 +597,7 @@ head(
 ```
 Add a *path operation* using an HTTP HEAD operation.
 #### Example
-```dockerfile
+```python
 from fastapi import FastAPI, Response
 app = FastAPI()
 @app.head("/items/", status_code=204)
@@ -640,7 +640,7 @@ patch(
 ```
 Add a *path operation* using an HTTP PATCH operation.
 #### Example
-```dockerfile
+```python
 app = FastAPI()
 @app.patch("/items/")
 def update_item(item: Item):
@@ -682,7 +682,7 @@ trace(
 ```
 Add a *path operation* using an HTTP TRACE operation.
 #### Example
-```dockerfile
+```python
 from fastapi import FastAPI
 app = FastAPI()
 @app.trace("/items/{item_id}")

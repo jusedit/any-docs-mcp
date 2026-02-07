@@ -1,86 +1,86 @@
 {
-  "generated_at": "2026-02-07T19:39:43.188948",
+  "generated_at": "2026-02-07T19:53:33.632696",
   "doc_sets_evaluated": 10,
   "per_doc_set": {
     "django": {
       "name": "django",
-      "version": "v1",
+      "version": "v3",
       "markdown": {
-        "total_files": 60,
-        "total_size_bytes": 5902624,
-        "avg_file_size_bytes": 98377.06666666667,
-        "total_headings": 2950,
-        "total_code_blocks": 909,
-        "files_with_code": 26,
+        "total_files": 8,
+        "total_size_bytes": 1796261,
+        "avg_file_size_bytes": 224532.625,
+        "total_headings": 1198,
+        "total_code_blocks": 1065,
+        "files_with_code": 4,
         "encoding_errors": 0,
-        "html_residue_count": 44,
+        "html_residue_count": 9,
         "empty_files": 0,
-        "score": 0.832
+        "score": 0.816
       },
       "mcp_index": {
-        "total_sections": 2895,
-        "total_files_indexed": 60,
-        "build_time_ms": 211,
-        "sections_with_code": 474,
-        "sections_with_source_url": 500,
-        "avg_content_length": 1298,
-        "score": 0.749
+        "total_sections": 1198,
+        "total_files_indexed": 8,
+        "build_time_ms": 113,
+        "sections_with_code": 494,
+        "sections_with_source_url": 52,
+        "avg_content_length": 1280,
+        "score": 0.824
       },
       "search": {
         "queries_tested": 4,
         "precision_at_1": 0.25,
         "precision_at_3": 0.25,
-        "mrr": 0.286,
+        "mrr": 0.328,
         "zero_result_queries": 0,
-        "score": 0.261
+        "score": 0.273
       },
       "overview": {
-        "overview_length": 59607,
-        "toc_files_with_entries": 60,
-        "toc_total_entries": 2895,
+        "overview_length": 9667,
+        "toc_files_with_entries": 8,
+        "toc_total_entries": 1198,
         "score": 1.0
       },
-      "overall_score": 0.674
+      "overall_score": 0.692
     },
     "fastapi": {
       "name": "fastapi",
-      "version": "v2",
+      "version": "v3",
       "markdown": {
-        "total_files": 132,
-        "total_size_bytes": 3349049,
-        "avg_file_size_bytes": 25371.583333333332,
-        "total_headings": 3233,
-        "total_code_blocks": 2606,
+        "total_files": 133,
+        "total_size_bytes": 2442863,
+        "avg_file_size_bytes": 18367.39097744361,
+        "total_headings": 3094,
+        "total_code_blocks": 2499,
         "files_with_code": 112,
         "encoding_errors": 0,
-        "html_residue_count": 189,
+        "html_residue_count": 128,
         "empty_files": 0,
-        "score": 0.862
+        "score": 0.896
       },
       "mcp_index": {
-        "total_sections": 3233,
-        "total_files_indexed": 132,
-        "build_time_ms": 197,
-        "sections_with_code": 1403,
-        "sections_with_source_url": 145,
-        "avg_content_length": 796,
-        "score": 0.83
+        "total_sections": 3094,
+        "total_files_indexed": 133,
+        "build_time_ms": 105,
+        "sections_with_code": 1294,
+        "sections_with_source_url": 146,
+        "avg_content_length": 661,
+        "score": 0.825
       },
       "search": {
         "queries_tested": 10,
-        "precision_at_1": 0.4,
-        "precision_at_3": 0.7,
-        "mrr": 0.533,
+        "precision_at_1": 0.5,
+        "precision_at_3": 0.8,
+        "mrr": 0.617,
         "zero_result_queries": 0,
-        "score": 0.53
+        "score": 0.625
       },
       "overview": {
-        "overview_length": 22006,
-        "toc_files_with_entries": 132,
-        "toc_total_entries": 3233,
+        "overview_length": 14361,
+        "toc_files_with_entries": 133,
+        "toc_total_entries": 3094,
         "score": 1.0
       },
-      "overall_score": 0.782
+      "overall_score": 0.818
     },
     "golang": {
       "name": "golang",
@@ -100,7 +100,7 @@
       "mcp_index": {
         "total_sections": 859,
         "total_files_indexed": 18,
-        "build_time_ms": 54,
+        "build_time_ms": 62,
         "sections_with_code": 334,
         "sections_with_source_url": 48,
         "avg_content_length": 954,
@@ -140,7 +140,7 @@
       "mcp_index": {
         "total_sections": 152,
         "total_files_indexed": 1,
-        "build_time_ms": 9,
+        "build_time_ms": 10,
         "sections_with_code": 77,
         "sections_with_source_url": 20,
         "avg_content_length": 646,
@@ -164,43 +164,43 @@
     },
     "kubernetes": {
       "name": "kubernetes",
-      "version": "v2",
+      "version": "v3",
       "markdown": {
-        "total_files": 61,
-        "total_size_bytes": 6767724,
-        "avg_file_size_bytes": 110946.29508196721,
-        "total_headings": 8700,
-        "total_code_blocks": 3264,
-        "files_with_code": 52,
+        "total_files": 17,
+        "total_size_bytes": 89487,
+        "avg_file_size_bytes": 5263.941176470588,
+        "total_headings": 250,
+        "total_code_blocks": 0,
+        "files_with_code": 0,
         "encoding_errors": 0,
-        "html_residue_count": 12,
+        "html_residue_count": 0,
         "empty_files": 0,
-        "score": 0.956
+        "score": 0.8
       },
       "mcp_index": {
-        "total_sections": 8666,
-        "total_files_indexed": 61,
-        "build_time_ms": 287,
-        "sections_with_code": 1299,
-        "sections_with_source_url": 499,
-        "avg_content_length": 681,
-        "score": 0.745
+        "total_sections": 250,
+        "total_files_indexed": 17,
+        "build_time_ms": 10,
+        "sections_with_code": 0,
+        "sections_with_source_url": 32,
+        "avg_content_length": 268,
+        "score": 0.607
       },
       "search": {
         "queries_tested": 10,
-        "precision_at_1": 0.9,
-        "precision_at_3": 0.9,
-        "mrr": 0.9,
+        "precision_at_1": 0.1,
+        "precision_at_3": 0.1,
+        "mrr": 0.1,
         "zero_result_queries": 0,
-        "score": 0.9
+        "score": 0.1
       },
       "overview": {
-        "overview_length": 39981,
-        "toc_files_with_entries": 61,
-        "toc_total_entries": 8666,
+        "overview_length": 1276,
+        "toc_files_with_entries": 17,
+        "toc_total_entries": 250,
         "score": 1.0
       },
-      "overall_score": 0.895
+      "overall_score": 0.582
     },
     "onoffice": {
       "name": "onoffice",
@@ -244,43 +244,43 @@
     },
     "react": {
       "name": "react",
-      "version": "v2",
+      "version": "v3",
       "markdown": {
-        "total_files": 13,
-        "total_size_bytes": 179346,
-        "avg_file_size_bytes": 13795.846153846154,
-        "total_headings": 230,
-        "total_code_blocks": 79,
-        "files_with_code": 8,
+        "total_files": 7,
+        "total_size_bytes": 76559,
+        "avg_file_size_bytes": 10937.0,
+        "total_headings": 87,
+        "total_code_blocks": 28,
+        "files_with_code": 2,
         "encoding_errors": 0,
-        "html_residue_count": 90,
+        "html_residue_count": 19,
         "empty_files": 0,
-        "score": 0.773
+        "score": 0.707
       },
       "mcp_index": {
-        "total_sections": 230,
-        "total_files_indexed": 13,
-        "build_time_ms": 12,
-        "sections_with_code": 23,
-        "sections_with_source_url": 16,
-        "avg_content_length": 719,
-        "score": 0.73
+        "total_sections": 87,
+        "total_files_indexed": 7,
+        "build_time_ms": 7,
+        "sections_with_code": 7,
+        "sections_with_source_url": 7,
+        "avg_content_length": 817,
+        "score": 0.724
       },
       "search": {
         "queries_tested": 10,
-        "precision_at_1": 0.3,
-        "precision_at_3": 0.3,
-        "mrr": 0.313,
+        "precision_at_1": 0.1,
+        "precision_at_3": 0.2,
+        "mrr": 0.15,
         "zero_result_queries": 0,
-        "score": 0.304
+        "score": 0.145
       },
       "overview": {
-        "overview_length": 1183,
-        "toc_files_with_entries": 13,
-        "toc_total_entries": 230,
-        "score": 1.0
+        "overview_length": 380,
+        "toc_files_with_entries": 7,
+        "toc_total_entries": 87,
+        "score": 0.752
       },
-      "overall_score": 0.667
+      "overall_score": 0.552
     },
     "rust-book": {
       "name": "rust-book",
@@ -300,7 +300,7 @@
       "mcp_index": {
         "total_sections": 15,
         "total_files_indexed": 1,
-        "build_time_ms": 4,
+        "build_time_ms": 3,
         "sections_with_code": 4,
         "sections_with_source_url": 3,
         "avg_content_length": 699,
@@ -340,7 +340,7 @@
       "mcp_index": {
         "total_sections": 2157,
         "total_files_indexed": 135,
-        "build_time_ms": 88,
+        "build_time_ms": 95,
         "sections_with_code": 99,
         "sections_with_source_url": 238,
         "avg_content_length": 538,
@@ -364,26 +364,26 @@
     },
     "tailwind": {
       "name": "tailwind",
-      "version": "v4",
+      "version": "v5",
       "markdown": {
         "total_files": 186,
-        "total_size_bytes": 1448860,
-        "avg_file_size_bytes": 7789.569892473119,
+        "total_size_bytes": 1537937,
+        "avg_file_size_bytes": 8268.478494623656,
         "total_headings": 1642,
         "total_code_blocks": 1315,
         "files_with_code": 185,
         "encoding_errors": 0,
-        "html_residue_count": 2045,
+        "html_residue_count": 2044,
         "empty_files": 0,
         "score": 0.849
       },
       "mcp_index": {
         "total_sections": 1642,
         "total_files_indexed": 186,
-        "build_time_ms": 68,
+        "build_time_ms": 77,
         "sections_with_code": 1040,
         "sections_with_source_url": 186,
-        "avg_content_length": 716,
+        "avg_content_length": 774,
         "score": 0.89
       },
       "search": {
@@ -404,14 +404,14 @@
     }
   },
   "aggregate": {
-    "avg_overall_score": 0.715,
-    "avg_markdown_score": 0.872,
-    "avg_index_score": 0.767,
-    "avg_search_score": 0.4,
-    "avg_overview_score": 0.928,
-    "total_files": 672,
-    "total_sections": 20190,
+    "avg_overall_score": 0.678,
+    "avg_markdown_score": 0.851,
+    "avg_index_score": 0.759,
+    "avg_search_score": 0.315,
+    "avg_overview_score": 0.903,
+    "total_files": 571,
+    "total_sections": 9795,
     "total_encoding_errors": 27,
-    "total_html_residue": 2397
+    "total_html_residue": 2217
   }
 }

@@ -6,7 +6,7 @@
 
 ## Escape Hatches
 
-**Source:** http://127.0.0.1:43725/learn/escape-hatches
+**Source:** http://127.0.0.1:39478/learn/escape-hatches
 
 [Learn React](/learn)
 # Escape Hatches
@@ -69,7 +69,7 @@ export default function Form() {
     </>
   );
 }
-```dockerfile
+```javascript
 ## Ready to learn this topic?
 Read **[Manipulating the DOM with Refs](/learn/manipulating-the-dom-with-refs)** to learn how to access DOM elements managed by React.
 [Read More](/learn/manipulating-the-dom-with-refs)
@@ -106,7 +106,7 @@ export default function App() {
     </>
   );
 }
-```dockerfile
+```
 Many Effects also "clean up" after themselves. For example, an Effect that sets up a connection to a chat server should return a *cleanup function* that tells React how to disconnect your component from that server:
 App.jschat.js
 App.js
@@ -121,7 +121,7 @@ export default function ChatRoom() {
   }, []);
   return <h1>Welcome to the chat!</h1>;
 }
-```dockerfile
+```javascript
 In development, React will immediately run and clean up your Effect one extra time. This is why you see `"✅ Connecting..."` printed twice. This ensures that you don't forget to implement the cleanup function.
 ## Ready to learn this topic?
 Read **[Synchronizing with Effects](/learn/synchronizing-with-effects)** to learn how to synchronize components with external systems.
@@ -153,7 +153,7 @@ const [lastName, setLastName] = useState('Swift');
 const fullName = firstName + ' ' + lastName;
 // ...
 }
-```dockerfile
+```
 However, you *do* need Effects to synchronize with external systems.
 ## Ready to learn this topic?
 Read **[You Might Not Need an Effect](/learn/you-might-not-need-an-effect)** to learn how to remove unnecessary Effects.
@@ -194,7 +194,7 @@ export default function App() {
     </>
   );
 }
-```dockerfile
+```
 React provides a linter rule to check that you've specified your Effect's dependencies correctly. If you forget to specify `roomId` in the list of dependencies in the above example, the linter will find that bug automatically.
 ## Ready to learn this topic?
 Read **[Lifecycle of Reactive Events](/learn/lifecycle-of-reactive-effects)** to learn how an Effect's lifecycle is different from a component's.
@@ -277,7 +277,7 @@ function ChatRoom({ roomId, theme }) {
   }, [roomId]);
   return <h1>Welcome to the {roomId} room!</h1>
 }
-```dockerfile
+```
 Code inside Effect Events isn't reactive, so changing the `theme` no longer makes your Effect re-connect.
 ## Ready to learn this topic?
 Read **[Separating Events from Effects](/learn/separating-events-from-effects)** to learn how to prevent some values from re-triggering Effects.

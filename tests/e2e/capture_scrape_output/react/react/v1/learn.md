@@ -6,7 +6,7 @@
 
 ## Quick Start
 
-**Source:** http://127.0.0.1:43725/learn
+**Source:** http://127.0.0.1:39478/learn
 
 [Learn React](/learn)
 # Quick Start
@@ -86,7 +86,7 @@ Then you write the CSS rules for it in a separate CSS file:
 .avatar {
 border-radius: 50%;
 }
-```dockerfile
+```javascript
 React does not prescribe how you add CSS files. In the simplest case, you'll add a [`<link>`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/link) tag to your HTML. If you use a build tool or a framework, consult its documentation to learn how to add a CSS file to your project.
 ## Displaying data
 JSX lets you put markup into JavaScript. Curly braces let you "escape back" into JavaScript so that you can embed some variable from your code and display it to the user. For example, this will display `user.name`:
@@ -96,7 +96,7 @@ return (
 {user.name}
 </h1>
 );
-```dockerfile
+```
 You can also "escape into JavaScript" from JSX attributes, but you have to use curly braces *instead of* quotes. For example, `className="avatar"` passes the `"avatar"` string as the CSS class, but `src={user.imageUrl}` reads the JavaScript `user.imageUrl` variable value, and then passes that value as the `src` attribute:
 ```sp-cm
 return (
@@ -185,7 +185,7 @@ const listItems = products.map(product =>
 return (
 <ul>{listItems}</ul>
 );
-```dockerfile
+```
 Notice how `<li>` has a `key` attribute. For each item in a list, you should pass a string or a number that uniquely identifies that item among its siblings. Usually, a key should be coming from your data, such as a database ID. React uses your keys to know what happened if you later insert, delete, or reorder the items.
 App.js
 App.js
@@ -320,7 +320,7 @@ return (
 function MyButton() {
 // ... we're moving code from here ...
 }
-```dockerfile
+```
 Then, *pass the state down* from `MyApp` to each `MyButton`, together with the shared click handler. You can pass information to `MyButton` using the JSX curly braces, just like you previously did with built-in tags like `<img>`:
 ```sp-cm
 export default function MyApp() {
@@ -336,7 +336,7 @@ return (
 </div>
 );
 }
-```dockerfile
+```
 The information you pass down like this is called *props*. Now the `MyApp` component contains the `count` state and the `handleClick` event handler, and *passes both of them down as props* to each of the buttons.
 Finally, change `MyButton` to *read* the props you have passed from its parent component:
 ```sp-cm

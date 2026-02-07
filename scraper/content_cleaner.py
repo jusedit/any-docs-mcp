@@ -303,27 +303,35 @@ class ContentCleaner:
             if '[' in code and any(x in code for x in ['[package]', '[dependencies]', '[section]']):
                 return 'toml'
             
-            # JavaScript/TypeScript (must check BEFORE Dockerfile, since 'from ' triggers both)
+            # JSX/React (strongest signal — must be first since 'import React' also matches Python's 'import ')
             if any(x in code for x in ['import React', 'useState', 'useEffect', 'export default function', 'const Component']):
                 return 'jsx'
             
-            # Dockerfile (after JS check to avoid 'import X from' false positive)
-            if any(x in code_lower for x in ['from ', 'run ', 'cmd ', 'entrypoint ', 'copy ', 'add ']):
-                return 'dockerfile'
+            # Python (must check BEFORE Dockerfile since 'from X import Y' triggers 'from ')
+            if any(x in code for x in ['def ', 'class ', 'if __name__']):
+                return 'python'
+            if 'from ' in code and ' import ' in code:
+                return 'python'
+            if code_lower.startswith('import ') and not any(x in code for x in ['const ', 'let ', 'function ', '=>']):
+                return 'python'
+            
+            # Shell/Bash (must check BEFORE Dockerfile since 'pip install', 'npm' etc.)
+            if code_lower.startswith('$') or code_lower.startswith('npm ') or code_lower.startswith('yarn '):
+                return 'bash'
+            if any(x in code_lower for x in ['apt-get', 'brew install', 'pip install', 'curl ', 'wget ']):
+                return 'bash'
+            
+            # TypeScript/JavaScript
             if any(x in code for x in ['interface ', 'type ', ': string', ': number', ': boolean']):
                 return 'typescript'
             if any(x in code for x in ['const ', 'let ', 'function ', '=>', 'async ', 'await ']):
                 return 'javascript'
             
-            # Python
-            if any(x in code for x in ['def ', 'import ', 'from ', 'class ', 'if __name__']):
-                return 'python'
-            
-            # Shell/Bash
-            if code_lower.startswith('$') or code_lower.startswith('npm ') or code_lower.startswith('yarn '):
-                return 'bash'
-            if any(x in code_lower for x in ['apt-get', 'brew install', 'pip install', 'curl ', 'wget ']):
-                return 'bash'
+            # Dockerfile (after Python/JS/Bash — require uppercase instruction OR multiple Dockerfile keywords)
+            dockerfile_keywords = ['FROM ', 'RUN ', 'CMD ', 'ENTRYPOINT ', 'COPY ', 'ADD ', 'WORKDIR ', 'EXPOSE ', 'ENV ']
+            dockerfile_hits = sum(1 for kw in dockerfile_keywords if kw in code)
+            if dockerfile_hits >= 2:
+                return 'dockerfile'
             
             # HTML/CSS
             if any(x in code for x in ['<div', '<span', '<p>', '<html', '<!DOCTYPE']):

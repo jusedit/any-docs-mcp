@@ -6,7 +6,7 @@
 
 ## Tutorial - User Guide¶
 
-**Source:** http://127.0.0.1:43733/tutorial
+**Source:** http://127.0.0.1:39488/tutorial
 
 # Tutorial - User Guide
 This tutorial shows you how to use **FastAPI** with most of its features, step by step.
@@ -15,7 +15,7 @@ It is also built to work as a future reference so you can come back and see exac
 ## Run the code
 All the code blocks can be copied and used directly (they are actually tested Python files).
 To run any of the examples, copy the code to a file `main.py`, and start `fastapi dev` with:
-```dockerfile
+```python
 $ <font color="#4E9A06">fastapi</font> dev <u style="text-decoration-style:solid">main.py</u>
   <span style="background-color:#009485"><font color="#D3D7CF"> FastAPI </font></span>  Starting development server 🚀
              Searching for package file structure from directories

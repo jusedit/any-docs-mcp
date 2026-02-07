@@ -6,7 +6,7 @@
 
 ## Deployment Guide
 
-**Source:** http://127.0.0.1:55271/docs/deployment
+**Source:** http://127.0.0.1:24427/docs/deployment
 
 # Deployment Guide
 Deploy AnyDocsMCP to production using Docker or traditional server setups.
@@ -40,7 +40,7 @@ Configure the server using these environment variables:
 * **LOG\_LEVEL** - Logging verbosity: debug, info, warn, error
 ## Production Checklist
 Before going to production, verify the following:
-```dockerfile
+```bash
 # 1. Build the production image
 docker build -t anydocs-mcp:latest .
 # 2. Run security scan
@@ -53,7 +53,7 @@ curl "http://localhost:3000/api/v1/search?q=test"
 ```
 ## Monitoring
 The server exposes Prometheus-compatible metrics at `/metrics`:
-```dockerfile
+```python
 from prometheus_client import Counter, Histogram
 search_requests = Counter('search_total', 'Total search requests')
 search_latency = Histogram('search_latency_seconds', 'Search latency')
