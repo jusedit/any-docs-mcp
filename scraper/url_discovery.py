@@ -39,9 +39,15 @@ class URLDiscovery:
         })
         self.github_discovery = GitHubDiscovery()
     
-    def discover_urls(self, start_url: str, max_pages: int = 500) -> Dict:
+    def discover_urls(self, start_url: str, max_pages: int = 500, locale_filter: Optional[str] = None) -> Dict:
         """
         Discover documentation URLs using the best available method.
+        
+        Args:
+            start_url: The starting URL for discovery
+            max_pages: Maximum number of pages to discover
+            locale_filter: Optional language code to filter URLs (e.g., 'en', 'de').
+                          Auto-detected from start_url if not provided.
         
         Returns:
             {
@@ -49,6 +55,7 @@ class URLDiscovery:
                 'urls': [{'url': str, 'title': str}],
                 'version': str | None,
                 'scope': str,
+                'locale': str | None,
                 'stats': {...}
             }
         """
@@ -58,11 +65,16 @@ class URLDiscovery:
         # Detect version from URL
         version = self._detect_version(start_url)
         
+        # Auto-detect locale from start_url if not provided
+        if locale_filter is None:
+            locale_filter = self._detect_locale(start_url)
+        
         # Determine scope (path prefix for filtering)
         scope = self._determine_scope(start_url)
         
         print(f"  URL Discovery for: {start_url}")
         print(f"  Detected version: {version or 'none'}")
+        print(f"  Locale filter: {locale_filter or 'none'}")
         print(f"  Scope: {scope}")
         
         # Try modes in order of preference
@@ -72,12 +84,15 @@ class URLDiscovery:
         if self.github_discovery.is_github_repo(start_url):
             print(f"  Detected GitHub repository")
             github_files = self.github_discovery.discover_markdown_files(start_url, max_pages)
+            # Apply locale filter to GitHub results
+            github_files = self._apply_locale_filter(github_files, locale_filter)
             if github_files:
                 result = {
                     'mode': 'github',
                     'urls': github_files,
                     'version': version,
                     'scope': scope,
+                    'locale': locale_filter,
                     'stats': {'raw': len(github_files), 'filtered': len(github_files)}
                 }
                 print(f"  Mode: GITHUB ({len(result['urls'])} markdown files)")
@@ -86,42 +101,108 @@ class URLDiscovery:
                 print(f"  GitHub discovery found no files, falling back to other modes")
         
         # 1. Try sitemap first
-        sitemap_urls = self._try_sitemap(base_url, scope, max_pages)
+        sitemap_urls = self._try_sitemap(base_url, scope, max_pages, locale_filter)
         if sitemap_urls and len(sitemap_urls) >= 10:
             result = {
                 'mode': 'sitemap',
                 'urls': sitemap_urls[:max_pages],
                 'version': version,
                 'scope': scope,
+                'locale': locale_filter,
                 'stats': {'raw': len(sitemap_urls), 'filtered': min(len(sitemap_urls), max_pages)}
             }
             print(f"  Mode: SITEMAP ({len(result['urls'])} URLs)")
             return result
         
         # 2. Try navigation extraction
-        nav_urls = self._try_navigation(start_url, scope)
+        nav_urls = self._try_navigation(start_url, scope, locale_filter)
         if nav_urls and len(nav_urls) >= 5:
             result = {
                 'mode': 'navigation',
                 'urls': nav_urls[:max_pages],
                 'version': version,
                 'scope': scope,
+                'locale': locale_filter,
                 'stats': {'raw': len(nav_urls), 'filtered': min(len(nav_urls), max_pages)}
             }
             print(f"  Mode: NAVIGATION ({len(result['urls'])} URLs)")
             return result
         
         # 3. Fall back to crawling
-        crawl_urls = self._crawl_links(start_url, scope, max_pages)
+        crawl_urls = self._crawl_links(start_url, scope, max_pages, locale_filter)
         result = {
             'mode': 'crawl',
             'urls': crawl_urls[:max_pages],
             'version': version,
             'scope': scope,
+            'locale': locale_filter,
             'stats': {'raw': len(crawl_urls), 'filtered': min(len(crawl_urls), max_pages)}
         }
         print(f"  Mode: CRAWL ({len(result['urls'])} URLs)")
         return result
+    
+    def _detect_locale(self, url: str) -> Optional[str]:
+        """Detect language/locale from URL path.
+        
+        Examples:
+            /en/stable/ -> 'en'
+            /de/5.0/ -> 'de'
+            /docs/latest/ -> None (no locale)
+            /el/ (Greek Django) -> 'el'
+        """
+        parsed = urlparse(url)
+        path = parsed.path.strip('/')
+        
+        if not path:
+            return None
+        
+        # First path segment is often the locale
+        # Pattern: /{locale}/... where locale is 2-3 letters
+        first_segment = path.split('/')[0]
+        
+        # Check if first segment looks like a locale code
+        # Valid: 'en', 'de', 'fr', 'ja', 'el', 'zh-hans', etc.
+        # Not valid: 'docs', 'stable', 'v1', '2024'
+        if re.match(r'^[a-z]{2}(-[a-z]+)?$', first_segment):
+            # Exclude common non-locale path segments
+            non_locales = {'docs', 'api', 'blog', 'about', 'help', 'search', 'v1', 'v2'}
+            if first_segment not in non_locales:
+                return first_segment
+        
+        return None
+    
+    def _apply_locale_filter(self, urls: List[Dict], locale_filter: str) -> List[Dict]:
+        """Filter URLs to only include those matching the target locale.
+        
+        URLs with other locales (e.g., /el/, /ja/) are excluded.
+        URLs without locale (or matching locale) are kept.
+        """
+        if not locale_filter:
+            return urls
+        
+        filtered = []
+        other_locales = {'el', 'ja', 'fr', 'de', 'it', 'es', 'zh', 'ko', 'pt', 'ru', 'ar'}
+        other_locales.discard(locale_filter.lower())
+        
+        for u in urls:
+            url = u['url']
+            parsed = urlparse(url)
+            path = parsed.path
+            
+            # Check for other locale patterns in URL
+            has_other_locale = False
+            for other in other_locales:
+                if f'/{other}/' in path.lower() or path.lower().startswith(f'/{other}/'):
+                    has_other_locale = True
+                    break
+            
+            if not has_other_locale:
+                filtered.append(u)
+        
+        if len(filtered) < len(urls):
+            print(f"    Locale filter ({locale_filter}): {len(urls)} -> {len(filtered)} URLs")
+        
+        return filtered
     
     def _detect_version(self, url: str) -> Optional[str]:
         """Detect documentation version from URL."""
@@ -154,7 +235,7 @@ class URLDiscovery:
         # e.g., /3.13/ -> /3.13/, /docs/latest/ -> /docs/latest/
         return path + '/'
     
-    def _try_sitemap(self, base_url: str, scope: str, max_pages: int) -> List[Dict]:
+    def _try_sitemap(self, base_url: str, scope: str, max_pages: int, locale_filter: Optional[str] = None) -> List[Dict]:
         """Try to get URLs from sitemap."""
         parser = SitemapParser(base_url)
         
@@ -169,13 +250,16 @@ class URLDiscovery:
         if scope and scope != '/':
             urls = [u for u in urls if scope in u['url']]
         
+        # Apply locale filter
+        urls = self._apply_locale_filter(urls, locale_filter)
+        
         # If still too many, use LLM filtering
         if len(urls) > max_pages * 2 and self.client:
             urls = self._llm_filter_urls(base_url + scope, urls)
         
         return urls
     
-    def _try_navigation(self, start_url: str, scope: str) -> List[Dict]:
+    def _try_navigation(self, start_url: str, scope: str, locale_filter: Optional[str] = None) -> List[Dict]:
         """Try to extract URLs from navigation menus."""
         try:
             response = self.session.get(start_url, timeout=30)
@@ -214,9 +298,12 @@ class URLDiscovery:
             except Exception:
                 continue
         
+        # Apply locale filter
+        urls = self._apply_locale_filter(urls, locale_filter)
+        
         return urls
     
-    def _crawl_links(self, start_url: str, scope: str, max_pages: int) -> List[Dict]:
+    def _crawl_links(self, start_url: str, scope: str, max_pages: int, locale_filter: Optional[str] = None) -> List[Dict]:
         """
         Crawl links within scope, following links recursively.
         Uses BFS to discover all reachable pages.
@@ -237,6 +324,13 @@ class URLDiscovery:
                 continue
             
             visited.add(current_url)
+            
+            # Check locale filter before adding to results
+            if locale_filter:
+                test_urls = [{'url': current_url, 'title': ''}]
+                filtered = self._apply_locale_filter(test_urls, locale_filter)
+                if not filtered:
+                    continue  # Skip URLs that don't match locale
             
             try:
                 response = self.session.get(current_url, timeout=15)
@@ -261,6 +355,11 @@ class URLDiscovery:
                         if self._url_in_scope(full_url, base_url, scope):
                             # Skip anchors, downloads, external
                             if self._is_doc_page(full_url):
+                                # Check locale before adding to queue
+                                if locale_filter:
+                                    test_urls = [{'url': full_url, 'title': ''}]
+                                    if not self._apply_locale_filter(test_urls, locale_filter):
+                                        continue  # Skip non-matching locales
                                 to_visit.append(full_url)
                 
             except Exception as e:

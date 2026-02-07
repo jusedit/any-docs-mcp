@@ -30,7 +30,7 @@
         "Django specifically returns English docs, not Greek — verified by re-scraping Django with locale filter and checking content language",
         "Existing behavior unchanged when locale_filter=None — verified by regression test"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "URL-Discovery-Quality",
