@@ -13,13 +13,20 @@ Tests all 7 cycles:
 import pytest
 import re
 from unittest.mock import patch, MagicMock
-from url_discovery import URLDiscovery
+from url_discovery import URLDiscovery, ScopeRules
 
 
 @pytest.fixture
 def discovery():
     """URLDiscovery instance without API key (no LLM calls)."""
     return URLDiscovery(api_key=None)
+
+
+def _scope(base_url: str, prefixes) -> ScopeRules:
+    """Helper: create ScopeRules from path prefixes for tests."""
+    if isinstance(prefixes, str):
+        prefixes = [prefixes]
+    return ScopeRules.from_path_prefixes(base_url, prefixes)
 
 
 # ============================================================
@@ -174,7 +181,7 @@ class TestRecursiveNavigation:
         with patch.object(discovery.session, 'get', side_effect=mock_get):
             urls = discovery._try_navigation(
                 "https://example.com",
-                ["/docs/", "/guide/"],
+                _scope("https://example.com", ["/docs/", "/guide/"]),
                 max_level1_pages=5
             )
 
@@ -201,7 +208,7 @@ class TestRecursiveNavigation:
             return resp
 
         with patch.object(discovery.session, 'get', side_effect=mock_get):
-            urls = discovery._try_navigation("https://example.com", ["/docs/"])
+            urls = discovery._try_navigation("https://example.com", _scope("https://example.com", ["/docs/"]))
 
         url_list = [u['url'] for u in urls]
         assert len(url_list) == len(set(url_list)), "Duplicate URLs found!"
@@ -222,7 +229,7 @@ class TestSPAExtraction:
         ]}}}</script>
         """
         urls = discovery._extract_spa_navigation(
-            html, "https://example.com", "https://example.com", ["/docs/"]
+            html, "https://example.com", "https://example.com", _scope("https://example.com", ["/docs/"])
         )
         assert len(urls) == 2
         assert urls[0]['source'] == 'spa'
@@ -235,7 +242,7 @@ class TestSPAExtraction:
         ]}}}</script>
         """
         urls = discovery._extract_spa_navigation(
-            html, "https://example.com", "https://example.com", ["/docs/"]
+            html, "https://example.com", "https://example.com", _scope("https://example.com", ["/docs/"])
         )
         assert len(urls) == 2
 
@@ -246,7 +253,7 @@ class TestSPAExtraction:
         </script>
         """
         urls = discovery._extract_spa_navigation(
-            html, "https://example.com", "https://example.com", ["/docs/"]
+            html, "https://example.com", "https://example.com", _scope("https://example.com", ["/docs/"])
         )
         found_paths = [u['url'] for u in urls]
         assert "https://example.com/docs/quickstart" in found_paths
@@ -258,7 +265,7 @@ class TestSPAExtraction:
         </script>
         """
         urls = discovery._extract_spa_navigation(
-            html, "https://example.com", "https://example.com", ["/docs/"]
+            html, "https://example.com", "https://example.com", _scope("https://example.com", ["/docs/"])
         )
         found_paths = [u['url'] for u in urls]
         assert "https://example.com/docs/intro" in found_paths
@@ -266,7 +273,7 @@ class TestSPAExtraction:
     def test_empty_html_returns_empty(self, discovery):
         urls = discovery._extract_spa_navigation(
             "<html><body>No scripts</body></html>",
-            "https://example.com", "https://example.com", ["/docs/"]
+            "https://example.com", "https://example.com", _scope("https://example.com", ["/docs/"])
         )
         assert urls == []
 
@@ -278,7 +285,7 @@ class TestSPAExtraction:
         ]}}}</script>
         """
         urls = discovery._extract_spa_navigation(
-            html, "https://example.com", "https://example.com", ["/docs/"]
+            html, "https://example.com", "https://example.com", _scope("https://example.com", ["/docs/"])
         )
         # /blog/post should be filtered out by scope
         found_paths = [u['url'] for u in urls]
@@ -321,7 +328,7 @@ class TestWebDriverEscalation:
              patch('url_discovery.SELENIUM_AVAILABLE', True), \
              patch('url_discovery.WebDriverDiscovery', return_value=mock_wd):
             urls = discovery._try_navigation(
-                "https://example.com", ["/docs/"]
+                "https://example.com", _scope("https://example.com", ["/docs/"])
             )
 
         url_set = {u['url'] for u in urls}
@@ -348,7 +355,7 @@ class TestWebDriverEscalation:
         with patch.object(discovery.session, 'get', return_value=mock_response), \
              patch('url_discovery.SELENIUM_AVAILABLE', True), \
              patch('url_discovery.WebDriverDiscovery', mock_wd_cls):
-            discovery._try_navigation("https://example.com", ["/docs/"])
+            discovery._try_navigation("https://example.com", _scope("https://example.com", ["/docs/"]))
 
         mock_wd_cls.assert_not_called()
 
@@ -368,7 +375,7 @@ class TestWebDriverEscalation:
         with patch.object(discovery.session, 'get', return_value=mock_response), \
              patch('url_discovery.SELENIUM_AVAILABLE', False):
             # Should not crash
-            urls = discovery._try_navigation("https://example.com", ["/docs/"])
+            urls = discovery._try_navigation("https://example.com", _scope("https://example.com", ["/docs/"]))
             assert isinstance(urls, list)
 
 
@@ -432,9 +439,9 @@ class TestSitemapScoring:
         mock_parser.parse_sitemap.return_value = urls
 
         with patch('url_discovery.SitemapParser', return_value=mock_parser):
-            result = discovery._try_sitemap("https://example.com", ["/"], 500)
+            result = discovery._try_sitemap("https://example.com", _scope("https://example.com", ["/"]), 500)
 
-        # All URLs returned since <50
+        # All URLs returned (scope matches all)
         assert len(result) == 30
 
 
@@ -595,7 +602,7 @@ class TestSPANoiseReduction:
         </script>
         """
         urls = discovery._extract_spa_navigation(
-            html, "https://example.com", "https://example.com", ["/"]
+            html, "https://example.com", "https://example.com", _scope("https://example.com", ["/"])
         )
         found = [u['url'] for u in urls]
         assert not any('/static/' in u for u in found)
@@ -610,7 +617,7 @@ class TestSPANoiseReduction:
         </script>
         """
         urls = discovery._extract_spa_navigation(
-            html, "https://example.com", "https://example.com", ["/"]
+            html, "https://example.com", "https://example.com", _scope("https://example.com", ["/"])
         )
         found = [u['url'] for u in urls]
         assert not any(u.endswith('/fonts') for u in found)
@@ -663,7 +670,9 @@ class TestHybridStrategy:
         nav_urls = [{'url': f'https://example.com/docs/nav{i}', 'title': f'Nav {i}'}
                     for i in range(5)]
 
-        with patch.object(discovery, '_try_sitemap', return_value=sitemap_urls), \
+        scope = _scope("https://example.com", ["/docs/"])
+        with patch.object(discovery, '_scout_crawl', return_value=("", {"https://example.com/docs/"})), \
+             patch.object(discovery, '_try_sitemap', return_value=sitemap_urls), \
              patch.object(discovery, '_try_navigation', return_value=nav_urls), \
              patch.object(discovery, '_determine_scope', return_value=['/docs/']), \
              patch.object(discovery.github_discovery, 'is_github_repo', return_value=False):
@@ -682,7 +691,8 @@ class TestHybridStrategy:
         sitemap_urls = [shared_url, {'url': 'https://example.com/docs/page1', 'title': 'P1'}] * 6
         nav_urls = [shared_url, {'url': 'https://example.com/docs/nav1', 'title': 'N1'}]
 
-        with patch.object(discovery, '_try_sitemap', return_value=sitemap_urls), \
+        with patch.object(discovery, '_scout_crawl', return_value=("", {"https://example.com/docs/"})), \
+             patch.object(discovery, '_try_sitemap', return_value=sitemap_urls), \
              patch.object(discovery, '_try_navigation', return_value=nav_urls), \
              patch.object(discovery, '_determine_scope', return_value=['/docs/']), \
              patch.object(discovery.github_discovery, 'is_github_repo', return_value=False):
@@ -698,7 +708,8 @@ class TestHybridStrategy:
         crawl_urls = [{'url': f'https://example.com/docs/crawl{i}', 'title': f'C{i}'}
                       for i in range(20)]
 
-        with patch.object(discovery, '_try_sitemap', return_value=sitemap_urls), \
+        with patch.object(discovery, '_scout_crawl', return_value=("", {"https://example.com/docs/"})), \
+             patch.object(discovery, '_try_sitemap', return_value=sitemap_urls), \
              patch.object(discovery, '_try_navigation', return_value=nav_urls), \
              patch.object(discovery, '_crawl_links', return_value=crawl_urls), \
              patch.object(discovery, '_determine_scope', return_value=['/docs/']), \
@@ -714,7 +725,8 @@ class TestHybridStrategy:
                         for i in range(100)]
 
         mock_crawl = MagicMock(return_value=[])
-        with patch.object(discovery, '_try_sitemap', return_value=sitemap_urls), \
+        with patch.object(discovery, '_scout_crawl', return_value=("", {"https://example.com/docs/"})), \
+             patch.object(discovery, '_try_sitemap', return_value=sitemap_urls), \
              patch.object(discovery, '_try_navigation', return_value=[]), \
              patch.object(discovery, '_crawl_links', mock_crawl), \
              patch.object(discovery, '_determine_scope', return_value=['/docs/']), \
@@ -763,7 +775,7 @@ class TestUseWebdriverParam:
              patch('url_discovery.SELENIUM_AVAILABLE', True), \
              patch('url_discovery.WebDriverDiscovery', return_value=mock_wd):
             urls = discovery._try_navigation(
-                "https://example.com", ["/docs/"], use_webdriver=True
+                "https://example.com", _scope("https://example.com", ["/docs/"]), use_webdriver=True
             )
 
         # WebDriver should have been called despite having 20 URLs
@@ -804,3 +816,270 @@ class TestLocaleAwareSitemapScoring:
         )
         result_paths = [u['url'] for u in result]
         assert any("/en/docs/" in p for p in result_paths)
+
+
+# ============================================================
+# NEW: ScopeRules
+# ============================================================
+
+class TestScopeRules:
+    """Test ScopeRules dataclass — the core of the new 3-phase architecture."""
+
+    def test_url_matches_include(self):
+        rules = ScopeRules.from_llm_response(
+            "https://example.com",
+            include_strs=["/docs/"],
+            exclude_strs=[]
+        )
+        assert rules.url_matches("https://example.com/docs/intro")
+        assert not rules.url_matches("https://example.com/blog/post")
+
+    def test_url_matches_exclude_takes_priority(self):
+        rules = ScopeRules.from_llm_response(
+            "https://example.com",
+            include_strs=["/docs/"],
+            exclude_strs=["/docs/internal/"]
+        )
+        assert rules.url_matches("https://example.com/docs/intro")
+        assert not rules.url_matches("https://example.com/docs/internal/secret")
+
+    def test_rejects_different_domain(self):
+        rules = ScopeRules.from_llm_response(
+            "https://example.com",
+            include_strs=["/docs/"],
+            exclude_strs=[]
+        )
+        assert not rules.url_matches("https://other.com/docs/intro")
+
+    def test_no_include_patterns_matches_everything_on_domain(self):
+        rules = ScopeRules(base_url="https://example.com")
+        assert rules.url_matches("https://example.com/anything")
+        assert not rules.url_matches("https://other.com/anything")
+
+    def test_from_path_prefixes(self):
+        rules = ScopeRules.from_path_prefixes("https://example.com", ["/docs/", "/api/"])
+        assert rules.url_matches("https://example.com/docs/intro")
+        assert rules.url_matches("https://example.com/api/reference")
+        assert not rules.url_matches("https://example.com/blog/post")
+
+    def test_from_path_prefixes_root(self):
+        rules = ScopeRules.from_path_prefixes("https://example.com", ["/"])
+        assert rules.url_matches("https://example.com/anything")
+
+    def test_invalid_regex_ignored(self):
+        """Invalid regex in LLM response should be skipped, not crash."""
+        rules = ScopeRules.from_llm_response(
+            "https://example.com",
+            include_strs=["/docs/", "[invalid(regex"],
+            exclude_strs=["[also(bad"]
+        )
+        # Should still work with the valid pattern
+        assert rules.url_matches("https://example.com/docs/intro")
+
+    def test_case_insensitive_matching(self):
+        rules = ScopeRules.from_llm_response(
+            "https://example.com",
+            include_strs=["/DOCS/"],
+            exclude_strs=[]
+        )
+        assert rules.url_matches("https://example.com/docs/intro")
+
+
+# ============================================================
+# NEW: Scout Crawl
+# ============================================================
+
+class TestScoutCrawl:
+    """Test _scout_crawl — Phase 1 of the new architecture."""
+
+    def test_collects_links_from_pages(self, discovery):
+        """Scout crawl should collect all same-domain links."""
+        html = """<html><body>
+        <a href="/docs/intro">Intro</a>
+        <a href="/blog/post">Blog</a>
+        <a href="https://other.com/page">External</a>
+        </body></html>"""
+
+        def mock_get(url, **kwargs):
+            resp = MagicMock()
+            resp.status_code = 200
+            resp.text = html
+            resp.headers = {'content-type': 'text/html'}
+            return resp
+
+        with patch.object(discovery.session, 'get', side_effect=mock_get):
+            start_html, links = discovery._scout_crawl("https://example.com/", max_pages=1)
+
+        assert "https://example.com/docs/intro" in links
+        assert "https://example.com/blog/post" in links
+        # External links should NOT be collected
+        assert "https://other.com/page" not in links
+        assert start_html == html
+
+    def test_returns_empty_on_failure(self, discovery):
+        """Scout crawl should return empty on HTTP errors."""
+        def mock_get(url, **kwargs):
+            raise ConnectionError("Network error")
+
+        with patch.object(discovery.session, 'get', side_effect=mock_get):
+            start_html, links = discovery._scout_crawl("https://example.com/", max_pages=1)
+
+        assert start_html == ""
+        assert len(links) == 0
+
+    def test_respects_max_pages(self, discovery):
+        """Scout crawl should stop after max_pages."""
+        call_count = 0
+        def mock_get(url, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            resp = MagicMock()
+            resp.status_code = 200
+            resp.text = f'<html><body><a href="/page{call_count}">Link</a></body></html>'
+            resp.headers = {'content-type': 'text/html'}
+            return resp
+
+        with patch.object(discovery.session, 'get', side_effect=mock_get):
+            discovery._scout_crawl("https://example.com/", max_pages=3)
+
+        assert call_count <= 3
+
+
+class TestIsNavigable:
+    """Test _is_navigable — skip binary files during scout."""
+
+    def test_skips_binary_extensions(self, discovery):
+        assert not discovery._is_navigable("https://example.com/file.pdf")
+        assert not discovery._is_navigable("https://example.com/style.css")
+        assert not discovery._is_navigable("https://example.com/app.js")
+        assert not discovery._is_navigable("https://example.com/img.png")
+
+    def test_allows_html_pages(self, discovery):
+        assert discovery._is_navigable("https://example.com/docs/intro")
+        assert discovery._is_navigable("https://example.com/docs/intro.html")
+        assert discovery._is_navigable("https://example.com/api/reference")
+
+
+# ============================================================
+# NEW: LLM Scope Determination
+# ============================================================
+
+class TestLLMDetermineScope:
+    """Test _llm_determine_scope — Phase 2 of the new architecture."""
+
+    def test_falls_back_on_llm_failure(self, discovery):
+        """If LLM call fails, should fall back to heuristic scope."""
+        # discovery has no client (api_key=None), so LLM is unavailable
+        # Simulate by calling with a client that throws
+        discovery_with_client = URLDiscovery(api_key="fake")
+        discovery_with_client.client = MagicMock()
+        discovery_with_client.client.chat.completions.create.side_effect = Exception("API error")
+
+        scout_links = {"https://example.com/docs/intro", "https://example.com/docs/setup"}
+        result = discovery_with_client._llm_determine_scope(
+            "https://example.com/docs/",
+            "https://example.com",
+            "<html></html>",
+            scout_links
+        )
+        assert isinstance(result, ScopeRules)
+        assert "fallback" in result.description.lower() or "Heuristic" in result.description
+
+    def test_parses_valid_llm_response(self, discovery):
+        """Should correctly parse LLM JSON response into ScopeRules."""
+        mock_client = MagicMock()
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = '{"include_patterns": ["/docs/"], "exclude_patterns": ["/blog/"], "reasoning": "docs only"}'
+        mock_client.chat.completions.create.return_value = mock_response
+
+        discovery_with_client = URLDiscovery(api_key="fake")
+        discovery_with_client.client = mock_client
+
+        scout_links = {
+            "https://example.com/docs/intro",
+            "https://example.com/docs/setup",
+            "https://example.com/docs/api",
+            "https://example.com/blog/post1",
+        }
+        result = discovery_with_client._llm_determine_scope(
+            "https://example.com/docs/",
+            "https://example.com",
+            "<html><title>Docs</title></html>",
+            scout_links
+        )
+        assert isinstance(result, ScopeRules)
+        assert result.url_matches("https://example.com/docs/intro")
+        assert not result.url_matches("https://example.com/blog/post1")
+
+    def test_rejects_too_restrictive_scope(self, discovery):
+        """If LLM scope matches <3 scout links, should fall back to heuristics."""
+        mock_client = MagicMock()
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        # Pattern that matches nothing useful
+        mock_response.choices[0].message.content = '{"include_patterns": ["/nonexistent/"], "exclude_patterns": [], "reasoning": "bad scope"}'
+        mock_client.chat.completions.create.return_value = mock_response
+
+        discovery_with_client = URLDiscovery(api_key="fake")
+        discovery_with_client.client = mock_client
+
+        scout_links = {
+            "https://example.com/docs/intro",
+            "https://example.com/docs/setup",
+            "https://example.com/docs/api",
+        }
+        result = discovery_with_client._llm_determine_scope(
+            "https://example.com/docs/",
+            "https://example.com",
+            "<html></html>",
+            scout_links
+        )
+        # Should have fallen back to heuristic
+        assert "Heuristic" in result.description or "fallback" in result.description.lower()
+
+
+# ============================================================
+# NEW: 3-Phase discover_urls integration
+# ============================================================
+
+class TestThreePhaseFlow:
+    """Test the full 3-phase discover_urls flow."""
+
+    def test_discover_urls_returns_scope_rules(self, discovery):
+        """Result should include scope_rules instead of old scopes."""
+        sitemap_urls = [{'url': f'https://example.com/docs/page{i}', 'title': f'P{i}'}
+                        for i in range(15)]
+
+        with patch.object(discovery, '_scout_crawl', return_value=("", {"https://example.com/docs/"})), \
+             patch.object(discovery, '_determine_scope', return_value=['/docs/']), \
+             patch.object(discovery, '_try_sitemap', return_value=sitemap_urls), \
+             patch.object(discovery, '_try_navigation', return_value=[]), \
+             patch.object(discovery.github_discovery, 'is_github_repo', return_value=False):
+            result = discovery.discover_urls("https://example.com/docs/")
+
+        assert 'scope_rules' in result
+        assert isinstance(result['scope_rules'], ScopeRules)
+
+    def test_scout_crawl_is_called(self, discovery):
+        """Phase 1 scout crawl should always be called for non-GitHub sites."""
+        mock_scout = MagicMock(return_value=("", set()))
+
+        with patch.object(discovery, '_scout_crawl', mock_scout), \
+             patch.object(discovery, '_determine_scope', return_value=['/']), \
+             patch.object(discovery, '_try_sitemap', return_value=[]), \
+             patch.object(discovery, '_try_navigation', return_value=[]), \
+             patch.object(discovery, '_crawl_links', return_value=[]), \
+             patch.object(discovery.github_discovery, 'is_github_repo', return_value=False):
+            discovery.discover_urls("https://example.com/")
+
+        mock_scout.assert_called_once()
+
+    def test_is_doc_page_only_filters_extensions(self, discovery):
+        """_is_doc_page should only filter by file extension, not path."""
+        assert discovery._is_doc_page("https://example.com/search")
+        assert discovery._is_doc_page("https://example.com/login")
+        assert discovery._is_doc_page("https://example.com/admin/panel")
+        assert not discovery._is_doc_page("https://example.com/file.pdf")
+        assert not discovery._is_doc_page("https://example.com/style.css")
+        assert not discovery._is_doc_page("https://example.com/bundle.js")

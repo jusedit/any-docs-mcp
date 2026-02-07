@@ -6,7 +6,12 @@ from bs4 import BeautifulSoup
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "scraper"))
 
-from url_discovery import URLDiscovery
+from url_discovery import URLDiscovery, ScopeRules
+
+def _scope(base_url, prefixes):
+    if isinstance(prefixes, str):
+        prefixes = [prefixes]
+    return ScopeRules.from_path_prefixes(base_url, prefixes)
 
 
 class TestNextJSNavigation:
@@ -38,7 +43,7 @@ class TestNextJSNavigation:
             html, 
             "https://react.dev/",
             "https://react.dev",
-            "/"
+            _scope("https://react.dev", ["/"])
         )
         
         assert len(urls) == 3
@@ -76,7 +81,7 @@ class TestDocusaurusNavigation:
             html,
             "https://docusaurus.io/",
             "https://docusaurus.io",
-            "/"
+            _scope("https://docusaurus.io", ["/"])
         )
         
         assert len(urls) == 3
@@ -109,7 +114,7 @@ class TestContentAreaFallback:
             soup,
             "https://example.com/",
             "https://example.com",
-            "/",
+            _scope("https://example.com", ["/"]),
             seen
         )
         
@@ -153,7 +158,7 @@ class TestTryNavigationIntegration:
             'get': lambda *args, **kwargs: MockResponse()
         })()
         
-        urls = discovery._try_navigation("https://example.com/", "/")
+        urls = discovery._try_navigation("https://example.com/", _scope("https://example.com", ["/"]))
         
         assert len(urls) == 2
         spa_count = sum(1 for u in urls if u.get('source') == 'spa')
