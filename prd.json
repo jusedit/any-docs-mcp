@@ -28,7 +28,7 @@
         "vitest.config.ts exists with ESM support and src/ root",
         "mcp-server/src/__tests__/imports.test.ts imports MarkdownParser, loadConfig — verify: npm test passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Test-Harness-Fixtures",
