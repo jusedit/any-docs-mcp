@@ -82,7 +82,7 @@
         "Smaller sites (hyperapp, rust-book) have >= 5 captured pages — verified by file count",
         "Capture manifest updated with actual page counts and capture timestamp — verified by JSON schema check"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Full-Scrape-Capture",
