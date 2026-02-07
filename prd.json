@@ -296,7 +296,7 @@
         "Server process is killed in afterAll() — verify: no orphan processes",
         "Test timeout set to 15s to account for index build — verify: test config inspection"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "MCP-E2E-Integration",
@@ -309,7 +309,7 @@
         "E2E test switches to test-docs-b and verifies search now returns docs-b results — verify: file field changed",
         "mcp-server/src/__tests__/e2e-switch.test.ts passes — verify: npm test"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "MCP-E2E-Integration",
@@ -321,7 +321,7 @@
         "get_file_toc with non-existent filename returns error message — verify: negative test",
         "mcp-server/src/__tests__/e2e-tools.test.ts passes — verify: npm test"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "MCP-E2E-Integration",
@@ -334,7 +334,7 @@
         "E2E test with non-matching query returns 'No code examples found' — verify: negative test",
         "mcp-server/src/__tests__/e2e-code.test.ts passes — verify: npm test"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "MCP-E2E-Integration",
@@ -348,7 +348,7 @@
         "Workflow triggers on push to main and on pull_request — verify: on: config",
         "No secrets or API keys needed — verify: no env secrets in workflow"
       ],
-      "passes": false
+      "passes": true
     }
   ]
 }

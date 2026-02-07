@@ -1,0 +1,64 @@
+name: CI Tests
+
+on:
+  push:
+    branches: [main, plan/*]
+  pull_request:
+    branches: [main]
+
+jobs:
+  python-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12', '3.13']
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      - name: Install Python dependencies
+        run: |
+          cd scraper
+          pip install -r requirements.txt
+          pip install pytest
+      
+      - name: Run Python tests
+        run: |
+          cd scraper
+          python -m pytest tests/ -v
+
+  typescript-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ['18', '20']
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      
+      - name: Install Node.js dependencies
+        run: |
+          cd mcp-server
+          npm install
+      
+      - name: Build TypeScript
+        run: |
+          cd mcp-server
+          npm run build
+      
+      - name: Run TypeScript tests
+        run: |
+          cd mcp-server
+          npm test
+        env:
+          ANYDOCS_STORAGE_ROOT: ${{ github.workspace }}/tests/fixtures/search/test-docs
