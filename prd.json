@@ -17,7 +17,7 @@
         "Discovery mode is logged (sitemap/nav/crawl) for each site — verified by checking mode field in baseline",
         "Sites with <50% coverage are flagged in a warnings array — verified by checking warnings field"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "URL-Discovery-Quality",
