@@ -1,120 +1,14 @@
 {
-  "version": "1.0.0",
-  "description": "Reference doc-sets for real-world testing fixtures",
   "doc_sets": [
     {
-      "doc_name": "react",
-      "site_type": "docusaurus",
-      "base_url": "https://react.dev",
-      "urls": [
-        {"url": "https://react.dev/learn", "page_type": "landing"},
-        {"url": "https://react.dev/learn/state", "page_type": "tutorial"},
-        {"url": "https://react.dev/reference/react", "page_type": "api_reference"},
-        {"url": "https://react.dev/learn/thinking-in-react", "page_type": "code_examples"},
-        {"url": "https://react.dev/learn/escape-hatches", "page_type": "edge_case"}
-      ]
-    },
-    {
-      "doc_name": "fastapi",
-      "site_type": "mkdocs",
-      "base_url": "https://fastapi.tiangolo.com",
-      "urls": [
-        {"url": "https://fastapi.tiangolo.com/", "page_type": "landing"},
-        {"url": "https://fastapi.tiangolo.com/tutorial/", "page_type": "tutorial"},
-        {"url": "https://fastapi.tiangolo.com/reference/fastapi/", "page_type": "api_reference"},
-        {"url": "https://fastapi.tiangolo.com/tutorial/security/", "page_type": "code_examples"},
-        {"url": "https://fastapi.tiangolo.com/advanced/", "page_type": "edge_case"}
-      ]
-    },
-    {
-      "doc_name": "tailwind",
-      "site_type": "custom",
-      "base_url": "https://tailwindcss.com",
-      "urls": [
-        {"url": "https://tailwindcss.com/docs", "page_type": "landing"},
-        {"url": "https://tailwindcss.com/docs/installation", "page_type": "tutorial"},
-        {"url": "https://tailwindcss.com/docs/border-color", "page_type": "api_reference"},
-        {"url": "https://tailwindcss.com/docs/flex", "page_type": "code_examples"},
-        {"url": "https://tailwindcss.com/docs/hover-focus-and-other-states", "page_type": "edge_case"}
-      ]
-    },
-    {
-      "doc_name": "kubernetes",
-      "site_type": "hugo",
-      "base_url": "https://kubernetes.io",
-      "urls": [
-        {"url": "https://kubernetes.io/docs/home/", "page_type": "landing"},
-        {"url": "https://kubernetes.io/docs/tutorials/", "page_type": "tutorial"},
-        {"url": "https://kubernetes.io/docs/concepts/", "page_type": "api_reference"},
-        {"url": "https://kubernetes.io/docs/tasks/configure-pod-container/", "page_type": "code_examples"},
-        {"url": "https://kubernetes.io/docs/reference/kubernetes-api/", "page_type": "edge_case"}
-      ]
-    },
-    {
-      "doc_name": "django",
-      "site_type": "sphinx",
-      "base_url": "https://docs.djangoproject.com",
-      "urls": [
-        {"url": "https://docs.djangoproject.com/en/stable/", "page_type": "landing"},
-        {"url": "https://docs.djangoproject.com/en/stable/intro/tutorial01/", "page_type": "tutorial"},
-        {"url": "https://docs.djangoproject.com/en/stable/ref/models/fields/", "page_type": "api_reference"},
-        {"url": "https://docs.djangoproject.com/en/stable/topics/forms/", "page_type": "code_examples"},
-        {"url": "https://docs.djangoproject.com/en/stable/howto/", "page_type": "edge_case"}
-      ]
-    },
-    {
-      "doc_name": "hyperapp-github",
-      "site_type": "github",
-      "base_url": "https://github.com/jorgebucaran/hyperapp",
-      "urls": [
-        {"url": "https://raw.githubusercontent.com/jorgebucaran/hyperapp/main/docs/reference.md", "page_type": "landing"}
-      ]
-    },
-    {
-      "doc_name": "onoffice",
-      "site_type": "custom",
-      "base_url": "https://apidoc.onoffice.de",
-      "urls": [
-        {"url": "https://apidoc.onoffice.de/", "page_type": "landing"},
-        {"url": "https://apidoc.onoffice.de/handbuch/", "page_type": "tutorial"},
-        {"url": "https://apidoc.onoffice.de/aktionscodes/", "page_type": "api_reference"},
-        {"url": "https://apidoc.onoffice.de/beispiele/", "page_type": "code_examples"},
-        {"url": "https://apidoc.onoffice.de/fehlerbehebung/", "page_type": "edge_case"}
-      ]
-    },
-    {
-      "doc_name": "synthflow",
-      "site_type": "custom",
-      "base_url": "https://docs.synthflow.ai",
-      "urls": [
-        {"url": "https://docs.synthflow.ai/getting-started-with-your-api", "page_type": "landing"},
-        {"url": "https://docs.synthflow.ai/api-reference", "page_type": "tutorial"},
-        {"url": "https://docs.synthflow.ai/api-reference/platform-api", "page_type": "api_reference"},
-        {"url": "https://docs.synthflow.ai/codesamples", "page_type": "code_examples"},
-        {"url": "https://docs.synthflow.ai/troubleshooting", "page_type": "edge_case"}
-      ]
-    },
-    {
-      "doc_name": "golang",
-      "site_type": "custom",
-      "base_url": "https://go.dev",
-      "urls": [
-        {"url": "https://go.dev/doc/", "page_type": "landing"},
-        {"url": "https://go.dev/doc/tutorial/getting-started", "page_type": "tutorial"},
-        {"url": "https://go.dev/ref/spec", "page_type": "api_reference"},
-        {"url": "https://go.dev/doc/effective_go", "page_type": "code_examples"},
-        {"url": "https://go.dev/doc/faq", "page_type": "edge_case"}
-      ]
-    },
-    {
-      "doc_name": "rust-book",
-      "site_type": "mdbook",
-      "base_url": "https://doc.rust-lang.org/book",
-      "urls": [
-        {"url": "https://doc.rust-lang.org/book/", "page_type": "landing"},
-        {"url": "https://doc.rust-lang.org/book/ch01-00-getting-started.html", "page_type": "tutorial"},
-        {"url": "https://doc.rust-lang.org/book/ch03-00-common-programming-concepts.html", "page_type": "code_examples"}
-      ]
+      "doc_name": "test-site",
+      "urls": [],
+      "capture_info": {
+        "captured_at": "2026-02-07T17:56:04.075134",
+        "pages_captured": 5,
+        "pages_failed": 1
+      }
     }
-  ]
+  ],
+  "last_capture_run": "2026-02-07T17:56:04.075120"
 }
