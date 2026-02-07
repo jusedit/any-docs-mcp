@@ -95,7 +95,7 @@
         "Scope broadening: if start_url is /docs/home/, scope widens to /docs/ when /docs/ prefix covers >20 sitemap URLs â€” verified by unit test",
         "The improved filtering increases coverage for django to >=60% and kubernetes to >=50% (based on audit_url_coverage.py --compare-only) â€” verified by running the audit tool after implementation"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Hybrid-Mode-Strategy",

@@ -15,7 +15,40 @@
 
 ---
 
-## Ralph Batch v4 — Cycle 5/7 ✅ COMPLETE
+# AnyDocsMCP Quality & Retrieval Upgrade - Progress Log
+
+## Ralph Batch v4 — 🎉 ALL 7 CYCLES COMPLETE
+
+**Status:** 7/7 tasks completed (100%)
+**Commits:** `5cac36d`, `bfb3514`, `ef5b56f`, `f3e9760`
+
+### Summary of Completed Work
+
+**Scope-Boundary-Detection (3 tasks):**
+1. ✅ Adaptive scope detection — `_determine_scope()` returns `List[str]`
+2. ✅ Documentation path detection — `_analyze_documentation_paths()` with scoring
+3. ✅ Multi-scope URL filtering — All modes updated for multi-scope support
+
+**Recursive-Navigation-Discovery (4 tasks):**
+4. ✅ Multi-page recursive navigation — 2-level extraction with section heuristics
+5. ✅ SPA deep navigation extraction — Generic JSON scanning in all script tags
+6. ✅ WebDriver escalation — Auto-trigger for JS-heavy pages
+7. ✅ Sitemap-assisted navigation — URL grouping and scoring by doc-patterns
+
+---
+
+## Ralph Batch v4 — Cycle 7/7 ✅ COMPLETE
+
+### Completed: Sitemap-assisted navigation for large documentation sites
+
+**Result:** Success
+
+**Changes made:**
+- Added `_score_and_filter_sitemap_urls()` method
+- Groups URLs by first 2 path segments when >50 URLs returned
+- Scores groups: doc-patterns (+10), non-doc (-10), translations (-5)
+- Filters out negative-scoring groups
+- Falls back to all URLs if no positive groups found
 
 ### Completed: SPA deep navigation extraction for Next.js and React-based doc sites
 

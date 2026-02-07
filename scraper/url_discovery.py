@@ -327,7 +327,7 @@ class URLDiscovery:
         return []
     
     def _try_sitemap(self, base_url: str, scopes: List[str], max_pages: int, locale_filter: Optional[str] = None) -> List[Dict]:
-        """Try to get URLs from sitemap."""
+        """Try to get URLs from sitemap with intelligent filtering."""
         parser = SitemapParser(base_url)
         
         if not parser.has_sitemap():
@@ -336,6 +336,10 @@ class URLDiscovery:
         urls = parser.parse_sitemap()
         if not urls:
             return []
+        
+        # When many URLs returned, use intelligent grouping and scoring
+        if len(urls) > 50:
+            urls = self._score_and_filter_sitemap_urls(urls, scopes, base_url)
         
         # Filter by scopes (OR logic - URL must match ANY scope)
         if scopes and scopes != ['/']:
@@ -362,6 +366,82 @@ class URLDiscovery:
             urls = self._llm_filter_urls(base_url + scope_hint, urls)
         
         return urls
+    
+    def _score_and_filter_sitemap_urls(self, urls: List[Dict], scopes: List[str], base_url: str) -> List[Dict]:
+        """Group and score sitemap URLs to filter out non-documentation pages."""
+        from collections import defaultdict
+        
+        # Group URLs by first 2 path segments
+        groups = defaultdict(list)
+        for u in urls:
+            parsed = urlparse(u['url'])
+            path_segments = parsed.path.strip('/').split('/')
+            
+            # Create group key from first 2 segments (or 1 if only 1 exists)
+            if len(path_segments) >= 2:
+                group_key = f"/{path_segments[0]}/{path_segments[1]}/"
+            elif len(path_segments) == 1:
+                group_key = f"/{path_segments[0]}/"
+            else:
+                group_key = "/"
+            
+            groups[group_key].append(u)
+        
+        # Score each group
+        doc_patterns = ['docs', 'api', 'guide', 'reference', 'tutorial', 'learn', 'manual', 'handbook']
+        non_doc_patterns = ['blog', 'news', 'community', 'forum', 'about', 'contact', 'pricing']
+        
+        group_scores = {}
+        for group_key, group_urls in groups.items():
+            score = 0
+            
+            # Doc-like paths get higher scores
+            if any(pattern in group_key.lower() for pattern in doc_patterns):
+                score += 10
+            
+            # Non-doc paths get negative scores
+            if any(pattern in group_key.lower() for pattern in non_doc_patterns):
+                score -= 10
+            
+            # Translation patterns get negative scores
+            translation_pattern = re.match(r'^/[a-z]{2}/', group_key)
+            if translation_pattern:
+                lang = translation_pattern.group(1)
+                if lang not in ['en']:  # Penalize non-English translations
+                    score -= 5
+            
+            # Groups matching current scopes get bonus
+            for scope in scopes:
+                if scope in group_key:
+                    score += 3
+            
+            # Size bonus/penalty - very large groups might be problematic
+            if len(group_urls) > 100:
+                score -= 2  # Slight penalty for very large groups
+            
+            group_scores[group_key] = score
+        
+        # Keep only positive-scoring groups
+        positive_groups = [gk for gk, score in group_scores.items() if score > 0]
+        
+        # If no positive groups, keep all (fallback)
+        if not positive_groups:
+            return urls
+        
+        # Combine URLs from positive-scoring groups
+        filtered_urls = []
+        for group_key in positive_groups:
+            filtered_urls.extend(groups[group_key])
+        
+        # Sort by group score (descending) for priority
+        filtered_urls.sort(key=lambda u: max(
+            [group_scores.get(gk, 0) for gk in groups.keys() if u in groups[gk]],
+            default=0
+        ), reverse=True)
+        
+        print(f"  Sitemap: grouped {len(urls)} URLs into {len(groups)} groups, kept {len(filtered_urls)} from {len(positive_groups)} positive-scoring groups")
+        
+        return filtered_urls
     
     def _try_navigation(self, start_url: str, scopes: List[str], locale_filter: Optional[str] = None, max_level1_pages: int = 20) -> List[Dict]:
         """Try to extract URLs from navigation menus and SPA data.
