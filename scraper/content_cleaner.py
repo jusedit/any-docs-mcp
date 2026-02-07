@@ -48,6 +48,22 @@ class ContentCleaner:
                 r'Home\s*>\s*Docs',
             ]
         },
+        'tailwind': {
+            'patterns': [
+                # Tailwind utility class divs
+                r'<div[^>]*class="[^"]*(?:bg-|text-|p-|m-|flex|grid|border|rounded|shadow|hover:|focus:|active:)[^"]*"[^>]*>.*?</div>',
+                r'<span[^>]*class="[^"]*(?:bg-|text-|p-|m-|flex|grid|border|rounded|shadow|hover:|focus:|active:)[^"]*"[^>]*>.*?</span>',
+                # Color swatches
+                r'<div[^>]*class="[^"]*(?:#\w{3,6}|(?:rgb|hsl)a?\()[^"]*"[^>]*>.*?</div>',
+                r'\[#[0-9A-Fa-f]{6}\]\([^)]*\)',  # Color links like [#3b82f6](...)
+                # Interactive code examples
+                r'\[Try it\]\(https://play\.tailwindcss\.com[^)]*\)',
+                # TOC remnants
+                r'On this page\n\*\s*\[',
+                # Version badges
+                r'v\d+\.\d+(?:\.\d+)?\s*Latest',
+            ]
+        },
         'generic-spa': {
             'patterns': [
                 r'Cookie Policy',
