@@ -9,6 +9,60 @@ from typing import List, Tuple
 class ContentCleaner:
     """Clean scraped markdown content by removing artifacts and fixing issues."""
     
+    # Site-type specific profiles
+    PROFILES = {
+        'mkdocs': {
+            'patterns': [
+                r'Edit on GitHub',
+                r'Edit on GitLab', 
+                r'Last updated:\s*\w+ \d{1,2}, \d{4}',
+                r'!!! \w+',  # Admonition markers
+                r'\?\?\? \w+',  # Details markers
+            ]
+        },
+        'sphinx': {
+            'patterns': [
+                r'Changed in version \d+\.\d+',
+                r'New in version \d+\.\d+',
+                r'Deprecated since version \d+\.\d+',
+                r'\(source\)',
+                r':ref:`[^`]+`',
+                r':doc:`[^`]+`',
+            ]
+        },
+        'docusaurus': {
+            'patterns': [
+                r'ReloadClear',
+                r'sp-pre-placeholder',
+                r'TabItem',
+                r'CodeSandbox',
+                r'StackBlitz',
+            ]
+        },
+        'hugo': {
+            'patterns': [
+                r'On this page',
+                r'Last modified:\s*\w+ \d{1,2}, \d{4}',
+                r'Edit this page',
+                r'Was this page helpful\?',
+                r'Home\s*>\s*Docs',
+            ]
+        },
+        'generic-spa': {
+            'patterns': [
+                r'Cookie Policy',
+                r'Accept all cookies',
+                r'Reject all',
+                r'Subscribe',
+                r'Enter your email',
+                r'Back to top',
+                r'Copyright \d+',
+                r'Terms of Service',
+                r'Privacy Policy',
+            ]
+        }
+    }
+    
     # Known bad code block language tags
     BAD_LANGUAGES = [
         'sp-pre-placeholder',
@@ -94,10 +148,18 @@ class ContentCleaner:
     # Duplicate header patterns
     DUPLICATE_HEADER_PATTERN = r'^(#{1,6})\s+(.+)\n\1\s+\2'
     
-    def __init__(self):
+    def __init__(self, site_type: str = None):
         # Compile patterns for efficiency
         self.ui_patterns = [re.compile(p, re.IGNORECASE | re.MULTILINE) for p in self.UI_ARTIFACT_PATTERNS]
         self.nav_patterns = [re.compile(p, re.MULTILINE) for p in self.NAV_MENU_PATTERNS]
+        self.site_type = site_type
+        
+        # Compile profile patterns if site_type specified
+        if site_type and site_type in self.PROFILES:
+            profile_patterns = self.PROFILES[site_type]['patterns']
+            self.profile_patterns = [re.compile(p, re.IGNORECASE | re.MULTILINE) for p in profile_patterns]
+        else:
+            self.profile_patterns = []
     
     def clean(self, content: str) -> str:
         """Apply all cleaning operations to content."""
@@ -106,6 +168,7 @@ class ContentCleaner:
         content = self.remove_navigation_menus(content)
         content = self.fix_duplicate_headers(content)
         content = self.fix_encoding_issues(content)
+        content = self.remove_permalink_anchors(content)
         content = self.clean_empty_code_blocks(content)
         content = self.normalize_heading_levels(content)
         content = self.fix_markdown_tables(content)
@@ -200,8 +263,14 @@ class ContentCleaner:
     
     def remove_ui_artifacts(self, content: str) -> str:
         """Remove known UI artifacts from content."""
+        # Apply universal patterns
         for pattern in self.ui_patterns:
             content = pattern.sub('', content)
+        
+        # Apply profile-specific patterns
+        for pattern in self.profile_patterns:
+            content = pattern.sub('', content)
+        
         return content
     
     def remove_navigation_menus(self, content: str) -> str:
@@ -411,11 +480,12 @@ class ContentCleaner:
         for line in lines:
             # Only process heading lines
             if line.strip().startswith('#'):
-                # Pattern 1: Remove trailing ¶ character
-                line = re.sub(r'Â¶\s*$', '', line)
+                # Pattern 1: Remove trailing ¶ character (U+00B6)
+                line = re.sub(r'¶\s*$', '', line)
                 
                 # Pattern 2: Remove [¶](#anchor "...") permalink links
-                line = re.sub(r'\[Â¶\]\(#[^)]*\)', '', line)
+                line = re.sub(r'\[¶\]\(#[^)]*"[^"]*"\)', '', line)
+                line = re.sub(r'\[¶\]\(#[^)]*\)', '', line)
                 
                 # Pattern 3: Remove []( #anchor) empty anchor links  
                 line = re.sub(r'\[\]\(\s*#[^)]*\)', '', line)

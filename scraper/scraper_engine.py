@@ -24,10 +24,12 @@ class ScraperEngine:
     def __init__(self, config: DocumentationConfig, storage: StorageManager, 
                  max_workers: int = 10,
                  progress_callback: Optional[Callable[[ScrapeProgress], None]] = None,
-                 json_progress: bool = False):
+                 json_progress: bool = False,
+                 max_file_size_kb: int = 500):
         self.config = config
         self.storage = storage
         self.max_workers = max_workers
+        self.max_file_size_kb = max_file_size_kb
         self.content_cleaner = ContentCleaner()
         self.url_discovery = URLDiscovery()
         self.discovery_result = None  # Stores URL discovery result with mode, version, etc.

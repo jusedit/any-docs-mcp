@@ -152,3 +152,19 @@
 - CLI for interactive discovery
 
 **Result:** Success — 9/9 tests passed. Both cycles complete.
+
+---
+
+## Batch 2: Cycles 8-14 — COMPLETE ✅
+
+| Cycle | Task | Tests |
+|-------|------|-------|
+| 8 | Encoding regression tests | 5 |
+| 9 | Response charset detection | 2 |
+| 10 | Site-type profile system | 7 |
+| 11 | MkDocs + Sphinx profiles | (in profiles) |
+| 12 | Docusaurus + Hugo profiles | (in profiles) |
+| 13 | Cookie/SPA cleanup profile | (in profiles) |
+| 14 | File size guardrails | 2 |
+
+**Total: 16/16 tests passed** (Cycles 8-14)
