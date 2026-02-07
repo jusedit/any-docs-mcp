@@ -158,7 +158,7 @@ class URLDiscovery:
         print(f"  Scout crawl: found {len(scout_links)} unique links on {min(10, len(scout_links))} pages")
         
         # --- PHASE 2: LLM scope determination ---
-        if self.client and scout_links:
+        if self.client:
             scope_rules = self._llm_determine_scope(start_url, base_url, scout_html, scout_links)
         else:
             # Fallback: heuristic-based scope from path prefixes
@@ -399,14 +399,16 @@ Return ONLY valid JSON:
                 description=f"LLM: {reasoning[:100]}"
             )
             
-            # Sanity check: at least some scout links should match
-            matching = sum(1 for link in scout_links if scope_rules.url_matches(link))
-            if matching < 3:
-                print(f"  Warning: LLM scope too restrictive ({matching} matches). Using heuristic fallback.")
-                old_scopes = self._determine_scope(start_url)
-                return ScopeRules.from_path_prefixes(base_url, old_scopes)
-            
-            print(f"  LLM scope matches {matching}/{len(scout_links)} scout links")
+            # Sanity check: at least some scout links should match (skip if no scout links)
+            if scout_links:
+                matching = sum(1 for link in scout_links if scope_rules.url_matches(link))
+                if matching < 3:
+                    print(f"  Warning: LLM scope too restrictive ({matching} matches). Using heuristic fallback.")
+                    old_scopes = self._determine_scope(start_url)
+                    return ScopeRules.from_path_prefixes(base_url, old_scopes)
+                print(f"  LLM scope matches {matching}/{len(scout_links)} scout links")
+            else:
+                print(f"  LLM scope (no scout links to validate against)")
             return scope_rules
             
         except Exception as e:
@@ -510,7 +512,7 @@ Return ONLY valid JSON:
         """Determine the URL scope (path prefixes) for filtering.
         
         Returns a list of scope prefixes. For root URLs, analyzes the page
-        to find documentation paths. For specific paths, returns the path prefix.
+        to find documentation paths. For specific paths, returns the directory prefix.
         """
         parsed = urlparse(url)
         path = parsed.path.rstrip('/')
@@ -522,7 +524,14 @@ Return ONLY valid JSON:
                 return doc_paths
             return ['/']
         
-        # For specific paths, return the path as scope
+        # Strip filename from file URLs (e.g., /docs/home.html -> /docs/)
+        last_segment = path.rsplit('/', 1)[-1]
+        if '.' in last_segment:
+            path = path.rsplit('/', 1)[0]
+        
+        # Ensure the scope is a directory prefix
+        if not path or path == '/':
+            return ['/']
         return [path + '/']
     
     def _analyze_documentation_paths(self, start_url: str) -> List[str]:
