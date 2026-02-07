@@ -121,7 +121,7 @@
         "Re-capture preserves the old file as .body.html.bak before overwriting — verified by backup file check",
         "Summary report shows: total captures, fresh, stale, re-captured — verified by report JSON output"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Full-Scrape-Capture",

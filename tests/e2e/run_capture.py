@@ -61,6 +61,49 @@ def check_freshness(doc_name: str, fixtures_dir: Path, max_age_days: int = 90) -
     }
 
 
+def validate_capture(meta: dict, body: str) -> tuple[bool, list[str]]:
+    """Validate captured response is valid HTML.
+    
+    Returns:
+        (is_valid, list of error messages)
+    """
+    errors = []
+    
+    # Check status is 200
+    status = meta.get("status", 0)
+    if status != 200:
+        errors.append(f"Status {status} != 200")
+    
+    # Check body size > 1000 bytes
+    body_bytes = body.encode('utf-8')
+    if len(body_bytes) < 1000:
+        errors.append(f"Body too small: {len(body_bytes)} bytes < 1000")
+    
+    # Check for HTML tags
+    body_lower = body.lower()
+    if "<html" not in body_lower and "<body" not in body_lower:
+        errors.append("No <html> or <body> tag found")
+    
+    return len(errors) == 0, errors
+
+
+def quarantine_capture(doc_dir: Path, slug: str):
+    """Move invalid capture to quarantine directory."""
+    quarantine_dir = doc_dir / "quarantine"
+    quarantine_dir.mkdir(exist_ok=True)
+    
+    # Move body files
+    for ext in ['.body.html', '.body.html.gz']:
+        body_path = doc_dir / f"{slug}{ext}"
+        if body_path.exists():
+            body_path.rename(quarantine_dir / f"{slug}{ext}")
+    
+    # Move meta
+    meta_path = doc_dir / f"{slug}.meta.json"
+    if meta_path.exists():
+        meta_path.rename(quarantine_dir / f"{slug}.meta.json")
+
+
 def backup_existing_capture(doc_dir: Path, slug: str):
     """Backup existing capture files before overwriting."""
     # Backup body files (both .html and .html.gz)
@@ -149,6 +192,8 @@ def main():
                         help="Only re-capture stale pages (older than --max-age-days)")
     parser.add_argument("--max-age-days", type=int, default=90,
                         help="Max age in days before a capture is considered stale (default: 90)")
+    parser.add_argument("--validate", action="store_true",
+                        help="Validate existing captures without re-downloading")
     args = parser.parse_args()
     
     with open(MANIFEST, encoding="utf-8") as f:
@@ -158,6 +203,11 @@ def main():
         print("Available sites:")
         for doc_set in manifest["doc_sets"]:
             print(f"  - {doc_set['doc_name']}")
+        return
+    
+    # Validate mode - check existing captures
+    if args.validate:
+        validate_existing_captures(manifest, FIXTURES, args.sites)
         return
     
     # Determine which sites to capture
@@ -211,6 +261,77 @@ def main():
         print(f"  {'TOTAL':12}: {total_ok:3} captured, {total_fail:2} failed")
     
     print(f"\nCaptured at: {datetime.now().isoformat()}")
+
+
+def validate_existing_captures(manifest: dict, fixtures_dir: Path, target_sites: list = None):
+    """Validate all existing captures and quarantine invalid ones."""
+    from response_capture import ResponseCapture
+    
+    sites_to_check = target_sites if target_sites else [d["doc_name"] for d in manifest["doc_sets"]]
+    
+    total_valid = total_invalid = 0
+    
+    print("\n" + "="*50)
+    print("VALIDATION REPORT")
+    print("="*50)
+    
+    for doc_set in manifest["doc_sets"]:
+        name = doc_set["doc_name"]
+        if name not in sites_to_check:
+            continue
+        
+        doc_dir = fixtures_dir / name
+        if not doc_dir.exists():
+            print(f"  {name:12}: directory not found")
+            continue
+        
+        valid_count = invalid_count = 0
+        
+        for meta_file in doc_dir.glob("*.meta.json"):
+            slug = meta_file.stem.replace('.meta', '')
+            
+            # Load meta
+            with open(meta_file, 'r', encoding='utf-8') as f:
+                meta = json.load(f)
+            
+            # Load body (handle both .html and .gz)
+            try:
+                gz_path = meta_file.with_suffix('').with_suffix('.body.html.gz')
+                html_path = meta_file.with_suffix('').with_suffix('.body.html')
+                
+                if gz_path.exists():
+                    import gzip
+                    with open(gz_path, 'rb') as f:
+                        body = gzip.decompress(f.read()).decode('utf-8')
+                elif html_path.exists():
+                    with open(html_path, 'r', encoding='utf-8') as f:
+                        body = f.read()
+                else:
+                    print(f"  {name}/{slug}: body file not found")
+                    invalid_count += 1
+                    continue
+                
+                # Validate
+                is_valid, errors = validate_capture(meta, body)
+                
+                if is_valid:
+                    valid_count += 1
+                else:
+                    invalid_count += 1
+                    print(f"  {name}/{slug}: INVALID - {', '.join(errors)}")
+                    quarantine_capture(doc_dir, slug)
+                    
+            except Exception as e:
+                print(f"  {name}/{slug}: ERROR - {e}")
+                invalid_count += 1
+        
+        print(f"  {name:12}: {valid_count} valid, {invalid_count} invalid")
+        total_valid += valid_count
+        total_invalid += invalid_count
+    
+    print("-"*50)
+    print(f"  {'TOTAL':12}: {total_valid} valid, {total_invalid} invalid")
+    print("="*50)
 
 
 def update_capture_manifest(manifest: dict, results: dict):
