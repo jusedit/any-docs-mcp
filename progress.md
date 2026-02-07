@@ -1,27 +1,37 @@
 # AnyDocsMCP Quality & Retrieval Upgrade - Progress Log
 
-## Plan: quality-retrieval-upgrade-v1
+## Plan v1: quality-retrieval-upgrade-v1 ✅ COMPLETE
+
+### Session 1-2 — 2026-02-07
+- [x] 27/27 tasks completed across 6 epics
+- [x] All Python tests passing (42 tests)
+- [x] All TypeScript tests passing (vitest)
+- [x] Branch: `plan/quality-retrieval-upgrade-v1`
+
+---
+
+## Plan v2: real-world-quality-upgrade
 
 ### Session 1 — 2026-02-07
 
-- [x] Created branch `plan/quality-retrieval-upgrade-v1`
-- [x] Full codebase analysis (14 source files across scraper/ + mcp-server/src/)
+- [x] Real-world data audit: 2,103 MD files, 54 MB across 46 doc-sets
+- [x] Identified critical quality issues: 622 encoding errors, 161 UI artifacts, 153 TOC remnants
+- [x] Strategy document: STRATEGY-v2-real-world-quality.md
 - [x] 6 functional groups defined
-- [x] 27 tasks generated across all groups
+- [x] Deep init complete: 30 tasks across 6 groups
 - [x] prd.json assembled, partials cleaned up
-- [x] tech-stack.md updated with actual stack + conventions
 
-### Backlog Summary (27 tasks, 0 passes)
+### Backlog Summary (30 tasks, 0 passes)
 
-| Group | Tasks | Status |
-|-------|-------|--------|
-| Test-Harness-Fixtures | 5 | pending |
-| Source-Selection-Routing | 4 | pending |
-| HTML-Markdown-Quality | 5 | pending |
-| Search-Relevance | 4 | pending |
-| Performance-Observability | 4 | pending |
-| MCP-E2E-Integration | 5 | pending |
+| Group | Tasks | Focus |
+|-------|-------|-------|
+| Capture-Replay-Infrastructure | 5 | MockServer, HTTP capture, golden snapshots, MCP corpus |
+| Encoding-Quality | 5 | Audit, permalink removal, mojibake repair, charset detection |
+| Artifact-Cleanup-Profiles | 5 | Pattern discovery, MkDocs/Sphinx/Docusaurus/Hugo profiles |
+| Content-Sizing-Chunking | 5 | File split, stub detection, table compression, quality score |
+| Search-Relevance-RealData | 5 | 100 queries, precision/MRR, large corpus perf, code search |
+| E2E-Pipeline-Testing | 5 | Pipeline smoke, golden diff, MCP tools, quality dashboard, CI |
 
-### Recommended First PR
+### Recommended First Task
 
-**"Python test infrastructure with pytest"** — sets up the test harness that every subsequent task depends on.
+**"ResponseCapture class for recording HTTP responses"** — foundation for all other real-world tests.
