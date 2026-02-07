@@ -92,3 +92,23 @@
 **Potential challenges:** Concurrent request handling, port allocation, fixture path resolution
 
 **Result:** Success — 14/14 tests passed. FixtureHTTPServer with ThreadingHTTPServer, pytest fixture, and URL rewriting fully implemented.
+
+## Working on Golden markdown output snapshots
+
+**Files to modify/create:**
+- `tests/fixtures/real-world/{doc-name}/golden/*.md` — 1-2 representative .md files per doc-set
+- `tests/fixtures/real-world/quality_baseline.json` — Per-file metrics baseline
+- `scraper/generate_baseline.py` — Script to scan golden files and regenerate baseline
+- `scraper/tests/test_golden_fixtures.py` — Tests validating golden files exist and meet criteria
+
+**Approach:**
+1. Copy content-rich .md files from %APPDATA%/AnyDocsMCP/docs/{doc}/v*/ to golden/
+2. Skip stub files (<500 chars), pick files with code examples and headings
+3. quality_baseline.json records: encoding_errors, artifacts, headings, code_blocks, char_count
+4. generate_baseline.py regenerates metrics on demand
+
+**Verification:** pytest checking file existence and baseline validity
+
+**Potential challenges:** File selection criteria, path resolution from %APPDATA%
+
+**Result:** Success — 12/12 tests passed. Golden fixtures created for 3 doc-sets (react, fastapi, tailwind), quality_baseline.json with metrics, generate_baseline.py script fully implemented.

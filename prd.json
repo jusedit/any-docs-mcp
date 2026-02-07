@@ -57,7 +57,7 @@
         "A script generate_baseline.py scans golden files and regenerates quality_baseline.json — verify: running script produces valid JSON matching file count",
         "Golden files total size is under 5 MB — verify: cumulative file size check"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Capture-Replay-Infrastructure",
