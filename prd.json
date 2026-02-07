@@ -95,7 +95,7 @@
         "Total scrape time per site is < 60 seconds — verified by timing assertion",
         "Output .md files are stored in tests/e2e/full_scrape_output/{doc-name}/ for MCP evaluation — verified by directory check"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "group": "Full-Scrape-Capture",
