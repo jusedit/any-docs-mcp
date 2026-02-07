@@ -2,87 +2,523 @@
   "version": "1.0.0",
   "description": "100 curated search queries across 10 reference doc-sets",
   "queries": [
-    {"doc_name": "react", "query": "useState hook example", "expected_top_title": "Using the State Hook", "expected_file": "hooks-state.md", "query_type": "code-example"},
-    {"doc_name": "react", "query": "useEffect cleanup", "expected_top_title": "Using the Effect Hook", "expected_file": "hooks-effect.md", "query_type": "api"},
-    {"doc_name": "react", "query": "React components tutorial", "expected_top_title": "Thinking in React", "expected_file": "thinking-in-react.md", "query_type": "tutorial"},
-    {"doc_name": "react", "query": "JSX syntax", "expected_top_title": "JSX In Depth", "expected_file": "jsx-in-depth.md", "query_type": "concept"},
-    {"doc_name": "react", "query": "React Context API", "expected_top_title": "Context", "expected_file": "context.md", "query_type": "api"},
-    {"doc_name": "react", "query": "React Router navigation", "expected_top_title": "Router", "expected_file": "router.md", "query_type": "concept"},
-    {"doc_name": "react", "query": "React performance optimization", "expected_top_title": "Optimizing Performance", "expected_file": "optimizing-performance.md", "query_type": "troubleshooting"},
-    {"doc_name": "react", "query": "React error boundaries", "expected_top_title": "Error Boundaries", "expected_file": "error-boundaries.md", "query_type": "api"},
-    {"doc_name": "react", "query": "React Suspense lazy loading", "expected_top_title": "Suspense", "expected_file": "suspense.md", "query_type": "code-example"},
-    {"doc_name": "react", "query": "React hooks rules", "expected_top_title": "Rules of Hooks", "expected_file": "hooks-rules.md", "query_type": "concept"},
-    {"doc_name": "fastapi", "query": "FastAPI path parameters", "expected_top_title": "Path Parameters", "expected_file": "tutorial-params.md", "query_type": "api"},
-    {"doc_name": "fastapi", "query": "FastAPI dependency injection", "expected_top_title": "Dependencies", "expected_file": "tutorial-dependencies.md", "query_type": "concept"},
-    {"doc_name": "fastapi", "query": "FastAPI OAuth2 authentication", "expected_top_title": "Security", "expected_file": "tutorial-security.md", "query_type": "api"},
-    {"doc_name": "fastapi", "query": "FastAPI SQL database", "expected_top_title": "SQL Databases", "expected_file": "tutorial-databases.md", "query_type": "code-example"},
-    {"doc_name": "fastapi", "query": "FastAPI background tasks", "expected_top_title": "Background Tasks", "expected_file": "tutorial-background-tasks.md", "query_type": "api"},
-    {"doc_name": "fastapi", "query": "FastAPI WebSocket", "expected_top_title": "WebSockets", "expected_file": "tutorial-websockets.md", "query_type": "code-example"},
-    {"doc_name": "fastapi", "query": "FastAPI testing", "expected_top_title": "Testing", "expected_file": "tutorial-testing.md", "query_type": "tutorial"},
-    {"doc_name": "fastapi", "query": "FastAPI middleware", "expected_top_title": "Middleware", "expected_file": "tutorial-middleware.md", "query_type": "concept"},
-    {"doc_name": "fastapi", "query": "Pydantic models validation", "expected_top_title": "Models", "expected_file": "tutorial-models.md", "query_type": "concept"},
-    {"doc_name": "fastapi", "query": "FastAPI deployment Docker", "expected_top_title": "Deployment", "expected_file": "deployment.md", "query_type": "troubleshooting"},
-    {"doc_name": "tailwind", "query": "Tailwind flexbox layout", "expected_top_title": "Flexbox", "expected_file": "docs-flexbox.md", "query_type": "api"},
-    {"doc_name": "tailwind", "query": "Tailwind grid system", "expected_top_title": "Grid", "expected_file": "docs-grid.md", "query_type": "api"},
-    {"doc_name": "tailwind", "query": "Tailwind responsive design", "expected_top_title": "Responsive Design", "expected_file": "docs-responsive.md", "query_type": "concept"},
-    {"doc_name": "tailwind", "query": "Tailwind colors palette", "expected_top_title": "Colors", "expected_file": "docs-colors.md", "query_type": "api"},
-    {"doc_name": "tailwind", "query": "Tailwind spacing scale", "expected_top_title": "Spacing", "expected_file": "docs-spacing.md", "query_type": "api"},
-    {"doc_name": "tailwind", "query": "Tailwind typography fonts", "expected_top_title": "Typography", "expected_file": "docs-typography.md", "query_type": "api"},
-    {"doc_name": "tailwind", "query": "Tailwind custom config", "expected_top_title": "Configuration", "expected_file": "docs-config.md", "query_type": "tutorial"},
-    {"doc_name": "tailwind", "query": "Tailwind dark mode", "expected_top_title": "Dark Mode", "expected_file": "docs-dark-mode.md", "query_type": "troubleshooting"},
-    {"doc_name": "tailwind", "query": "Tailwind JIT compiler", "expected_top_title": "Just-in-Time", "expected_file": "docs-jit.md", "query_type": "concept"},
-    {"doc_name": "tailwind", "query": "Tailwind plugins", "expected_top_title": "Plugins", "expected_file": "docs-plugins.md", "query_type": "code-example"},
-    {"doc_name": "kubernetes", "query": "Kubernetes pods", "expected_top_title": "Pods", "expected_file": "concepts-pods.md", "query_type": "concept"},
-    {"doc_name": "kubernetes", "query": "Kubernetes deployments", "expected_top_title": "Deployments", "expected_file": "concepts-deployments.md", "query_type": "concept"},
-    {"doc_name": "kubernetes", "query": "Kubernetes services", "expected_top_title": "Services", "expected_file": "concepts-services.md", "query_type": "concept"},
-    {"doc_name": "kubernetes", "query": "Kubernetes config maps", "expected_top_title": "ConfigMaps", "expected_file": "concepts-configmaps.md", "query_type": "api"},
-    {"doc_name": "kubernetes", "query": "Kubernetes ingress", "expected_top_title": "Ingress", "expected_file": "concepts-ingress.md", "query_type": "concept"},
-    {"doc_name": "kubernetes", "query": "Kubernetes helm charts", "expected_top_title": "Helm", "expected_file": "helm.md", "query_type": "code-example"},
-    {"doc_name": "kubernetes", "query": "kubectl commands", "expected_top_title": "kubectl", "expected_file": "kubectl-reference.md", "query_type": "api"},
-    {"doc_name": "kubernetes", "query": "Kubernetes RBAC", "expected_top_title": "RBAC", "expected_file": "concepts-rbac.md", "query_type": "concept"},
-    {"doc_name": "kubernetes", "query": "Kubernetes secrets", "expected_top_title": "Secrets", "expected_file": "concepts-secrets.md", "query_type": "api"},
-    {"doc_name": "kubernetes", "query": "Kubernetes troubleshooting", "expected_top_title": "Troubleshooting", "expected_file": "troubleshooting.md", "query_type": "troubleshooting"},
-    {"doc_name": "django", "query": "Django models ORM", "expected_top_title": "Models", "expected_file": "topics-db-models.md", "query_type": "api"},
-    {"doc_name": "django", "query": "Django views", "expected_top_title": "Views", "expected_file": "topics-views.md", "query_type": "concept"},
-    {"doc_name": "django", "query": "Django templates", "expected_top_title": "Templates", "expected_file": "topics-templates.md", "query_type": "concept"},
-    {"doc_name": "django", "query": "Django forms validation", "expected_top_title": "Forms", "expected_file": "topics-forms.md", "query_type": "api"},
-    {"doc_name": "django", "query": "Django admin interface", "expected_top_title": "Admin", "expected_file": "ref-contrib-admin.md", "query_type": "api"},
-    {"doc_name": "django", "query": "Django middleware", "expected_top_title": "Middleware", "expected_file": "topics-http-middleware.md", "query_type": "concept"},
-    {"doc_name": "django", "query": "Django authentication", "expected_top_title": "Authentication", "expected_file": "topics-auth.md", "query_type": "api"},
-    {"doc_name": "django", "query": "Django migrations", "expected_top_title": "Migrations", "expected_file": "topics-migrations.md", "query_type": "concept"},
-    {"doc_name": "django", "query": "Django REST framework", "expected_top_title": "REST Framework", "expected_file": "rest-framework.md", "query_type": "code-example"},
-    {"doc_name": "django", "query": "Django testing", "expected_top_title": "Testing", "expected_file": "topics-testing.md", "query_type": "tutorial"},
-    {"doc_name": "hyperapp-github", "query": "Hyperapp getting started", "expected_top_title": "Getting Started", "expected_file": "readme.md", "query_type": "tutorial"},
-    {"doc_name": "hyperapp-github", "query": "Hyperapp state management", "expected_top_title": "State", "expected_file": "readme.md", "query_type": "concept"},
-    {"doc_name": "hyperapp-github", "query": "Hyperapp effects", "expected_top_title": "Effects", "expected_file": "readme.md", "query_type": "api"},
-    {"doc_name": "hyperapp-github", "query": "Hyperapp subscriptions", "expected_top_title": "Subscriptions", "expected_file": "readme.md", "query_type": "api"},
-    {"doc_name": "hyperapp-github", "query": "Hyperapp JSX", "expected_top_title": "JSX", "expected_file": "readme.md", "query_type": "code-example"},
-    {"doc_name": "onoffice", "query": "onOffice API authentication", "expected_top_title": "Authentication", "expected_file": "api-auth.md", "query_type": "api"},
-    {"doc_name": "onoffice", "query": "onOffice API rate limits", "expected_top_title": "Rate Limits", "expected_file": "api-limits.md", "query_type": "troubleshooting"},
-    {"doc_name": "onoffice", "query": "onOffice addresses endpoint", "expected_top_title": "Addresses", "expected_file": "api-addresses.md", "query_type": "api"},
-    {"doc_name": "onoffice", "query": "onOffice estate module", "expected_top_title": "Estate", "expected_file": "api-estate.md", "query_type": "api"},
-    {"doc_name": "onoffice", "query": "onOffice API examples", "expected_top_title": "Examples", "expected_file": "api-examples.md", "query_type": "code-example"},
-    {"doc_name": "synthflow", "query": "Synthflow voice agents", "expected_top_title": "Voice Agents", "expected_file": "voice-agents.md", "query_type": "concept"},
-    {"doc_name": "synthflow", "query": "Synthflow API key setup", "expected_top_title": "API Keys", "expected_file": "api-keys.md", "query_type": "tutorial"},
-    {"doc_name": "synthflow", "query": "Synthflow webhooks", "expected_top_title": "Webhooks", "expected_file": "webhooks.md", "query_type": "api"},
-    {"doc_name": "synthflow", "query": "Synthflow custom voices", "expected_top_title": "Custom Voices", "expected_file": "custom-voices.md", "query_type": "code-example"},
-    {"doc_name": "synthflow", "query": "Synthflow pricing", "expected_top_title": "Pricing", "expected_file": "pricing.md", "query_type": "concept"},
-    {"doc_name": "golang", "query": "Go concurrency goroutines", "expected_top_title": "Goroutines", "expected_file": "concurrency.md", "query_type": "concept"},
-    {"doc_name": "golang", "query": "Go channels", "expected_top_title": "Channels", "expected_file": "channels.md", "query_type": "concept"},
-    {"doc_name": "golang", "query": "Go interfaces", "expected_top_title": "Interfaces", "expected_file": "interfaces.md", "query_type": "concept"},
-    {"doc_name": "golang", "query": "Go error handling", "expected_top_title": "Errors", "expected_file": "error-handling.md", "query_type": "api"},
-    {"doc_name": "golang", "query": "Go modules", "expected_top_title": "Modules", "expected_file": "modules.md", "query_type": "tutorial"},
-    {"doc_name": "rust-book", "query": "Rust ownership", "expected_top_title": "Ownership", "expected_file": "ch04-01-what-is-ownership.md", "query_type": "concept"},
-    {"doc_name": "rust-book", "query": "Rust borrowing", "expected_top_title": "References and Borrowing", "expected_file": "ch04-02-references-and-borrowing.md", "query_type": "concept"},
-    {"doc_name": "rust-book", "query": "Rust lifetimes", "expected_top_title": "Lifetimes", "expected_file": "ch10-03-lifetime-syntax.md", "query_type": "concept"},
-    {"doc_name": "rust-book", "query": "Rust enums pattern matching", "expected_top_title": "Enums and Pattern Matching", "expected_file": "ch06-00-enums.md", "query_type": "code-example"},
-    {"doc_name": "rust-book", "query": "Rust cargo build", "expected_top_title": "Cargo", "expected_file": "ch01-03-cargo.md", "query_type": "tutorial"},
-    {"doc_name": "rust-book", "query": "Rust generics", "expected_top_title": "Generic Types", "expected_file": "ch10-01-syntax.md", "query_type": "concept"},
-    {"doc_name": "rust-book", "query": "Rust traits", "expected_top_title": "Traits", "expected_file": "ch10-02-traits.md", "query_type": "concept"},
-    {"doc_name": "rust-book", "query": "Rust closures", "expected_top_title": "Closures", "expected_file": "ch13-01-closures.md", "query_type": "code-example"},
-    {"doc_name": "rust-book", "query": "Rust iterators", "expected_top_title": "Iterators", "expected_file": "ch13-02-iterators.md", "query_type": "api"},
-    {"doc_name": "rust-book", "query": "Rust smart pointers", "expected_top_title": "Smart Pointers", "expected_file": "ch15-00-smart-pointers.md", "query_type": "concept"},
-    {"doc_name": "rust-book", "query": "Rust testing", "expected_top_title": "Testing", "expected_file": "ch11-00-testing.md", "query_type": "tutorial"},
-    {"doc_name": "rust-book", "query": "Rust concurrency", "expected_top_title": "Fearless Concurrency", "expected_file": "ch16-00-concurrency.md", "query_type": "concept"}
+    {
+      "doc_name": "react",
+      "query": "useState hook example",
+      "expected_top_title": "Reusing logic with custom Hooks",
+      "expected_file": "learn-escape-hatches.md",
+      "query_type": "code-example"
+    },
+    {
+      "doc_name": "react",
+      "query": "useEffect cleanup",
+      "expected_top_title": "Reusing logic with custom Hooks",
+      "expected_file": "learn-escape-hatches.md",
+      "query_type": "api"
+    },
+    {
+      "doc_name": "react",
+      "query": "React components tutorial",
+      "expected_top_title": "React",
+      "expected_file": "reference-react.md",
+      "query_type": "tutorial"
+    },
+    {
+      "doc_name": "react",
+      "query": "JSX syntax",
+      "expected_top_title": "ESLint Plugin React Hooks",
+      "expected_file": "reference-react.md",
+      "query_type": "concept"
+    },
+    {
+      "doc_name": "react",
+      "query": "React Context API",
+      "expected_top_title": "Content",
+      "expected_file": "community-docs-contributors.md",
+      "query_type": "api"
+    },
+    {
+      "doc_name": "react",
+      "query": "React Router navigation",
+      "expected_top_title": "Content",
+      "expected_file": "community-docs-contributors.md",
+      "query_type": "concept"
+    },
+    {
+      "doc_name": "react",
+      "query": "React performance optimization",
+      "expected_top_title": "Importing and exporting components",
+      "expected_file": "learn-describing-the-ui.md",
+      "query_type": "troubleshooting"
+    },
+    {
+      "doc_name": "react",
+      "query": "React error boundaries",
+      "expected_top_title": "Removed APIs",
+      "expected_file": "reference-react-dom.md",
+      "query_type": "api"
+    },
+    {
+      "doc_name": "react",
+      "query": "React Suspense lazy loading",
+      "expected_top_title": "Suspense",
+      "expected_file": "suspense.md",
+      "query_type": "code-example"
+    },
+    {
+      "doc_name": "react",
+      "query": "React hooks rules",
+      "expected_top_title": "Rules of React",
+      "expected_file": "reference-react.md",
+      "query_type": "concept"
+    },
+    {
+      "doc_name": "fastapi",
+      "query": "FastAPI path parameters",
+      "expected_top_title": "Path Parameters",
+      "expected_file": "tutorial-path-params.md",
+      "query_type": "api"
+    },
+    {
+      "doc_name": "fastapi",
+      "query": "FastAPI dependency injection",
+      "expected_top_title": "Dependencies",
+      "expected_file": "index.md",
+      "query_type": "concept"
+    },
+    {
+      "doc_name": "fastapi",
+      "query": "FastAPI OAuth2 authentication",
+      "expected_top_title": "Security",
+      "expected_file": "tutorial-security.md",
+      "query_type": "api"
+    },
+    {
+      "doc_name": "fastapi",
+      "query": "FastAPI SQL database",
+      "expected_top_title": "Using Dataclasses",
+      "expected_file": "advanced-dataclasses.md",
+      "query_type": "code-example"
+    },
+    {
+      "doc_name": "fastapi",
+      "query": "FastAPI background tasks",
+      "expected_top_title": "Background Tasks",
+      "expected_file": "tutorial-background-tasks.md",
+      "query_type": "api"
+    },
+    {
+      "doc_name": "fastapi",
+      "query": "FastAPI WebSocket",
+      "expected_top_title": "WebSockets",
+      "expected_file": "advanced-websockets.md",
+      "query_type": "code-example"
+    },
+    {
+      "doc_name": "fastapi",
+      "query": "FastAPI testing",
+      "expected_top_title": "Testing",
+      "expected_file": "tutorial-testing.md",
+      "query_type": "tutorial"
+    },
+    {
+      "doc_name": "fastapi",
+      "query": "FastAPI middleware",
+      "expected_top_title": "Middleware",
+      "expected_file": "reference-middleware.md",
+      "query_type": "concept"
+    },
+    {
+      "doc_name": "fastapi",
+      "query": "Pydantic models validation",
+      "expected_top_title": "Pydantic Models for Input and Output",
+      "expected_file": "how-to-separate-openapi-schemas.md",
+      "query_type": "concept"
+    },
+    {
+      "doc_name": "fastapi",
+      "query": "FastAPI deployment Docker",
+      "expected_top_title": "Deployment",
+      "expected_file": "deployment.md",
+      "query_type": "troubleshooting"
+    },
+    {
+      "doc_name": "tailwind",
+      "query": "Tailwind flexbox layout",
+      "expected_top_title": "flex",
+      "expected_file": "docs-flex.md",
+      "query_type": "api"
+    },
+    {
+      "doc_name": "tailwind",
+      "query": "Tailwind grid system",
+      "expected_top_title": "grid-auto-columns",
+      "expected_file": "docs-grid-auto-columns.md",
+      "query_type": "api"
+    },
+    {
+      "doc_name": "tailwind",
+      "query": "Tailwind responsive design",
+      "expected_top_title": "Responsive design",
+      "expected_file": "docs-place-items.md",
+      "query_type": "concept"
+    },
+    {
+      "doc_name": "tailwind",
+      "query": "Tailwind colors palette",
+      "expected_top_title": "Colors",
+      "expected_file": "docs-colors.md",
+      "query_type": "api"
+    },
+    {
+      "doc_name": "tailwind",
+      "query": "Tailwind spacing scale",
+      "expected_top_title": "border-spacing",
+      "expected_file": "docs-border-spacing.md",
+      "query_type": "api"
+    },
+    {
+      "doc_name": "tailwind",
+      "query": "Tailwind typography fonts",
+      "expected_top_title": "gap",
+      "expected_file": "docs-gap.md",
+      "query_type": "api"
+    },
+    {
+      "doc_name": "tailwind",
+      "query": "Tailwind custom config",
+      "expected_top_title": "animation",
+      "expected_file": "docs-animation.md",
+      "query_type": "tutorial"
+    },
+    {
+      "doc_name": "tailwind",
+      "query": "Tailwind dark mode",
+      "expected_top_title": "Dark mode",
+      "expected_file": "docs-dark-mode.md",
+      "query_type": "troubleshooting"
+    },
+    {
+      "doc_name": "tailwind",
+      "query": "Tailwind JIT compiler",
+      "expected_top_title": "justify-items",
+      "expected_file": "docs-justify-items.md",
+      "query_type": "concept"
+    },
+    {
+      "doc_name": "tailwind",
+      "query": "Tailwind plugins",
+      "expected_top_title": "columns",
+      "expected_file": "docs-columns.md",
+      "query_type": "code-example"
+    },
+    {
+      "doc_name": "kubernetes",
+      "query": "Kubernetes pods",
+      "expected_top_title": "Pods",
+      "expected_file": "docs-concepts-workloads.md",
+      "query_type": "concept"
+    },
+    {
+      "doc_name": "kubernetes",
+      "query": "Kubernetes deployments",
+      "expected_top_title": "Deployments",
+      "expected_file": "docs-concepts-workloads.md",
+      "query_type": "concept"
+    },
+    {
+      "doc_name": "kubernetes",
+      "query": "Kubernetes services",
+      "expected_top_title": "Service",
+      "expected_file": "docs-concepts-services-networking.md",
+      "query_type": "concept"
+    },
+    {
+      "doc_name": "kubernetes",
+      "query": "Kubernetes config maps",
+      "expected_top_title": "ConfigMaps",
+      "expected_file": "docs-concepts-configuration.md",
+      "query_type": "api"
+    },
+    {
+      "doc_name": "kubernetes",
+      "query": "Kubernetes ingress",
+      "expected_top_title": "Ingress",
+      "expected_file": "docs-concepts-services-networking.md",
+      "query_type": "concept"
+    },
+    {
+      "doc_name": "kubernetes",
+      "query": "Kubernetes helm charts",
+      "expected_top_title": "Seek help",
+      "expected_file": "docs-tasks-debug.md",
+      "query_type": "code-example"
+    },
+    {
+      "doc_name": "kubernetes",
+      "query": "kubectl commands",
+      "expected_top_title": "Kubectl",
+      "expected_file": "docs-reference-access-authn-authz.md",
+      "query_type": "api"
+    },
+    {
+      "doc_name": "kubernetes",
+      "query": "Kubernetes RBAC",
+      "expected_top_title": "Using RBAC Authorization",
+      "expected_file": "docs-reference-access-authn-authz.md",
+      "query_type": "concept"
+    },
+    {
+      "doc_name": "kubernetes",
+      "query": "Kubernetes secrets",
+      "expected_top_title": "Secrets",
+      "expected_file": "docs-concepts-configuration.md",
+      "query_type": "api"
+    },
+    {
+      "doc_name": "kubernetes",
+      "query": "Kubernetes troubleshooting",
+      "expected_top_title": "Troubleshooting",
+      "expected_file": "docs-concepts-configuration.md",
+      "query_type": "troubleshooting"
+    },
+    {
+      "doc_name": "django",
+      "query": "Django views",
+      "expected_top_title": "Views",
+      "expected_file": "el-2.2-misc.md",
+      "query_type": "concept"
+    },
+    {
+      "doc_name": "django",
+      "query": "Django authentication",
+      "expected_top_title": "Authentication usingREMOTE_USER",
+      "expected_file": "el-2.1-howto.md",
+      "query_type": "api"
+    },
+    {
+      "doc_name": "django",
+      "query": "Django REST framework",
+      "expected_top_title": "Cache Framework",
+      "expected_file": "el-2.2-misc.md",
+      "query_type": "code-example"
+    },
+    {
+      "doc_name": "django",
+      "query": "Django testing",
+      "expected_top_title": "Installing Daphne",
+      "expected_file": "el-3.0-howto.md",
+      "query_type": "tutorial"
+    },
+    {
+      "doc_name": "hyperapp-github",
+      "query": "Hyperapp getting started",
+      "expected_top_title": "State",
+      "expected_file": "hyperapp-github.md",
+      "query_type": "tutorial"
+    },
+    {
+      "doc_name": "hyperapp-github",
+      "query": "Hyperapp state management",
+      "expected_top_title": "State",
+      "expected_file": "hyperapp-github.md",
+      "query_type": "concept"
+    },
+    {
+      "doc_name": "hyperapp-github",
+      "query": "Hyperapp effects",
+      "expected_top_title": "Effects",
+      "expected_file": "hyperapp-github.md",
+      "query_type": "api"
+    },
+    {
+      "doc_name": "hyperapp-github",
+      "query": "Hyperapp subscriptions",
+      "expected_top_title": "Subscriptions",
+      "expected_file": "hyperapp-github.md",
+      "query_type": "api"
+    },
+    {
+      "doc_name": "hyperapp-github",
+      "query": "Hyperapp JSX",
+      "expected_top_title": "JSX",
+      "expected_file": "readme.md",
+      "query_type": "code-example"
+    },
+    {
+      "doc_name": "onoffice",
+      "query": "onOffice API authentication",
+      "expected_top_title": "Authentification",
+      "expected_file": "erste-schritte.md",
+      "query_type": "api"
+    },
+    {
+      "doc_name": "onoffice",
+      "query": "onOffice API rate limits",
+      "expected_top_title": "Create Tasks",
+      "expected_file": "actions-datensatz-anlegen.md",
+      "query_type": "troubleshooting"
+    },
+    {
+      "doc_name": "onoffice",
+      "query": "onOffice addresses endpoint",
+      "expected_top_title": "Addresses",
+      "expected_file": "api-calls-sorted-by-module-addresses.md",
+      "query_type": "api"
+    },
+    {
+      "doc_name": "onoffice",
+      "query": "onOffice estate module",
+      "expected_top_title": "Estates",
+      "expected_file": "api-calls-sorted-by-module-estates.md",
+      "query_type": "api"
+    },
+    {
+      "doc_name": "onoffice",
+      "query": "onOffice API examples",
+      "expected_top_title": "Get Templates",
+      "expected_file": "actions-informationen-abfragen.md",
+      "query_type": "code-example"
+    },
+    {
+      "doc_name": "synthflow",
+      "query": "Synthflow voice agents",
+      "expected_top_title": "Importing Agents",
+      "expected_file": "import-a-product.md",
+      "query_type": "concept"
+    },
+    {
+      "doc_name": "synthflow",
+      "query": "Synthflow API key setup",
+      "expected_top_title": "API Access",
+      "expected_file": "logs.md",
+      "query_type": "tutorial"
+    },
+    {
+      "doc_name": "synthflow",
+      "query": "Synthflow webhooks",
+      "expected_top_title": "Webhooks Overview | Synthflow",
+      "expected_file": "about-webhooks.md",
+      "query_type": "api"
+    },
+    {
+      "doc_name": "synthflow",
+      "query": "Synthflow custom voices",
+      "expected_top_title": "Custom limits",
+      "expected_file": "cuncurrency-calling-limits.md",
+      "query_type": "code-example"
+    },
+    {
+      "doc_name": "synthflow",
+      "query": "Synthflow pricing",
+      "expected_top_title": "Pricing plans and Rebilling | Synthflow",
+      "expected_file": "set-up-pricing-and-rebilling.md",
+      "query_type": "concept"
+    },
+    {
+      "doc_name": "golang",
+      "query": "Go concurrency goroutines",
+      "expected_top_title": "Options",
+      "expected_file": "doc-articles.md",
+      "query_type": "concept"
+    },
+    {
+      "doc_name": "golang",
+      "query": "Go channels",
+      "expected_top_title": "Changes from C",
+      "expected_file": "doc-faq.md",
+      "query_type": "concept"
+    },
+    {
+      "doc_name": "golang",
+      "query": "Go interfaces",
+      "expected_top_title": "Interfaces and other types",
+      "expected_file": "doc-effective_go.md",
+      "query_type": "concept"
+    },
+    {
+      "doc_name": "golang",
+      "query": "Go error handling",
+      "expected_top_title": "Errors",
+      "expected_file": "doc-effective_go.md",
+      "query_type": "api"
+    },
+    {
+      "doc_name": "golang",
+      "query": "Go modules",
+      "expected_top_title": "module",
+      "expected_file": "doc-modules.md",
+      "query_type": "tutorial"
+    },
+    {
+      "doc_name": "rust-book",
+      "query": "Rust ownership",
+      "expected_top_title": "Ownership",
+      "expected_file": "ch04-01-what-is-ownership.md",
+      "query_type": "concept"
+    },
+    {
+      "doc_name": "rust-book",
+      "query": "Rust borrowing",
+      "expected_top_title": "References and Borrowing",
+      "expected_file": "ch04-02-references-and-borrowing.md",
+      "query_type": "concept"
+    },
+    {
+      "doc_name": "rust-book",
+      "query": "Rust lifetimes",
+      "expected_top_title": "Lifetimes",
+      "expected_file": "ch10-03-lifetime-syntax.md",
+      "query_type": "concept"
+    },
+    {
+      "doc_name": "rust-book",
+      "query": "Rust enums pattern matching",
+      "expected_top_title": "Enums and Pattern Matching",
+      "expected_file": "ch06-00-enums.md",
+      "query_type": "code-example"
+    },
+    {
+      "doc_name": "rust-book",
+      "query": "Rust cargo build",
+      "expected_top_title": "Cargo",
+      "expected_file": "ch01-03-cargo.md",
+      "query_type": "tutorial"
+    },
+    {
+      "doc_name": "rust-book",
+      "query": "Rust generics",
+      "expected_top_title": "Generic Types",
+      "expected_file": "ch10-01-syntax.md",
+      "query_type": "concept"
+    },
+    {
+      "doc_name": "rust-book",
+      "query": "Rust traits",
+      "expected_top_title": "Traits",
+      "expected_file": "ch10-02-traits.md",
+      "query_type": "concept"
+    },
+    {
+      "doc_name": "rust-book",
+      "query": "Rust closures",
+      "expected_top_title": "Closures",
+      "expected_file": "ch13-01-closures.md",
+      "query_type": "code-example"
+    },
+    {
+      "doc_name": "rust-book",
+      "query": "Rust smart pointers",
+      "expected_top_title": "Smart Pointers",
+      "expected_file": "ch15-00-smart-pointers.md",
+      "query_type": "concept"
+    },
+    {
+      "doc_name": "rust-book",
+      "query": "Rust concurrency",
+      "expected_top_title": "Fearless Concurrency",
+      "expected_file": "ch16-00-concurrency.md",
+      "query_type": "concept"
+    }
   ]
 }

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-02-07T17:06:41.695154",
+  "generated_at": "2026-02-07T17:11:10.318828",
   "doc_sets_evaluated": 10,
   "per_doc_set": {
     "django": {
@@ -20,19 +20,19 @@
       "mcp_index": {
         "total_sections": 2895,
         "total_files_indexed": 60,
-        "build_time_ms": 108,
+        "build_time_ms": 97,
         "sections_with_code": 474,
         "sections_with_source_url": 500,
         "avg_content_length": 1298,
         "score": 0.749
       },
       "search": {
-        "queries_tested": 10,
-        "precision_at_1": 0.4,
-        "precision_at_3": 0.4,
-        "mrr": 0.4,
+        "queries_tested": 4,
+        "precision_at_1": 0,
+        "precision_at_3": 0,
+        "mrr": 0,
         "zero_result_queries": 0,
-        "score": 0.4
+        "score": 0.0
       },
       "overview": {
         "overview_length": 59607,
@@ -40,7 +40,7 @@
         "toc_total_entries": 2895,
         "score": 1.0
       },
-      "overall_score": 0.715
+      "overall_score": 0.595
     },
     "fastapi": {
       "name": "fastapi",
@@ -60,7 +60,7 @@
       "mcp_index": {
         "total_sections": 3233,
         "total_files_indexed": 132,
-        "build_time_ms": 80,
+        "build_time_ms": 78,
         "sections_with_code": 1403,
         "sections_with_source_url": 145,
         "avg_content_length": 796,
@@ -68,11 +68,11 @@
       },
       "search": {
         "queries_tested": 10,
-        "precision_at_1": 0.4,
-        "precision_at_3": 0.4,
-        "mrr": 0.4,
+        "precision_at_1": 0.3,
+        "precision_at_3": 0.3,
+        "mrr": 0.3,
         "zero_result_queries": 0,
-        "score": 0.4
+        "score": 0.3
       },
       "overview": {
         "overview_length": 22006,
@@ -80,7 +80,7 @@
         "toc_total_entries": 3233,
         "score": 1.0
       },
-      "overall_score": 0.743
+      "overall_score": 0.713
     },
     "golang": {
       "name": "golang",
@@ -100,7 +100,7 @@
       "mcp_index": {
         "total_sections": 859,
         "total_files_indexed": 18,
-        "build_time_ms": 33,
+        "build_time_ms": 26,
         "sections_with_code": 334,
         "sections_with_source_url": 48,
         "avg_content_length": 954,
@@ -108,11 +108,11 @@
       },
       "search": {
         "queries_tested": 5,
-        "precision_at_1": 0.8,
-        "precision_at_3": 1,
-        "mrr": 0.9,
+        "precision_at_1": 0.2,
+        "precision_at_3": 0.6,
+        "mrr": 0.367,
         "zero_result_queries": 0,
-        "score": 0.89
+        "score": 0.37
       },
       "overview": {
         "overview_length": 2516,
@@ -120,7 +120,7 @@
         "toc_total_entries": 859,
         "score": 1.0
       },
-      "overall_score": 0.904
+      "overall_score": 0.748
     },
     "hyperapp-github": {
       "name": "hyperapp-github",
@@ -140,7 +140,7 @@
       "mcp_index": {
         "total_sections": 152,
         "total_files_indexed": 1,
-        "build_time_ms": 5,
+        "build_time_ms": 6,
         "sections_with_code": 77,
         "sections_with_source_url": 20,
         "avg_content_length": 646,
@@ -190,9 +190,9 @@
         "queries_tested": 10,
         "precision_at_1": 0.7,
         "precision_at_3": 0.8,
-        "mrr": 0.775,
+        "mrr": 0.75,
         "zero_result_queries": 0,
-        "score": 0.752
+        "score": 0.745
       },
       "overview": {
         "overview_length": 39981,
@@ -200,7 +200,7 @@
         "toc_total_entries": 8666,
         "score": 1.0
       },
-      "overall_score": 0.851
+      "overall_score": 0.849
     },
     "onoffice": {
       "name": "onoffice",
@@ -220,7 +220,7 @@
       "mcp_index": {
         "total_sections": 341,
         "total_files_indexed": 65,
-        "build_time_ms": 28,
+        "build_time_ms": 20,
         "sections_with_code": 79,
         "sections_with_source_url": 161,
         "avg_content_length": 1463,
@@ -260,7 +260,7 @@
       "mcp_index": {
         "total_sections": 230,
         "total_files_indexed": 13,
-        "build_time_ms": 8,
+        "build_time_ms": 9,
         "sections_with_code": 23,
         "sections_with_source_url": 16,
         "avg_content_length": 719,
@@ -268,11 +268,11 @@
       },
       "search": {
         "queries_tested": 10,
-        "precision_at_1": 0,
-        "precision_at_3": 0.1,
-        "mrr": 0.05,
+        "precision_at_1": 0.3,
+        "precision_at_3": 0.3,
+        "mrr": 0.311,
         "zero_result_queries": 0,
-        "score": 0.045
+        "score": 0.303
       },
       "overview": {
         "overview_length": 1183,
@@ -280,7 +280,7 @@
         "toc_total_entries": 230,
         "score": 1.0
       },
-      "overall_score": 0.589
+      "overall_score": 0.667
     },
     "rust-book": {
       "name": "rust-book",
@@ -307,7 +307,7 @@
         "score": 0.57
       },
       "search": {
-        "queries_tested": 12,
+        "queries_tested": 10,
         "precision_at_1": 0,
         "precision_at_3": 0,
         "mrr": 0,
@@ -340,7 +340,7 @@
       "mcp_index": {
         "total_sections": 2157,
         "total_files_indexed": 135,
-        "build_time_ms": 80,
+        "build_time_ms": 47,
         "sections_with_code": 99,
         "sections_with_source_url": 238,
         "avg_content_length": 538,
@@ -348,11 +348,11 @@
       },
       "search": {
         "queries_tested": 5,
-        "precision_at_1": 0.4,
+        "precision_at_1": 0.2,
         "precision_at_3": 0.4,
-        "mrr": 0.4,
+        "mrr": 0.3,
         "zero_result_queries": 0,
-        "score": 0.4
+        "score": 0.29
       },
       "overview": {
         "overview_length": 12126,
@@ -360,7 +360,7 @@
         "toc_total_entries": 2157,
         "score": 1.0
       },
-      "overall_score": 0.712
+      "overall_score": 0.679
     },
     "tailwind": {
       "name": "tailwind",
@@ -380,7 +380,7 @@
       "mcp_index": {
         "total_sections": 1642,
         "total_files_indexed": 186,
-        "build_time_ms": 49,
+        "build_time_ms": 48,
         "sections_with_code": 1040,
         "sections_with_source_url": 186,
         "avg_content_length": 716,
@@ -388,11 +388,11 @@
       },
       "search": {
         "queries_tested": 10,
-        "precision_at_1": 0.4,
-        "precision_at_3": 0.5,
-        "mrr": 0.45,
+        "precision_at_1": 0.3,
+        "precision_at_3": 0.3,
+        "mrr": 0.314,
         "zero_result_queries": 0,
-        "score": 0.445
+        "score": 0.304
       },
       "overview": {
         "overview_length": 8680,
@@ -400,14 +400,14 @@
         "toc_total_entries": 1642,
         "score": 1.0
       },
-      "overall_score": 0.768
+      "overall_score": 0.726
     }
   },
   "aggregate": {
-    "avg_overall_score": 0.731,
+    "avg_overall_score": 0.701,
     "avg_markdown_score": 0.872,
     "avg_index_score": 0.767,
-    "avg_search_score": 0.453,
+    "avg_search_score": 0.351,
     "avg_overview_score": 0.928,
     "total_files": 672,
     "total_sections": 20190,

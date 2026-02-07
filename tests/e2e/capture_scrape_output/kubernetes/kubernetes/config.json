@@ -1,0 +1,31 @@
+{
+  "name": "kubernetes",
+  "display_name": "Kubernetes",
+  "start_url": "http://127.0.0.1:49450",
+  "site_analysis": {
+    "content_selectors": [
+      "main",
+      "#content",
+      "article"
+    ],
+    "navigation_selectors": [
+      "nav"
+    ],
+    "title_selector": "h1",
+    "exclude_selectors": [
+      "nav",
+      "footer",
+      "#sidebar",
+      ".feedback"
+    ],
+    "url_pattern": ".*",
+    "base_url": "http://127.0.0.1:49450",
+    "grouping_strategy": "path_depth_2",
+    "notes": ""
+  },
+  "version": "v1",
+  "created_at": "2026-02-07T17:16:31.546928",
+  "updated_at": "2026-02-07T17:16:31.546940",
+  "metadata": {},
+  "content_hash": null
+}

@@ -1,0 +1,23 @@
+{
+  "status": 200,
+  "headers": {
+    "Access-Control-Allow-Origin": "*",
+    "Age": "170787",
+    "Cache-Control": "public, max-age=0, must-revalidate",
+    "Content-Disposition": "inline",
+    "Content-Encoding": "gzip",
+    "Content-Type": "text/html; charset=utf-8",
+    "Date": "Sat, 07 Feb 2026 16:12:11 GMT",
+    "Etag": "W/\"34e8b6514720b7f3dd68af7f86cc98c6\"",
+    "Server": "Vercel",
+    "Strict-Transport-Security": "max-age=63072000",
+    "Vary": "RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch",
+    "X-Matched-Path": "/learn/escape-hatches",
+    "X-Vercel-Cache": "HIT",
+    "X-Vercel-Id": "fra1::78rdv-1770480731366-f781698dc143",
+    "Transfer-Encoding": "chunked"
+  },
+  "original_url": "https://react.dev/learn/escape-hatches",
+  "captured_at": "2026-02-07T16:12:11.379890Z",
+  "slug": "react-dev-learn-escape-hatches"
+}

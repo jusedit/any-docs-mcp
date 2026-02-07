@@ -1,0 +1,23 @@
+{
+  "status": 200,
+  "headers": {
+    "Date": "Sat, 07 Feb 2026 16:12:12 GMT",
+    "Content-Type": "text/html; charset=utf-8",
+    "Transfer-Encoding": "chunked",
+    "Connection": "keep-alive",
+    "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+    "Access-Control-Allow-Origin": "*",
+    "Cache-Control": "public, max-age=0, must-revalidate",
+    "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=D2%2BOCUXYhV0MrIMZo72YR74i1zQ%2F5VtYZBDC4nNA%2F3fyzcuyRn2ID3WOSLCSHenpSLh9HmlIYxKcDm4e%2F13lpW8CDQ1owN9UV0ljf%2FaO6mola02D\"}]}",
+    "referrer-policy": "strict-origin-when-cross-origin",
+    "x-content-type-options": "nosniff",
+    "ETag": "W/\"44d3a62a9452e1c8cc4329c802b4969b\"",
+    "Content-Encoding": "gzip",
+    "Server": "cloudflare",
+    "CF-RAY": "9ca42ae47f35b975-AMS",
+    "alt-svc": "h3=\":443\"; ma=86400"
+  },
+  "original_url": "https://fastapi.tiangolo.com/tutorial/",
+  "captured_at": "2026-02-07T16:12:12.890255Z",
+  "slug": "fastapi-tiangolo-com-tutorial"
+}

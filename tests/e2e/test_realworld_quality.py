@@ -231,7 +231,7 @@ class TestRealWorldQuality:
         # Load query suite
         request.cls.queries = []
         if QUERY_SUITE_PATH.exists():
-            with open(QUERY_SUITE_PATH) as f:
+            with open(QUERY_SUITE_PATH, encoding="utf-8") as f:
                 data = json.load(f)
                 request.cls.queries = data.get("queries", [])
 

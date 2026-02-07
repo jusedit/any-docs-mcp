@@ -1,0 +1,31 @@
+{
+  "name": "react",
+  "display_name": "React",
+  "start_url": "http://127.0.0.1:49420",
+  "site_analysis": {
+    "content_selectors": [
+      "main",
+      "article",
+      ".content"
+    ],
+    "navigation_selectors": [
+      "nav"
+    ],
+    "title_selector": "h1",
+    "exclude_selectors": [
+      "nav",
+      "footer",
+      "header",
+      ".sidebar"
+    ],
+    "url_pattern": ".*",
+    "base_url": "http://127.0.0.1:49420",
+    "grouping_strategy": "path_depth_2",
+    "notes": ""
+  },
+  "version": "v1",
+  "created_at": "2026-02-07T17:16:18.005469",
+  "updated_at": "2026-02-07T17:16:18.005511",
+  "metadata": {},
+  "content_hash": null
+}

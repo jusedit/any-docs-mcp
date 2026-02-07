@@ -1,0 +1,23 @@
+{
+  "status": 200,
+  "headers": {
+    "Access-Control-Allow-Origin": "*",
+    "Age": "170780",
+    "Cache-Control": "public, max-age=0, must-revalidate",
+    "Content-Disposition": "inline",
+    "Content-Encoding": "gzip",
+    "Content-Type": "text/html; charset=utf-8",
+    "Date": "Sat, 07 Feb 2026 16:12:08 GMT",
+    "Etag": "W/\"c7f9815d4c9d4e01eb452a02ba1d4ecb\"",
+    "Server": "Vercel",
+    "Strict-Transport-Security": "max-age=63072000",
+    "Vary": "RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch",
+    "X-Matched-Path": "/learn",
+    "X-Vercel-Cache": "HIT",
+    "X-Vercel-Id": "fra1::z6t7l-1770480728719-fbe8bdefdf61",
+    "Transfer-Encoding": "chunked"
+  },
+  "original_url": "https://react.dev/learn",
+  "captured_at": "2026-02-07T16:12:08.705287Z",
+  "slug": "react-dev-learn"
+}

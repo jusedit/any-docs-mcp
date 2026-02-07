@@ -1,0 +1,23 @@
+{
+  "status": 200,
+  "headers": {
+    "Access-Control-Allow-Origin": "*",
+    "Age": "170781",
+    "Cache-Control": "public, max-age=0, must-revalidate",
+    "Content-Disposition": "inline",
+    "Content-Encoding": "gzip",
+    "Content-Type": "text/html; charset=utf-8",
+    "Date": "Sat, 07 Feb 2026 16:12:10 GMT",
+    "Etag": "W/\"a6916f59dba6f48b82ebaa90e43ee5de\"",
+    "Server": "Vercel",
+    "Strict-Transport-Security": "max-age=63072000",
+    "Vary": "RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch",
+    "X-Matched-Path": "/reference/react",
+    "X-Vercel-Cache": "HIT",
+    "X-Vercel-Id": "fra1::4c5qv-1770480729989-441810b3416f",
+    "Transfer-Encoding": "chunked"
+  },
+  "original_url": "https://react.dev/reference/react",
+  "captured_at": "2026-02-07T16:12:09.976347Z",
+  "slug": "react-dev-reference-react"
+}

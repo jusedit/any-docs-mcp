@@ -1,0 +1,23 @@
+{
+  "status": 200,
+  "headers": {
+    "Date": "Sat, 07 Feb 2026 16:12:14 GMT",
+    "Content-Type": "text/html; charset=utf-8",
+    "Transfer-Encoding": "chunked",
+    "Connection": "keep-alive",
+    "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+    "Access-Control-Allow-Origin": "*",
+    "Cache-Control": "public, max-age=0, must-revalidate",
+    "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=uZtWgU3LMlVALFDbHaWcTqSWskTCF8fcshw3NCKgMAo0FMhwjZ4mamvLd5nKXJi5JKPoJqTv7yZrG9g6TYp5dQvrVTyNNCt3u7If8VC1pPkz1voc\"}]}",
+    "referrer-policy": "strict-origin-when-cross-origin",
+    "x-content-type-options": "nosniff",
+    "ETag": "W/\"77e25e3e159ea131c814337ea8530fef\"",
+    "Content-Encoding": "gzip",
+    "Server": "cloudflare",
+    "CF-RAY": "9ca42aefdc7368cb-AMS",
+    "alt-svc": "h3=\":443\"; ma=86400"
+  },
+  "original_url": "https://fastapi.tiangolo.com/advanced/",
+  "captured_at": "2026-02-07T16:12:14.703056Z",
+  "slug": "fastapi-tiangolo-com-advanced"
+}

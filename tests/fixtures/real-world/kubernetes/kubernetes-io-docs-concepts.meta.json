@@ -1,0 +1,21 @@
+{
+  "status": 200,
+  "headers": {
+    "Accept-Ranges": "bytes",
+    "Age": "0",
+    "Cache-Control": "public,max-age=0,must-revalidate",
+    "Cache-Status": "\"Netlify Edge\"; fwd=miss",
+    "Content-Encoding": "gzip",
+    "Content-Type": "text/html; charset=UTF-8",
+    "Date": "Sat, 07 Feb 2026 16:12:16 GMT",
+    "Etag": "\"e2ecd02d65a09f3803f1e660e8415478-ssl-df\"",
+    "Server": "Netlify",
+    "Strict-Transport-Security": "max-age=31536000",
+    "Vary": "Accept-Encoding",
+    "X-Nf-Request-Id": "01KGWE06BGN18CW3ZBYS47DZ1W",
+    "Transfer-Encoding": "chunked"
+  },
+  "original_url": "https://kubernetes.io/docs/concepts/",
+  "captured_at": "2026-02-07T16:12:17.223285Z",
+  "slug": "kubernetes-io-docs-concepts"
+}
