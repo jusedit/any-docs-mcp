@@ -1,4 +1,5 @@
 """Mock HTTP server that replays captured responses for testing."""
+import gzip
 import json
 import re
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -44,28 +45,43 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
         if not doc_dir.exists():
             return None
         
-        # Try exact match first
+        # Try exact match first (check for .gz first)
+        gz_path = doc_dir / f"{slug}.body.html.gz"
         meta_path = doc_dir / f"{slug}.meta.json"
         body_path = doc_dir / f"{slug}.body.html"
         
-        if meta_path.exists() and body_path.exists():
-            with open(meta_path, 'r', encoding='utf-8') as f:
-                meta = json.load(f)
-            with open(body_path, 'r', encoding='utf-8') as f:
-                body = f.read()
-            return {"meta": meta, "body": body}
+        if meta_path.exists():
+            if gz_path.exists():
+                with open(meta_path, 'r', encoding='utf-8') as f:
+                    meta = json.load(f)
+                with open(gz_path, 'rb') as f:
+                    body = gzip.decompress(f.read()).decode('utf-8')
+                return {"meta": meta, "body": body, "compressed": True}
+            elif body_path.exists():
+                with open(meta_path, 'r', encoding='utf-8') as f:
+                    meta = json.load(f)
+                with open(body_path, 'r', encoding='utf-8') as f:
+                    body = f.read()
+                return {"meta": meta, "body": body, "compressed": False}
         
         # Try to find any matching slug (for collision cases with hash suffix)
         for meta_file in doc_dir.glob("*.meta.json"):
             file_slug = meta_file.stem.replace('.meta', '')
             if file_slug.startswith(slug):
+                gz_file = meta_file.with_suffix('').with_suffix('.body.html.gz')
                 body_file = meta_file.with_suffix('').with_suffix('.body.html')
-                if body_file.exists():
+                if gz_file.exists():
+                    with open(meta_file, 'r', encoding='utf-8') as f:
+                        meta = json.load(f)
+                    with open(gz_file, 'rb') as f:
+                        body = gzip.decompress(f.read()).decode('utf-8')
+                    return {"meta": meta, "body": body, "compressed": True}
+                elif body_file.exists():
                     with open(meta_file, 'r', encoding='utf-8') as f:
                         meta = json.load(f)
                     with open(body_file, 'r', encoding='utf-8') as f:
                         body = f.read()
-                    return {"meta": meta, "body": body}
+                    return {"meta": meta, "body": body, "compressed": False}
         
         return None
     

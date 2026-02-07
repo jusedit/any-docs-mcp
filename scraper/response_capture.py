@@ -1,11 +1,12 @@
 """HTTP Response capture system for real-world testing fixtures."""
 import json
 import re
+import gzip
 import hashlib
 from dataclasses import dataclass, asdict
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Tuple
 import requests
 
 
@@ -74,8 +75,11 @@ class ResponseCapture:
             url=url
         )
     
-    def save(self, captured: CapturedResponse, doc_name: str) -> tuple[Path, Path]:
-        """Save captured response as .meta.json + .body.html pair."""
+    def save(self, captured: CapturedResponse, doc_name: str, compress_threshold_kb: int = 100) -> tuple[Path, Path]:
+        """Save captured response as .meta.json + .body.html[.gz] pair.
+        
+        Files larger than compress_threshold_kb are gzip compressed.
+        """
         # Create doc directory
         doc_dir = self.fixtures_dir / doc_name
         doc_dir.mkdir(parents=True, exist_ok=True)
@@ -94,32 +98,62 @@ class ResponseCapture:
             meta_path = doc_dir / f"{slug}.meta.json"
             body_path = doc_dir / f"{slug}.body.html"
         
-        # Write metadata
+        # Determine if compression is needed
+        body_bytes = captured.body.encode('utf-8')
+        original_size = len(body_bytes)
+        use_compression = original_size > (compress_threshold_kb * 1024)
+        
+        if use_compression:
+            # Compress and use .gz extension
+            body_path = doc_dir / f"{slug}.body.html.gz"
+            compressed = gzip.compress(body_bytes)
+            with open(body_path, 'wb') as f:
+                f.write(compressed)
+            compressed_size = len(compressed)
+        else:
+            # Write uncompressed
+            with open(body_path, 'w', encoding='utf-8') as f:
+                f.write(captured.body)
+            compressed_size = original_size
+        
+        # Write metadata with compression info
         meta = {
             "status": captured.status,
             "headers": captured.headers,
             "original_url": captured.url,
             "captured_at": captured.captured_at,
-            "slug": slug
+            "slug": slug,
+            "compression": {
+                "enabled": use_compression,
+                "original_size_bytes": original_size,
+                "compressed_size_bytes": compressed_size,
+                "savings_percent": round((1 - compressed_size/original_size) * 100, 1) if use_compression else 0
+            }
         }
         with open(meta_path, 'w', encoding='utf-8') as f:
             json.dump(meta, f, indent=2)
         
-        # Write body
-        with open(body_path, 'w', encoding='utf-8') as f:
-            f.write(captured.body)
-        
         return meta_path, body_path
     
     def load(self, doc_name: str, slug: str) -> CapturedResponse:
-        """Load captured response from disk."""
+        """Load captured response from disk (handles both .html and .html.gz)."""
         doc_dir = self.fixtures_dir / doc_name
         
         with open(doc_dir / f"{slug}.meta.json", 'r', encoding='utf-8') as f:
             meta = json.load(f)
         
-        with open(doc_dir / f"{slug}.body.html", 'r', encoding='utf-8') as f:
-            body = f.read()
+        # Check for compressed file first
+        gz_path = doc_dir / f"{slug}.body.html.gz"
+        html_path = doc_dir / f"{slug}.body.html"
+        
+        if gz_path.exists():
+            with open(gz_path, 'rb') as f:
+                body = gzip.decompress(f.read()).decode('utf-8')
+        elif html_path.exists():
+            with open(html_path, 'r', encoding='utf-8') as f:
+                body = f.read()
+        else:
+            raise FileNotFoundError(f"No body file found for {slug}")
         
         return CapturedResponse(
             status=meta["status"],
