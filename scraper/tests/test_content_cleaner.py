@@ -1,91 +1,145 @@
-"""Test content cleaner functionality."""
-import pytest
+"""Unit tests for content_cleaner.py."""
 from content_cleaner import ContentCleaner
 
 
-@pytest.fixture
-def cleaner():
-    return ContentCleaner()
+class TestCodeBlockLanguages:
+    def setup_method(self):
+        self.cleaner = ContentCleaner()
+
+    def test_css_class_to_language(self):
+        content = "```language-js\nconsole.log('hi');\n```"
+        result = self.cleaner.clean(content)
+        assert "```javascript" in result
+
+    def test_bad_language_removed(self):
+        content = "```sp-pre-placeholder\ncode here\n```"
+        result = self.cleaner.clean(content)
+        assert "sp-pre-placeholder" not in result
+
+    def test_normalize_to_lowercase(self):
+        content = "```Python\nprint('hi')\n```"
+        result = self.cleaner.clean(content)
+        assert "```python" in result
+
+    def test_shell_variants_normalized(self):
+        content = "```sh\necho hello\n```"
+        result = self.cleaner.clean(content)
+        assert "```bash" in result
 
 
-def test_normalize_heading_levels_fixes_deep_first_heading(cleaner):
-    """First heading that is ### becomes ##."""
-    content = "### Deep Heading\n\nSome text"
-    result = cleaner.normalize_heading_levels(content)
-    assert result.startswith("## Deep Heading")
+class TestUIArtifacts:
+    def setup_method(self):
+        self.cleaner = ContentCleaner()
+
+    def test_copy_to_clipboard_removed(self):
+        content = "Some code\nCopy to clipboard\nMore text"
+        result = self.cleaner.clean(content)
+        assert "Copy to clipboard" not in result
+
+    def test_edit_on_github_removed(self):
+        content = "# Title\n[Edit on GitHub](https://github.com/example)\nContent"
+        result = self.cleaner.clean(content)
+        assert "Edit on GitHub" not in result
+
+    def test_cookie_consent_removed(self):
+        content = "Content\nWe use cookies\nMore content"
+        result = self.cleaner.clean(content)
+        assert "We use cookies" not in result
+
+    def test_on_this_page_removed(self):
+        content = "# Title\nOn this page\nActual content"
+        result = self.cleaner.clean(content)
+        assert "On this page" not in result
 
 
-def test_normalize_heading_levels_prevents_skipping(cleaner):
-    """No jumping from ## to ####."""
-    content = "## Level 2\n\n#### Level 4 (should be ###)"
-    result = cleaner.normalize_heading_levels(content)
-    assert "### Level 4" in result
-    assert "#### Level 4" not in result
+class TestEncoding:
+    def setup_method(self):
+        self.cleaner = ContentCleaner()
+
+    def test_smart_quotes_fixed(self):
+        content = "It\u2019s a \u201ctest\u201d"
+        result = self.cleaner.clean(content)
+        assert "It's" in result
+        assert '"test"' in result
+
+    def test_em_dash_fixed(self):
+        content = "word\u2014word"
+        result = self.cleaner.clean(content)
+        assert "word--word" in result
 
 
-def test_normalize_heading_levels_allows_gradual_increase(cleaner):
-    """Gradual increase ## -> ### is allowed."""
-    content = "## Level 2\n\n### Level 3\n\n#### Level 4"
-    result = cleaner.normalize_heading_levels(content)
-    assert "## Level 2" in result
-    assert "### Level 3" in result
-    assert "#### Level 4" in result
+class TestPermalinkAnchors:
+    def setup_method(self):
+        self.cleaner = ContentCleaner()
+
+    def test_pilcrow_removed(self):
+        content = "## Security\u00b6"
+        result = self.cleaner.clean(content)
+        assert result.strip() == "## Security"
+
+    def test_pilcrow_link_removed(self):
+        content = '## Security[\u00b6](#security "Permalink")'
+        result = self.cleaner.clean(content)
+        assert "\u00b6" not in result
+        assert "Security" in result
+
+    def test_empty_anchor_removed(self):
+        content = "## Security[](#security)"
+        result = self.cleaner.clean(content)
+        assert "[](#security)" not in result
 
 
-def test_normalize_heading_levels_no_change_for_valid_structure(cleaner):
-    """Valid heading structure is preserved."""
-    content = "# Title\n\n## Section\n\n### Subsection"
-    result = cleaner.normalize_heading_levels(content)
-    assert "# Title" in result
-    assert "## Section" in result
-    assert "### Subsection" in result
+class TestDuplicateHeaders:
+    def setup_method(self):
+        self.cleaner = ContentCleaner()
+
+    def test_consecutive_duplicates_removed(self):
+        content = "## Title\n## Title\nContent"
+        result = self.cleaner.clean(content)
+        lines = [l for l in result.split("\n") if l.strip().startswith("##")]
+        assert len(lines) == 1
+
+    def test_non_consecutive_deduped(self):
+        content = "## Title\nSome text\n## Title"
+        result = self.cleaner.clean(content)
+        lines = [l for l in result.split("\n") if l.strip().startswith("##")]
+        assert len(lines) == 1
+
+    def test_different_headings_kept(self):
+        content = "## Title A\nSome text\n## Title B"
+        result = self.cleaner.clean(content)
+        lines = [l for l in result.split("\n") if l.strip().startswith("##")]
+        assert len(lines) == 2
 
 
-def test_fix_markdown_tables_adds_separator(cleaner):
-    """Fix markdown tables missing separator row."""
-    content = "| Header 1 | Header 2 |\n| Row 1 | Row 2 |"
-    result = cleaner.fix_markdown_tables(content)
-    assert "| --- |" in result or "|---|" in result
+class TestWhitespace:
+    def setup_method(self):
+        self.cleaner = ContentCleaner()
+
+    def test_excessive_newlines_collapsed(self):
+        content = "Line 1\n\n\n\n\n\nLine 2"
+        result = self.cleaner.clean(content)
+        assert "\n\n\n\n" not in result
+        assert "Line 1" in result
+        assert "Line 2" in result
+
+    def test_trailing_whitespace_removed(self):
+        content = "Line with spaces   \nAnother line  "
+        result = self.cleaner.clean(content)
+        for line in result.split("\n"):
+            assert line == line.rstrip()
 
 
-def test_fix_markdown_tables_preserves_valid_tables(cleaner):
-    """Valid tables with separator are preserved."""
-    content = "| Header 1 | Header 2 |\n| --- | --- |\n| Row 1 | Row 2 |"
-    result = cleaner.fix_markdown_tables(content)
-    assert result.count("Header 1") == 1  # No duplicate headers
+class TestEmptyCodeBlocks:
+    def setup_method(self):
+        self.cleaner = ContentCleaner()
 
+    def test_empty_block_removed(self):
+        content = "Before\n```python\n```\nAfter"
+        result = self.cleaner.clean(content)
+        assert "```" not in result
 
-def test_deduplicate_content_removes_duplicates(cleaner):
-    """Remove duplicate paragraphs."""
-    content = "Some paragraph with enough text to trigger deduplication.\n\nSome paragraph with enough text to trigger deduplication."
-    result = cleaner.deduplicate_content(content)
-    # Should keep only one copy
-    assert result.count("Some paragraph") == 1
-
-
-def test_auto_detect_code_language_python(cleaner):
-    """Detect Python code blocks."""
-    content = "```\ndef hello():\n    pass\n```"
-    result = cleaner.fix_code_block_languages(content)
-    assert "```python" in result
-
-
-def test_auto_detect_code_language_bash(cleaner):
-    """Detect Bash code blocks."""
-    content = "```\n$ npm install\n```"
-    result = cleaner.fix_code_block_languages(content)
-    assert "```bash" in result
-
-
-def test_remove_ui_artifacts_copy_button(cleaner):
-    """Remove copy button artifacts."""
-    content = "Some code\nCopy to clipboard\nMore content"
-    result = cleaner.remove_ui_artifacts(content)
-    assert "Copy to clipboard" not in result
-
-
-def test_remove_ui_artifacts_codesandbox(cleaner):
-    """Remove CodeSandbox button."""
-    content = "Code example\n[Open in CodeSandbox](url)\nMore text"
-    result = cleaner.remove_ui_artifacts(content)
-    assert "Open in CodeSandbox" not in result
+    def test_whitespace_only_block_removed(self):
+        content = "Before\n```\n   \n```\nAfter"
+        result = self.cleaner.clean(content)
+        assert "```" not in result

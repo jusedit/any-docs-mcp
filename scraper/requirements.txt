@@ -8,6 +8,6 @@ colorama>=0.4.6
 python-dotenv>=1.0.0
 pytest>=7.4.0
 
-# Optional: For WebDriver support (bot-protected sites)
+# Optional: For WebDriver/Selenium engine mode
 selenium>=4.15.0
 webdriver-manager>=4.0.0

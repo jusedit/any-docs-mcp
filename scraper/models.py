@@ -1,84 +1,129 @@
-from typing import List, Optional, Dict
-from pydantic import BaseModel, Field
+"""Pydantic models for the scraper pipeline."""
+from __future__ import annotations
+
+import re
 from enum import Enum
+from typing import Dict, List, Optional
+
+from pydantic import BaseModel, Field
 
 
-class SourceType(Enum):
-    """Type of content source for a page."""
-    RAW_MARKDOWN = "raw_markdown"
-    HTML = "html"
+class EngineMode(str, Enum):
+    CURL = "curl"
+    SELENIUM = "selenium"
 
 
-class SiteAnalysis(BaseModel):
-    content_selectors: List[str] = Field(
-        description="CSS selectors for main content area (in order of priority)"
-    )
-    navigation_selectors: List[str] = Field(
-        description="CSS selectors for navigation/sidebar menu"
-    )
-    title_selector: Optional[str] = Field(
-        default=None,
-        description="CSS selector for page title"
-    )
-    exclude_selectors: List[str] = Field(
-        default_factory=list,
-        description="CSS selectors for elements to exclude (headers, footers, etc.)"
-    )
-    url_pattern: str = Field(
-        description="Regex pattern to match valid documentation URLs"
-    )
-    base_url: str = Field(
-        description="Base URL of the documentation site"
-    )
-    grouping_strategy: str = Field(
-        default="path_depth_2",
-        description="Strategy for grouping pages: path_depth_N, single_file, or manual"
-    )
-    site_type: Optional[str] = Field(
-        default=None,
-        description="Documentation framework type detected by LLM (e.g., mkdocs, sphinx, docusaurus, hugo, tailwind, generic-spa)"
-    )
-    notes: str = Field(
-        default="",
-        description="Additional notes about the site structure"
-    )
+class EngineDecision(BaseModel):
+    mode: EngineMode
+    curl_md_length: int = 0
+    selenium_md_length: int = 0
+    curl_headings: int = 0
+    selenium_headings: int = 0
+    curl_code_blocks: int = 0
+    selenium_code_blocks: int = 0
+    diff_ratio: float = 0.0
+    reason: str = ""
 
 
-class DocumentationConfig(BaseModel):
-    name: str = Field(description="Unique identifier for this documentation set")
-    display_name: str = Field(description="Human-readable name")
-    start_url: str = Field(description="Starting URL for scraping")
-    site_analysis: SiteAnalysis
-    version: str = Field(default="v1", description="Current version")
-    created_at: str
-    updated_at: str
-    metadata: Dict[str, str] = Field(default_factory=dict)
-    content_hash: Optional[str] = Field(default=None, description="Hash of all content for change detection")
+class ScopeRules(BaseModel):
+    include_patterns: List[str] = Field(default_factory=list)
+    exclude_patterns: List[str] = Field(default_factory=list)
+    base_url: str = ""
+    description: str = ""
+
+    @staticmethod
+    def _anchor_pattern(pat: str) -> str:
+        """Anchor simple path patterns so /ru doesn't match /rules.
+
+        If the pattern looks like a plain path segment (e.g. /ru, /blog, /docs/),
+        anchor it so it only matches as a complete path segment.
+        Patterns that already contain regex metacharacters are left as-is.
+        """
+        # Already a regex (has metacharacters beyond /)
+        if re.search(r'[\\^$*+?{}()\[\]|.]', pat):
+            return pat
+        # Simple path like /ru or /docs/ — anchor as segment boundary
+        # /ru should match /ru and /ru/... but NOT /rules
+        stripped = pat.rstrip('/')
+        return f"(?:^|/){re.escape(stripped.lstrip('/'))}(?:/|$)"
+
+    def url_matches(self, url: str) -> bool:
+        if not url.startswith(self.base_url):
+            return False
+        # Extract path for matching — LLMs return path-based patterns like /docs/
+        from urllib.parse import urlparse
+        path = urlparse(url).path
+        for pat in self.exclude_patterns:
+            anchored = self._anchor_pattern(pat)
+            try:
+                if re.search(anchored, path, re.IGNORECASE):
+                    return False
+            except re.error:
+                continue
+        if self.include_patterns:
+            for pat in self.include_patterns:
+                anchored = self._anchor_pattern(pat)
+                try:
+                    if re.search(anchored, path, re.IGNORECASE):
+                        return True
+                except re.error:
+                    continue
+            return False
+        return True
 
 
-class ScrapedPage(BaseModel):
+class SelectorSpec(BaseModel):
+    content_selector: str = "main"
+    prune_selectors: List[str] = Field(default_factory=list)
+    notes: str = ""
+
+
+class LLMAnalysis(BaseModel):
+    scope_rules: ScopeRules
+    selector_spec: SelectorSpec
+
+
+class UrlRecord(BaseModel):
     url: str
-    title: str
-    content: str
-    group: str
-    markdown: str
-    source_url: str
+    title: str = ""
+    discovered_from: str = ""
+    source: str = ""
+    depth: int = 0
 
 
-class ScrapeProgress(BaseModel):
-    phase: str = Field(description="Current phase: analyzing, discovering, scraping, completed, failed")
-    current: int = Field(default=0, description="Current item number")
-    total: int = Field(default=0, description="Total items to process")
-    current_url: Optional[str] = Field(default=None, description="Currently processing URL")
-    message: Optional[str] = Field(default=None, description="Status message")
+class ManifestEntry(BaseModel):
+    url: str
+    md_raw_path: str
+    size_bytes: int = 0
+    headings: List[str] = Field(default_factory=list)
+    content_hash: str = ""
 
 
-class DocumentationMetadata(BaseModel):
-    total_pages: int = Field(default=0)
-    total_files: int = Field(default=0)
-    last_scraped: str = Field(default_factory=lambda: datetime.now().isoformat())
-    content_hash: Optional[str] = Field(default=None, description="Hash of all content for change detection")
-    detected_version: Optional[str] = Field(default=None, description="Detected version from documentation site")
-    refresh_after: Optional[str] = Field(default=None, description="ISO timestamp when auto-refresh should occur")
-    discovery_mode: Optional[str] = Field(default=None, description="URL discovery mode used: sitemap, navigation, or crawl")
-    url_scope: Optional[str] = Field(default=None, description="URL scope/path prefix used for filtering")
+class Manifest(BaseModel):
+    start_url: str
+    engine_mode: str = "curl"
+    total_pages: int = 0
+    total_files: int = 0
+    entries: List[ManifestEntry] = Field(default_factory=list)
+
+
+class GroupPlanEntry(BaseModel):
+    name: str
+    paths: List[str] = Field(default_factory=list)
+    output_path: str = ""
+    rationale: str = ""
+
+
+class GroupPlan(BaseModel):
+    groups: List[GroupPlanEntry] = Field(default_factory=list)
+
+
+class PipelineConfig(BaseModel):
+    start_url: str
+    name: str
+    output_dir: str = "./output"
+    max_pages: int = 500
+    max_workers: int = 10
+    engine_diff_threshold: float = 0.3
+    max_file_size_kb: int = 500
+    llm_model_analyzer: str = "qwen/qwen3-coder-next"

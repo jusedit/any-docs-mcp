@@ -1,1036 +1,358 @@
 #!/usr/bin/env node
 
-import { spawn } from 'child_process';
-import path from 'path';
-import { fileURLToPath } from 'url';
+/**
+ * AnyDocs MCP Server v2
+ *
+ * A lightweight MCP server that:
+ *   1. Returns CLI commands to scrape documentation via scraper
+ *   2. Manages scraped docs in a global AppData directory
+ *   3. Copies docs + injects compact index into IDE-specific rules
+ *
+ * Tools:
+ *   - scrape_docs:            Returns CLI command to scrape a documentation site
+ *   - list_docs:              Lists all available doc sets in AppData
+ *   - remove_docs:            Deletes a doc set from AppData
+ *   - add_docs_to_project:    Copies docs into project + injects index into IDE rules
+ *   - remove_docs_from_project: Removes docs + index from project
+ *   - list_project_docs:      Lists docs currently added to this project
+ *
+ * ENV:
+ *   ANYDOCS_IDE            - Target IDE: "windsurf" (default), "cursor", "claude", "antigravity"
+ *   ANYDOCS_STORAGE_ROOT   - Override AppData storage path (optional)
+ *   ANYDOCS_SCRAPER_PATH   - Override scraper path (optional, auto-detected from repo)
+ *   OPENROUTER_API_KEY     - API key for LLM-powered scraping
+ */
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
-  ListResourcesRequestSchema,
-  ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import { MarkdownParser, Section } from './markdown-parser.js';
-import { loadConfig, getDocsPath, listAllDocs, getDocMetadata, getDocConfig, getStorageRoot } from './config.js';
-import { jobManager, ScrapeJob } from './job-manager.js';
+import { fileURLToPath } from 'url';
+import path from 'path';
 
-const config = loadConfig();
-const docsPath = getDocsPath(config);
-const serverName = config.serverName || (config.activeDocs ? `${config.activeDocs}-mcp` : 'anydocs-mcp');
+import { listDocSets, getDocSetInfo, getDocRawDir, deleteDocSet, ensureStorageRoot, getStorageRoot } from './storage.js';
+import { createAdapter, getIdeType } from './ide-adapter.js';
 
-console.error(`[${serverName}] Loading documentation from: ${docsPath || '(no active docs)'}`);
-console.error(`[${serverName}] Active documentation: ${config.activeDocs || '(none - all docs available)'}`);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-let parser: MarkdownParser | null = null;
-let currentDocName = config.activeDocs || '';
+const ideType = getIdeType();
+const adapter = createAdapter(ideType);
 
-if (docsPath) {
-  parser = new MarkdownParser(docsPath, config.activeDocs);
-  console.error(`[${serverName}] Building index...`);
-  parser.buildIndex();
-  console.error(`[${serverName}] Index ready.`);
-} else {
-  console.error(`[${serverName}] No active documentation set. Use list_documentation_sets and switch_documentation to select one.`);
+function getScraperPath(): string {
+  if (process.env.ANYDOCS_SCRAPER_PATH) {
+    return process.env.ANYDOCS_SCRAPER_PATH;
+  }
+  // Default: relative to this repo (mcp-server is sibling of scraper)
+  return path.resolve(__dirname, '..', '..', 'scraper');
 }
+
+console.error(`[anydocs-v2] IDE: ${ideType}`);
+console.error(`[anydocs-v2] Storage: ${getStorageRoot()}`);
+console.error(`[anydocs-v2] Scraper: ${getScraperPath()}`);
 
 const server = new Server(
-  {
-    name: serverName,
-    version: '1.0.0',
-  },
-  {
-    capabilities: {
-      tools: {},
-      resources: {},
-    },
-  }
+  { name: 'anydocs-v2', version: '2.0.0' },
+  { capabilities: { tools: {} } }
 );
 
-function formatSection(section: Section, includeContent: boolean = true): string {
-  const lines: string[] = [];
-  const pathStr = section.path.length > 0 ? `${section.path.join(' > ')} > ` : '';
-  lines.push(`## ${pathStr}${section.title}`);
-  lines.push(`**File:** ${section.file}.md`);
-  if (section.sourceUrl) {
-    lines.push(`**Source:** ${section.sourceUrl}`);
-  }
-  
-  if (includeContent && section.content) {
-    lines.push('');
-    lines.push(section.content.replace(/\[CODE_BLOCK\]/g, '```...```'));
-  }
-  
-  if (section.codeBlocks.length > 0) {
-    lines.push('');
-    lines.push(`**Code Examples (${section.codeBlocks.length}):**`);
-    for (const block of section.codeBlocks) {
-      lines.push('```' + block.language);
-      lines.push(block.code);
-      lines.push('```');
-    }
-  }
-  
-  return lines.join('\n');
-}
+// ---------------------------------------------------------------------------
+// Tool definitions
+// ---------------------------------------------------------------------------
 
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-  const docDescription = currentDocName ? `the ${currentDocName} documentation` : 'the currently active documentation';
-  return {
-    tools: [
-      {
-        name: 'search',
-        description: `Search ${docDescription}. Returns relevant sections with content and code examples. Use this for finding specific topics, APIs, or code patterns.`,
-        inputSchema: {
-          type: 'object',
-          properties: {
-            query: {
-              type: 'string',
-              description: 'Search query (e.g., "getting started", "API reference", "configuration")'
-            },
-            docs: {
-              type: 'string',
-              description: 'Optional: Name of specific documentation set to search in. If not provided, searches the currently active documentation.'
-            },
-            maxResults: {
-              type: 'number',
-              description: 'Maximum number of results (default: 10)',
-              default: 10
-            },
-            fileFilter: {
-              type: 'string',
-              description: 'Filter by filename (e.g., "api" to only search API docs)'
-            },
-            titlesOnly: {
-              type: 'boolean',
-              description: 'If true, only return section titles without content (faster overview)',
-              default: false
-            }
-          },
-          required: ['query']
-        }
+server.setRequestHandler(ListToolsRequestSchema, async () => ({
+  tools: [
+    {
+      name: 'scrape_docs',
+      description: 'Get the CLI command to scrape a documentation site. The command uses the scraper and stores results in the global AnyDocs storage. After scraping completes, use `add_docs_to_project` to inject the docs into your project.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          url: { type: 'string', description: 'Start URL of the documentation site (e.g., "https://docs.example.com")' },
+          name: { type: 'string', description: 'Unique identifier for this doc set (e.g., "react-docs"). Use lowercase with hyphens.' },
+          max_pages: { type: 'number', description: 'Maximum pages to scrape (default: 500)', default: 500 },
+        },
+        required: ['url', 'name'],
       },
-      {
-        name: 'get_overview',
-        description: 'Get a high-level overview of all documentation files and their main sections. Use this to understand what documentation is available.',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            docs: {
-              type: 'string',
-              description: 'Optional: Name of specific documentation set. If not provided, uses the currently active documentation.'
-            }
-          }
-        }
-      },
-      {
-        name: 'get_file_toc',
-        description: 'Get the table of contents (all headings) for a specific documentation file. Use this to navigate within a file.',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            fileName: {
-              type: 'string',
-              description: 'Name of the file without .md extension'
-            },
-            docs: {
-              type: 'string',
-              description: 'Optional: Name of specific documentation set.'
-            }
-          },
-          required: ['fileName']
-        }
-      },
-      {
-        name: 'get_section',
-        description: 'Get a specific section by its title. Returns full content including code blocks.',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            title: {
-              type: 'string',
-              description: 'Section title to find'
-            },
-            fileName: {
-              type: 'string',
-              description: 'Optional: filter by filename'
-            },
-            docs: {
-              type: 'string',
-              description: 'Optional: Name of specific documentation set.'
-            }
-          },
-          required: ['title']
-        }
-      },
-      {
-        name: 'list_files',
-        description: 'List all available documentation files in the current or specified documentation set.',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            docs: {
-              type: 'string',
-              description: 'Optional: Name of specific documentation set.'
-            }
-          }
-        }
-      },
-      {
-        name: 'find_code_examples',
-        description: 'Search specifically for code examples in the documentation.',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            query: {
-              type: 'string',
-              description: 'Search term to find in code examples'
-            },
-            language: {
-              type: 'string',
-              description: 'Filter by programming language (e.g., "python", "javascript", "bash")'
-            },
-            maxResults: {
-              type: 'number',
-              description: 'Maximum number of results',
-              default: 5
-            },
-            docs: {
-              type: 'string',
-              description: 'Optional: Name of specific documentation set.'
-            }
-          },
-          required: ['query']
-        }
-      },
-      {
-        name: 'scrape_documentation',
-        description: 'Start scraping a new documentation site asynchronously. Returns a job ID to track progress. The scraping runs in the background - use get_scrape_status to check progress.',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            url: {
-              type: 'string',
-              description: 'Start URL of the documentation site (e.g., "https://docs.example.com")'
-            },
-            name: {
-              type: 'string',
-              description: 'Unique identifier for this documentation set (e.g., "example-docs")'
-            },
-            displayName: {
-              type: 'string',
-              description: 'Human-readable name (optional, defaults to name)'
-            }
-          },
-          required: ['url', 'name']
-        }
-      },
-      {
-        name: 'get_scrape_status',
-        description: 'Get the status of a scraping job by its job ID. Shows progress including current phase, pages scraped, and any errors.',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            jobId: {
-              type: 'string',
-              description: 'The job ID returned by scrape_documentation'
-            }
-          },
-          required: ['jobId']
-        }
-      },
-      {
-        name: 'update_documentation',
-        description: 'Re-scrape an existing documentation set to get the latest content. Runs asynchronously and returns a job ID. The old version remains available until the new scrape completes.',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            name: {
-              type: 'string',
-              description: 'Name of the documentation set to update'
-            },
-            force: {
-              type: 'boolean',
-              description: 'Force update even if the refresh timeout has not been reached',
-              default: false
-            }
-          },
-          required: ['name']
-        }
-      },
-      {
-        name: 'list_documentation_sets',
-        description: 'List all available documentation sets with their status, including scrape progress for active jobs, content hash, last update time, and whether refresh is needed.',
-        inputSchema: {
-          type: 'object',
-          properties: {}
-        }
-      },
-      {
-        name: 'switch_documentation',
-        description: 'Switch to a different documentation set. Rebuilds the index for the selected documentation.',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            name: {
-              type: 'string',
-              description: 'Name of the documentation set to switch to'
-            }
-          },
-          required: ['name']
-        }
-      },
-      {
-        name: 'get_scrape_logs',
-        description: 'Read the log output from a scraping job. Useful for debugging failed scrapes or understanding what happened during the process.',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            jobId: {
-              type: 'string',
-              description: 'The job ID to get logs for'
-            },
-            lines: {
-              type: 'number',
-              description: 'Number of lines to return (default: 100, max: 1000)',
-              default: 100
-            }
-          },
-          required: ['jobId']
-        }
-      }
-    ]
-  };
-});
-
-// Helper function to get parser for a specific docs set
-async function getParserForDocs(docsName?: string): Promise<{ parser: MarkdownParser; docName: string } | null> {
-  const targetDoc = docsName || currentDocName;
-  
-  if (!targetDoc) {
-    return null;
-  }
-  
-  // If requesting current doc and parser exists, return it
-  if (targetDoc === currentDocName && parser) {
-    return { parser, docName: currentDocName };
-  }
-  
-  // Otherwise, create a temporary parser for the requested docs
-  const path = await import('path');
-  const { existsSync, readdirSync, statSync } = await import('fs');
-  
-  const storageRoot = getStorageRoot(config);
-  const docDir = path.join(storageRoot, targetDoc);
-  
-  if (!existsSync(docDir)) {
-    return null;
-  }
-  
-  const versions = readdirSync(docDir).filter((d: string) => 
-    d.startsWith('v') && statSync(path.join(docDir, d)).isDirectory()
-  );
-  
-  if (versions.length === 0) {
-    return null;
-  }
-  
-  const latestVersion = versions
-    .map((v: string) => ({ name: v, num: parseInt(v.substring(1)) }))
-    .filter((v: { name: string; num: number }) => !isNaN(v.num))
-    .sort((a: { num: number }, b: { num: number }) => b.num - a.num)[0].name;
-  
-  const docsPath = path.join(docDir, latestVersion);
-  const tempParser = new MarkdownParser(docsPath, targetDoc);
-  tempParser.buildIndex();
-  
-  return { parser: tempParser, docName: targetDoc };
-}
-
-// Helper to run async scraping
-function startAsyncScrape(jobId: string, url: string, name: string, displayName: string, isUpdate: boolean = false): void {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
-  const scraperPath = path.join(__dirname, '..', '..', 'scraper');
-  
-  const command = isUpdate ? 'update' : 'add';
-  const args = isUpdate 
-    ? ['cli.py', command, '--name', name, '--json-progress']
-    : ['cli.py', command, '--url', url, '--name', name, '--display-name', displayName, '--json-progress'];
-  
-  jobManager.updateJob(jobId, { status: 'analyzing' });
-  
-  const pythonProcess = spawn('python', args, {
-    cwd: scraperPath,
-    env: {
-      ...process.env,
-      OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
-      ANYDOCS_REFRESH_DAYS: String(config.refreshDays || 30)
     },
-    stdio: ['ignore', 'pipe', 'pipe']
-  });
-  
-  pythonProcess.stdout.on('data', (data: Buffer) => {
-    const lines = data.toString().split('\n');
-    for (const line of lines) {
-      if (line.trim()) {
-        jobManager.addLog(jobId, `[stdout] ${line}`);
-      }
-      if (line.startsWith('PROGRESS:')) {
-        try {
-          const progress = JSON.parse(line.substring(9));
-          if (progress.phase === 'completed') {
-            jobManager.completeJob(jobId, {
-              totalPages: progress.result?.total_pages || 0,
-              totalFiles: progress.result?.total_files || 0,
-              version: progress.result?.version || 'v1'
-            });
-          } else if (progress.phase === 'failed') {
-            jobManager.failJob(jobId, progress.message || 'Unknown error');
-          } else {
-            jobManager.updateJob(jobId, { 
-              status: progress.phase === 'scraping' ? 'scraping' : 'analyzing' 
-            });
-            jobManager.updateProgress(
-              jobId, 
-              progress.phase, 
-              progress.current || 0, 
-              progress.total || 0, 
-              progress.current_url
-            );
-          }
-        } catch (e) {
-          console.error('[scraper] Failed to parse progress:', line);
-          jobManager.addLog(jobId, `[error] Failed to parse progress: ${line}`);
-        }
-      }
-    }
-  });
-  
-  pythonProcess.stderr.on('data', (data: Buffer) => {
-    const msg = data.toString();
-    console.error('[scraper]', msg);
-    const lines = msg.split('\n');
-    for (const line of lines) {
-      if (line.trim()) {
-        jobManager.addLog(jobId, `[stderr] ${line}`);
-      }
-    }
-  });
-  
-  pythonProcess.on('close', (code: number) => {
-    const job = jobManager.getJob(jobId);
-    if (job && job.status !== 'completed' && job.status !== 'failed') {
-      if (code === 0) {
-        jobManager.completeJob(jobId, { totalPages: 0, totalFiles: 0, version: 'v1' });
-      } else {
-        jobManager.failJob(jobId, `Process exited with code ${code}`);
-      }
-    }
-  });
-}
+    {
+      name: 'list_docs',
+      description: 'List all documentation sets available in the global AnyDocs storage. Shows name, source URL, page count, and size.',
+      inputSchema: { type: 'object', properties: {} },
+    },
+    {
+      name: 'remove_docs',
+      description: 'Permanently delete a documentation set from the global AnyDocs storage. This does NOT remove it from projects — use `remove_docs_from_project` for that.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Name of the doc set to delete' },
+        },
+        required: ['name'],
+      },
+    },
+    {
+      name: 'add_docs_to_project',
+      description: `Add documentation to the current project. Copies the doc files into the project and creates an always-on ${ideType} rule with the documentation index. The AI agent will then have persistent access to these docs.`,
+      inputSchema: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Name of the doc set to add (from list_docs)' },
+          project_root: { type: 'string', description: 'Absolute path to the project root directory' },
+        },
+        required: ['name', 'project_root'],
+      },
+    },
+    {
+      name: 'remove_docs_from_project',
+      description: `Remove documentation from the current project. Deletes the copied doc files and the ${ideType} rule.`,
+      inputSchema: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Name of the doc set to remove' },
+          project_root: { type: 'string', description: 'Absolute path to the project root directory' },
+        },
+        required: ['name', 'project_root'],
+      },
+    },
+    {
+      name: 'list_project_docs',
+      description: 'List documentation sets currently added to this project.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          project_root: { type: 'string', description: 'Absolute path to the project root directory' },
+        },
+        required: ['project_root'],
+      },
+    },
+  ],
+}));
+
+// ---------------------------------------------------------------------------
+// Tool handlers
+// ---------------------------------------------------------------------------
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
   try {
     switch (name) {
-      case 'search': {
-        const query = args?.query as string;
-        const docsName = args?.docs as string | undefined;
-        let maxResults = (args?.maxResults as number) || 10;
-        const fileFilter = args?.fileFilter as string | undefined;
-        const titlesOnly = args?.titlesOnly as boolean || false;
 
-        // Validate inputs
-        if (!query || typeof query !== 'string') {
-          return {
-            content: [{ type: 'text', text: '[ERROR] Query parameter is required and must be a string.' }],
-            isError: true
-          };
-        }
-
-        if (query.length > 500) {
-          return {
-            content: [{ type: 'text', text: '[ERROR] Query is too long (max 500 characters).' }],
-            isError: true
-          };
-        }
-
-        // Validate maxResults bounds
-        if (typeof maxResults !== 'number' || maxResults < 1 || maxResults > 100) {
-          maxResults = Math.min(Math.max(maxResults, 1), 100);
-        }
-
-        const parserInfo = await getParserForDocs(docsName);
-        if (!parserInfo) {
-          return {
-            content: [{ type: 'text', text: `No documentation set active. Use \`list_documentation_sets\` to see available sets and \`switch_documentation\` to select one.` }]
-          };
-        }
-
-        const results = parserInfo.parser.search(query, { maxResults, fileFilter });
-        
-        if (results.length === 0) {
-          return {
-            content: [{ type: 'text', text: `No results found for "${query}" in ${parserInfo.docName} documentation.` }]
-          };
-        }
-
-        const formatted = results.map(s => formatSection(s, !titlesOnly)).join('\n\n---\n\n');
-        return {
-          content: [{ 
-            type: 'text', 
-            text: `Found ${results.length} results for "${query}" in **${parserInfo.docName}**:\n\n${formatted}` 
-          }]
-        };
-      }
-
-      case 'get_overview': {
-        const docsName = args?.docs as string | undefined;
-        const parserInfo = await getParserForDocs(docsName);
-        if (!parserInfo) {
-          return {
-            content: [{ type: 'text', text: `No documentation set active. Use \`list_documentation_sets\` to see available sets.` }]
-          };
-        }
-        const overview = parserInfo.parser.getOverview();
-        return {
-          content: [{ type: 'text', text: overview }]
-        };
-      }
-
-      case 'get_file_toc': {
-        const fileName = args?.fileName as string;
-        const docsName = args?.docs as string | undefined;
-        const parserInfo = await getParserForDocs(docsName);
-        if (!parserInfo) {
-          return {
-            content: [{ type: 'text', text: `No documentation set active.` }]
-          };
-        }
-        const toc = parserInfo.parser.getFileToc(fileName);
-        if (!toc) {
-          return {
-            content: [{ type: 'text', text: `File "${fileName}" not found in ${parserInfo.docName}. Use list_files to see available files.` }]
-          };
-        }
-        return {
-          content: [{ type: 'text', text: `# Table of Contents: ${fileName} (${parserInfo.docName})\n\n${toc}` }]
-        };
-      }
-
-      case 'get_section': {
-        const title = args?.title as string;
-        const fileName = args?.fileName as string | undefined;
-        const docsName = args?.docs as string | undefined;
-        const parserInfo = await getParserForDocs(docsName);
-        if (!parserInfo) {
-          return {
-            content: [{ type: 'text', text: `No documentation set active.` }]
-          };
-        }
-        const sections = parserInfo.parser.getSectionByTitle(title, fileName);
-        
-        if (sections.length === 0) {
-          return {
-            content: [{ type: 'text', text: `No section found with title "${title}" in ${parserInfo.docName}.` }]
-          };
-        }
-
-        const formatted = sections.map(s => formatSection(s, true)).join('\n\n---\n\n');
-        return {
-          content: [{ type: 'text', text: formatted }]
-        };
-      }
-
-      case 'list_files': {
-        const docsName = args?.docs as string | undefined;
-        const parserInfo = await getParserForDocs(docsName);
-        if (!parserInfo) {
-          return {
-            content: [{ type: 'text', text: `No documentation set active.` }]
-          };
-        }
-        const files = parserInfo.parser.getFileList();
-        const grouped: Record<string, string[]> = {};
-        
-        for (const file of files) {
-          const prefix = file.split('-')[0];
-          if (!grouped[prefix]) grouped[prefix] = [];
-          grouped[prefix].push(file);
-        }
-        
-        let output = `# Available Documentation Files (${parserInfo.docName})\n\n`;
-        for (const [category, fileList] of Object.entries(grouped)) {
-          output += `## ${category}\n`;
-          for (const f of fileList) {
-            output += `- ${f}\n`;
-          }
-          output += '\n';
-        }
-        
-        return {
-          content: [{ type: 'text', text: output }]
-        };
-      }
-
-      case 'find_code_examples': {
-        const query = args?.query as string;
-        const language = args?.language as string | undefined;
-        const maxResults = (args?.maxResults as number) || 5;
-        const docsName = args?.docs as string | undefined;
-
-        const parserInfo = await getParserForDocs(docsName);
-        if (!parserInfo) {
-          return {
-            content: [{ type: 'text', text: `No documentation set active.` }]
-          };
-        }
-
-        const index = parserInfo.parser.getIndex();
-        const queryLower = query.toLowerCase();
-        
-        const matches: { section: Section; block: { language: string; code: string }; score: number }[] = [];
-
-        for (const section of index.allSections) {
-          for (const block of section.codeBlocks) {
-            if (language && block.language.toLowerCase() !== language.toLowerCase()) {
-              continue;
-            }
-            
-            const codeLower = block.code.toLowerCase();
-            if (codeLower.includes(queryLower)) {
-              const occurrences = (codeLower.match(new RegExp(queryLower, 'g')) || []).length;
-              matches.push({ section, block, score: occurrences });
-            }
-          }
-        }
-
-        matches.sort((a, b) => b.score - a.score);
-        const topMatches = matches.slice(0, maxResults);
-
-        if (topMatches.length === 0) {
-          return {
-            content: [{ type: 'text', text: `No code examples found for "${query}" in ${parserInfo.docName}.` }]
-          };
-        }
-
-        let output = `Found ${topMatches.length} code examples for "${query}" in **${parserInfo.docName}**:\n\n`;
-        for (const { section, block } of topMatches) {
-          output += `### ${section.title}\n`;
-          output += `**File:** ${section.file}.md\n`;
-          if (section.sourceUrl) {
-            output += `**Source:** ${section.sourceUrl}\n`;
-          }
-          output += `\n\`\`\`${block.language}\n${block.code}\n\`\`\`\n\n---\n\n`;
-        }
-
-        return {
-          content: [{ type: 'text', text: output }]
-        };
-      }
-
-      case 'scrape_documentation': {
+      // ---------------------------------------------------------------
+      // scrape_docs — returns CLI command
+      // ---------------------------------------------------------------
+      case 'scrape_docs': {
         const url = args?.url as string;
         const docName = args?.name as string;
-        const displayName = (args?.displayName as string) || docName;
+        const maxPages = (args?.max_pages as number) || 500;
 
-        // Validate and sanitize inputs to prevent command injection
         if (!url || !docName) {
-          return {
-            content: [{ type: 'text', text: '[ERROR] URL and name are required parameters.' }],
-            isError: true
-          };
+          return { content: [{ type: 'text', text: '[ERROR] Both `url` and `name` are required.' }], isError: true };
         }
 
-        // Validate URL format
-        try {
-          new URL(url);
-        } catch {
-          return {
-            content: [{ type: 'text', text: `[ERROR] Invalid URL format: ${url}` }],
-            isError: true
-          };
+        // Validate URL
+        try { new URL(url); } catch {
+          return { content: [{ type: 'text', text: `[ERROR] Invalid URL: ${url}` }], isError: true };
         }
 
-        // Sanitize name: only alphanumeric, hyphens, and underscores
-        const sanitizedName = docName.replace(/[^a-zA-Z0-9_-]/g, '');
-        if (sanitizedName !== docName) {
-          return {
-            content: [{ type: 'text', text: `[ERROR] Invalid name. Only alphanumeric characters, hyphens, and underscores are allowed. Got: "${docName}"` }],
-            isError: true
-          };
+        // Sanitize name
+        const sanitized = docName.replace(/[^a-zA-Z0-9_-]/g, '');
+        if (sanitized !== docName) {
+          return { content: [{ type: 'text', text: `[ERROR] Invalid name. Only alphanumeric, hyphens, underscores allowed. Got: "${docName}"` }], isError: true };
         }
 
-        // Sanitize display name
-        const sanitizedDisplayName = (displayName || sanitizedName).replace(/["\\\n\r]/g, '');
+        const scraperPath = getScraperPath();
+        const storageRoot = ensureStorageRoot();
+        const outputDir = path.join(storageRoot, sanitized);
 
-        // Generate CLI command for the user to execute
-        const __filename = fileURLToPath(import.meta.url);
-        const __dirname = path.dirname(__filename);
-        const scraperPath = path.join(__dirname, '..', '..', 'scraper');
-        
-        const cliCommand = `cd "${scraperPath}"; python cli.py add --url "${url}" --name "${sanitizedName}" --display-name "${sanitizedDisplayName}" --json-progress`;
+        const cliCommand = `cd "${scraperPath}" && python cli.py scrape --url "${url}" --name "${sanitized}" --output "${outputDir}" --max-pages ${maxPages}`;
 
         return {
           content: [{
             type: 'text',
-            text: `[READY] To scrape documentation, please execute the following command in your terminal:\n\n\`\`\`bash\n${cliCommand}\n\`\`\`\n\n**Documentation:** ${sanitizedDisplayName}\n**URL:** ${url}\n\nOnce the scraping completes successfully, use \`switch_documentation\` with name "${sanitizedName}" to use the scraped documentation.`
-          }]
+            text: [
+              `[SCRAPE] Run this command to scrape the documentation:`,
+              '',
+              '```bash',
+              cliCommand,
+              '```',
+              '',
+              `**Name:** ${sanitized}`,
+              `**URL:** ${url}`,
+              `**Max pages:** ${maxPages}`,
+              `**Output:** ${outputDir}`,
+              '',
+              `Once complete, use \`add_docs_to_project\` with name "${sanitized}" to inject the docs into your project.`,
+            ].join('\n'),
+          }],
         };
       }
 
-      case 'get_scrape_status': {
-        const jobId = args?.jobId as string;
-        const job = jobManager.getJob(jobId);
+      // ---------------------------------------------------------------
+      // list_docs
+      // ---------------------------------------------------------------
+      case 'list_docs': {
+        const docs = listDocSets();
 
-        if (!job) {
+        if (docs.length === 0) {
           return {
             content: [{
               type: 'text',
-              text: `[ERROR] Job not found: ${jobId}\n\nThe job may have expired or the ID is incorrect.`
+              text: '# Available Documentation Sets\n\nNo documentation sets found.\n\nUse `scrape_docs` to scrape a new documentation site.',
             }],
-            isError: true
           };
         }
 
-        let statusEmoji = '[PENDING]';
-        if (job.status === 'completed') statusEmoji = '[DONE]';
-        else if (job.status === 'failed') statusEmoji = '[FAILED]';
-        else if (job.status === 'scraping') statusEmoji = '[SCRAPING]';
-        else if (job.status === 'analyzing') statusEmoji = '[ANALYZING]';
-
-        let output = `${statusEmoji} **Scrape Job Status**\n\n`;
-        output += `**Job ID:** ${job.id}\n`;
-        output += `**Documentation:** ${job.displayName} (${job.name})\n`;
-        output += `**URL:** ${job.url}\n`;
-        output += `**Status:** ${job.status}\n`;
-        output += `**Started:** ${job.startedAt}\n`;
-        
-        if (job.completedAt) {
-          output += `**Completed:** ${job.completedAt}\n`;
+        let output = `# Available Documentation Sets (${docs.length})\n\n`;
+        for (const doc of docs) {
+          const sizeMB = (doc.sizeBytes / 1024 / 1024).toFixed(1);
+          output += `- **${doc.name}**\n`;
+          if (doc.sourceUrl) output += `  - Source: ${doc.sourceUrl}\n`;
+          output += `  - Pages: ${doc.totalPages}, Size: ${sizeMB} MB\n`;
+          if (doc.scrapedAt) output += `  - Scraped: ${doc.scrapedAt}\n`;
+          output += '\n';
         }
 
-        output += `\n**Progress:**\n`;
-        output += `- Phase: ${job.progress.phase}\n`;
-        if (job.progress.total > 0) {
-          const percent = Math.round((job.progress.current / job.progress.total) * 100);
-          output += `- Progress: ${job.progress.current}/${job.progress.total} (${percent}%)\n`;
-        }
-        if (job.progress.currentUrl) {
-          output += `- Current URL: ${job.progress.currentUrl}\n`;
-        }
-
-        if (job.error) {
-          output += `\n**Error:** ${job.error}\n`;
-        }
-
-        if (job.result) {
-          output += `\n**Result:**\n`;
-          output += `- Total Pages: ${job.result.totalPages}\n`;
-          output += `- Total Files: ${job.result.totalFiles}\n`;
-          output += `- Version: ${job.result.version}\n`;
-          output += `\nThe documentation is ready! Use \`switch_documentation\` to switch to "${job.name}".`;
-        }
-
-        return {
-          content: [{ type: 'text', text: output }]
-        };
+        return { content: [{ type: 'text', text: output }] };
       }
 
-      case 'update_documentation': {
+      // ---------------------------------------------------------------
+      // remove_docs
+      // ---------------------------------------------------------------
+      case 'remove_docs': {
         const docName = args?.name as string;
-        const force = args?.force as boolean || false;
-
-        // Check if doc exists
-        const docConfig = getDocConfig(config, docName);
-        if (!docConfig) {
-          return {
-            content: [{
-              type: 'text',
-              text: `[ERROR] Documentation "${docName}" not found. Use \`list_documentation_sets\` to see available sets.`
-            }],
-            isError: true
-          };
+        if (!docName) {
+          return { content: [{ type: 'text', text: '[ERROR] `name` is required.' }], isError: true };
         }
 
-        // Check if refresh is needed
-        const metadata = getDocMetadata(config, docName);
-        if (!force && metadata?.refresh_after) {
-          const refreshDate = new Date(metadata.refresh_after);
-          if (refreshDate > new Date()) {
-            return {
-              content: [{
-                type: 'text',
-                text: `[INFO] Documentation "${docName}" does not need refresh yet.\n\n**Last scraped:** ${metadata.last_scraped}\n**Refresh after:** ${metadata.refresh_after}\n**Content hash:** ${metadata.content_hash?.substring(0, 12)}...\n\nUse \`force: true\` to update anyway.`
-              }]
-            };
-          }
+        const deleted = deleteDocSet(docName);
+        if (!deleted) {
+          return { content: [{ type: 'text', text: `[ERROR] Documentation "${docName}" not found in storage.` }], isError: true };
         }
 
-        // Generate CLI command for the user to execute
-        const __filename = fileURLToPath(import.meta.url);
-        const __dirname = path.dirname(__filename);
-        const scraperPath = path.join(__dirname, '..', '..', 'scraper');
-        
-        const cliCommand = `cd "${scraperPath}"; python cli.py update --name "${docName}" --json-progress${force ? ' --force' : ''}`;
+        return {
+          content: [{ type: 'text', text: `[SUCCESS] Deleted documentation "${docName}" from storage.\n\n⚠️ Note: If this doc set was added to any projects, use \`remove_docs_from_project\` to clean those up too.` }],
+        };
+      }
+
+      // ---------------------------------------------------------------
+      // add_docs_to_project
+      // ---------------------------------------------------------------
+      case 'add_docs_to_project': {
+        const docName = args?.name as string;
+        const projectRoot = args?.project_root as string;
+
+        if (!docName || !projectRoot) {
+          return { content: [{ type: 'text', text: '[ERROR] Both `name` and `project_root` are required.' }], isError: true };
+        }
+
+        const info = getDocSetInfo(docName);
+        if (!info) {
+          return { content: [{ type: 'text', text: `[ERROR] Documentation "${docName}" not found. Use \`list_docs\` to see available sets.` }], isError: true };
+        }
+
+        const rawDir = getDocRawDir(docName);
+        if (!rawDir) {
+          return { content: [{ type: 'text', text: `[ERROR] No raw docs found for "${docName}". The scrape may be incomplete.` }], isError: true };
+        }
+
+        const result = adapter.addDocsToProject(projectRoot, docName, rawDir, info.agentsIndex);
+
+        if (!result.success) {
+          return { content: [{ type: 'text', text: `[ERROR] ${result.message}` }], isError: true };
+        }
 
         return {
           content: [{
             type: 'text',
-            text: `[READY] To update documentation, please execute the following command in your terminal:\n\n\`\`\`bash\n${cliCommand}\n\`\`\`\n\n**Documentation:** ${docConfig.display_name || docName}\n**Previous hash:** ${metadata?.content_hash?.substring(0, 12) || 'N/A'}...\n\nOnce the update completes, use \`switch_documentation\` with name "${docName}" to refresh the index.`
-          }]
+            text: [
+              `[SUCCESS] ${result.message}`,
+              '',
+              `The documentation is now persistently available to the AI agent.`,
+              `The agent can read individual doc files from \`${result.docsDir}\`.`,
+              '',
+              `To remove: use \`remove_docs_from_project\` with name "${docName}".`,
+            ].join('\n'),
+          }],
         };
       }
 
-      case 'list_documentation_sets': {
-        const allDocs = listAllDocs(config);
-        const activeJobs = jobManager.getActiveJobs();
-        
-        if (allDocs.length === 0 && activeJobs.length === 0) {
-          return {
-            content: [{
-              type: 'text',
-              text: `# Available Documentation Sets\n\nNo documentation sets found.\n\nUse \`scrape_documentation\` to add a new documentation site.`
-            }]
-          };
+      // ---------------------------------------------------------------
+      // remove_docs_from_project
+      // ---------------------------------------------------------------
+      case 'remove_docs_from_project': {
+        const docName = args?.name as string;
+        const projectRoot = args?.project_root as string;
+
+        if (!docName || !projectRoot) {
+          return { content: [{ type: 'text', text: '[ERROR] Both `name` and `project_root` are required.' }], isError: true };
         }
 
-        let output = `# Available Documentation Sets\n\n`;
-        output += `**Currently Active:** ${currentDocName || '(none)'}\n\n`;
-
-        // Show active jobs first
-        if (activeJobs.length > 0) {
-          output += `## [IN PROGRESS]\n\n`;
-          for (const job of activeJobs) {
-            const percent = job.progress.total > 0 
-              ? Math.round((job.progress.current / job.progress.total) * 100) 
-              : 0;
-            output += `- **${job.displayName}** (${job.name})\n`;
-            output += `  - Status: ${job.status}\n`;
-            output += `  - Progress: ${percent}% (${job.progress.current}/${job.progress.total})\n`;
-            output += `  - Job ID: ${job.id}\n\n`;
-          }
-        }
-
-        // Show existing docs
-        if (allDocs.length > 0) {
-          output += `## Available\n\n`;
-          for (const docName of allDocs) {
-            const docConfig = getDocConfig(config, docName);
-            const metadata = getDocMetadata(config, docName);
-            const isActive = docName === currentDocName;
-            
-            output += `- **${docConfig?.display_name || docName}** (${docName})${isActive ? ' [ACTIVE]' : ''}\n`;
-            if (docConfig?.start_url) {
-              output += `  - URL: ${docConfig.start_url}\n`;
-            }
-            if (metadata) {
-              output += `  - Pages: ${metadata.total_pages || 'N/A'}, Files: ${metadata.total_files || 'N/A'}\n`;
-              output += `  - Last scraped: ${metadata.last_scraped || 'N/A'}\n`;
-              if (metadata.content_hash) {
-                output += `  - Content hash: ${metadata.content_hash.substring(0, 12)}...\n`;
-              }
-              if (metadata.refresh_after) {
-                const needsRefresh = new Date(metadata.refresh_after) < new Date();
-                output += `  - Refresh: ${needsRefresh ? '[NEEDS REFRESH]' : 'OK'} (after ${metadata.refresh_after.substring(0, 10)})\n`;
-              }
-            }
-            output += '\n';
-          }
-        }
+        const result = adapter.removeDocsFromProject(projectRoot, docName);
 
         return {
-          content: [{ type: 'text', text: output }]
+          content: [{
+            type: 'text',
+            text: result.success ? `[SUCCESS] ${result.message}` : `[ERROR] ${result.message}`,
+          }],
+          ...(result.success ? {} : { isError: true }),
         };
       }
 
-      case 'switch_documentation': {
-        const newDocName = args?.name as string;
-        
-        // Validate doc name to prevent path traversal
-        if (!newDocName || typeof newDocName !== 'string') {
-          return {
-            content: [{ type: 'text', text: '[ERROR] Documentation name is required.' }],
-            isError: true
-          };
+      // ---------------------------------------------------------------
+      // list_project_docs
+      // ---------------------------------------------------------------
+      case 'list_project_docs': {
+        const projectRoot = args?.project_root as string;
+
+        if (!projectRoot) {
+          return { content: [{ type: 'text', text: '[ERROR] `project_root` is required.' }], isError: true };
         }
 
-        // Prevent path traversal attacks
-        if (newDocName.includes('..') || newDocName.includes('/') || newDocName.includes('\\')) {
-          return {
-            content: [{ type: 'text', text: '[ERROR] Invalid documentation name. Only alphanumeric characters, hyphens, and underscores are allowed.' }],
-            isError: true
-          };
-        }
-        
-        try {
-          const path = await import('path');
-          const { existsSync, readdirSync, statSync } = await import('fs');
-          
-          const storageRoot = getStorageRoot(config);
-          const docDir = path.join(storageRoot, newDocName);
-          
-          if (!existsSync(docDir)) {
-            return {
-              content: [{
-                type: 'text',
-                text: `[ERROR] Documentation set "${newDocName}" not found. Use \`list_documentation_sets\` to see available sets.`
-              }],
-              isError: true
-            };
-          }
+        const docs = adapter.listProjectDocs(projectRoot);
 
-          const versions = readdirSync(docDir).filter((d: string) => 
-            d.startsWith('v') && statSync(path.join(docDir, d)).isDirectory()
-          );
-
-          if (versions.length === 0) {
-            return {
-              content: [{
-                type: 'text',
-                text: `[ERROR] No versions found for "${newDocName}". The documentation may be incomplete.`
-              }],
-              isError: true
-            };
-          }
-
-          interface Version {
-            name: string;
-            num: number;
-          }
-          
-          const latestVersion = versions
-            .map((v: string): Version => ({ name: v, num: parseInt(v.substring(1)) }))
-            .filter((v: Version) => !isNaN(v.num))
-            .sort((a: Version, b: Version) => b.num - a.num)[0].name;
-
-          const newDocsPath = path.join(docDir, latestVersion);
-
-          console.error(`[switch] Switching to ${newDocName} (${latestVersion})...`);
-          const newParser = new MarkdownParser(newDocsPath, newDocName);
-          console.error(`[switch] Building index...`);
-          newParser.buildIndex();
-          console.error(`[switch] Index ready.`);
-
-          // Update global state
-          parser = newParser;
-          currentDocName = newDocName;
-
+        if (docs.length === 0) {
           return {
             content: [{
               type: 'text',
-              text: `[SUCCESS] Successfully switched to documentation set: **${newDocName}**\n\nVersion: ${latestVersion}\nPath: ${newDocsPath}\n\nYou can now search this documentation using the search tools.`
-            }]
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: 'text',
-              text: `[ERROR] Error switching documentation: ${error instanceof Error ? error.message : String(error)}`
+              text: `No documentation sets added to this project.\n\nUse \`add_docs_to_project\` to add docs from the global storage.`,
             }],
-            isError: true
-          };
-        }
-      }
-
-      case 'get_scrape_logs': {
-        const jobId = args?.jobId as string;
-        const lines = (args?.lines as number) || 100;
-
-        const logs = jobManager.getLogs(jobId, lines);
-
-        if (logs.length === 0) {
-          return {
-            content: [{
-              type: 'text',
-              text: `[ERROR] No logs found for job ID: ${jobId}\n\nThe job may not exist or may have expired.`
-            }],
-            isError: true
           };
         }
 
-        const job = jobManager.getJob(jobId);
-        let output = `# Scrape Logs\n\n`;
-        if (job) {
-          output += `**Job ID:** ${job.id}\n`;
-          output += `**Documentation:** ${job.displayName} (${job.name})\n`;
-          output += `**Status:** ${job.status}\n`;
-          output += `**Started:** ${job.startedAt}\n`;
-          if (job.completedAt) {
-            output += `**Completed:** ${job.completedAt}\n`;
-          }
-          output += `\n`;
+        let output = `# Project Documentation (${ideType})\n\n`;
+        for (const doc of docs) {
+          output += `- **${doc}**\n`;
         }
+        output += `\nTo remove: use \`remove_docs_from_project\` with the doc name.`;
 
-        output += `## Log Output (last ${logs.length} lines)\n\n`;
-        output += '```\n';
-        output += logs.join('\n');
-        output += '\n```';
-
-        return {
-          content: [{ type: 'text', text: output }]
-        };
+        return { content: [{ type: 'text', text: output }] };
       }
 
       default:
-        return {
-          content: [{ type: 'text', text: `Unknown tool: ${name}` }],
-          isError: true
-        };
+        return { content: [{ type: 'text', text: `Unknown tool: ${name}` }], isError: true };
     }
   } catch (error) {
     return {
-      content: [{ type: 'text', text: `Error: ${error instanceof Error ? error.message : String(error)}` }],
-      isError: true
+      content: [{ type: 'text', text: `[ERROR] ${error instanceof Error ? error.message : String(error)}` }],
+      isError: true,
     };
   }
 });
 
-server.setRequestHandler(ListResourcesRequestSchema, async () => {
-  if (!parser) {
-    return { resources: [] };
-  }
-  const files = parser.getFileList();
-  return {
-    resources: files.map(f => ({
-      uri: `${currentDocName}://${f}`,
-      name: f,
-      mimeType: 'text/markdown',
-      description: `${currentDocName} documentation: ${f}`
-    }))
-  };
-});
-
-server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-  if (!parser) {
-    throw new Error('No documentation set active');
-  }
-  const uri = request.params.uri;
-  const fileName = uri.replace(`${currentDocName}://`, '');
-  const toc = parser.getFileToc(fileName);
-  
-  if (!toc) {
-    throw new Error(`File not found: ${fileName}`);
-  }
-
-  return {
-    contents: [{
-      uri,
-      mimeType: 'text/markdown',
-      text: `# ${fileName}\n\n${toc}`
-    }]
-  };
-});
+// ---------------------------------------------------------------------------
+// Start
+// ---------------------------------------------------------------------------
 
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error(`[${serverName}] Server running on stdio`);
+  console.error(`[anydocs-v2] Server running on stdio (IDE: ${ideType})`);
 }
 
 main().catch((error) => {
-  console.error(`[${serverName}] Fatal error:`, error);
+  console.error('[anydocs-v2] Fatal error:', error);
   process.exit(1);
 });

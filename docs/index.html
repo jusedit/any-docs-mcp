@@ -3,24 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="AnyDocsMCP is an LLM-powered documentation scraper for AI assistants. Uses Python + Node.js to scrape any docs site and serve via MCP with full-text search.">
-    <meta name="keywords" content="MCP, Model Context Protocol, documentation scraper, AI assistant, LLM-powered, OpenRouter, Python, Node.js, Claude, Windsurf, documentation indexing">
+    <meta name="description" content="AnyDocsMCP scrapes any documentation site and injects it into your AI coding agent's context. Works with Windsurf, Cursor, Claude Code, and Antigravity.">
+    <meta name="keywords" content="MCP, Model Context Protocol, documentation scraper, AI coding agent, Windsurf, Cursor, Claude Code, Antigravity, LLM, OpenRouter">
     <meta name="author" content="AnyDocsMCP">
-    <meta property="og:title" content="AnyDocsMCP - Universal Documentation Pipeline for AI Assistants">
-    <meta property="og:description" content="LLM-powered documentation scraper for AI assistants. Python scraper + Node.js MCP server with full-text search and auto-refresh.">
+    <meta property="og:title" content="AnyDocsMCP - Documentation for AI Coding Agents">
+    <meta property="og:description" content="Scrape any docs site and inject it into Windsurf, Cursor, Claude Code, or Antigravity. MCP-powered, open source.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://github.com/jusedit/any-docs-mcp">
     <meta property="og:image" content="https://raw.githubusercontent.com/jusedit/any-docs-mcp/main/assets/og-image.png">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="AnyDocsMCP - Universal Documentation Pipeline for AI Assistants">
-    <meta name="twitter:description" content="LLM-powered documentation scraper for AI assistants. Python scraper + Node.js MCP server with full-text search and auto-refresh.">
+    <meta name="twitter:title" content="AnyDocsMCP - Documentation for AI Coding Agents">
+    <meta name="twitter:description" content="Scrape any docs site and inject it into Windsurf, Cursor, Claude Code, or Antigravity. MCP-powered, open source.">
     <link rel="canonical" href="https://github.com/jusedit/any-docs-mcp">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <meta name="theme-color" content="#0a0a0a">
-    <title>AnyDocsMCP - Universal Documentation Pipeline for AI Assistants</title>
+    <title>AnyDocsMCP - Documentation for AI Coding Agents</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -61,7 +61,7 @@
             <div class="nav-links">
                 <a href="#features">Features</a>
                 <a href="#how-it-works">How It Works</a>
-                <a href="#examples">Examples</a>
+                <a href="#ide-support">IDE Support</a>
                 <a href="https://github.com/jusedit/any-docs-mcp" class="btn-github" target="_blank" rel="noopener noreferrer">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
@@ -76,15 +76,15 @@
         <div class="container">
             <div class="hero-badge">
                 <span class="badge-dot"></span>
-                Model Context Protocol Server
+                MCP Server for AI Coding Agents
             </div>
             <h1 class="hero-title">
-                Universal Documentation<br>
-                <span class="gradient-text">Pipeline for AI</span>
+                Any Docs, Any IDE,<br>
+                <span class="gradient-text">Always in Context</span>
             </h1>
             <p class="hero-description">
-                Transform any documentation website into searchable, AI-ready knowledge.<br>
-                Scrape, index, and query technical docs via MCP in seconds.
+                Scrape any documentation site and inject it into your AI coding agent's context.<br>
+                Works with Windsurf, Cursor, Claude Code, and Antigravity.
             </p>
             <div class="hero-cta">
                 <a href="https://github.com/jusedit/any-docs-mcp" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
@@ -100,16 +100,16 @@
             </div>
             <div class="hero-stats">
                 <div class="stat">
-                    <div class="stat-value">50</div>
-                    <div class="stat-label">Verified Sites</div>
+                    <div class="stat-value">4</div>
+                    <div class="stat-label">IDEs Supported</div>
                 </div>
                 <div class="stat">
-                    <div class="stat-value">< 200ms</div>
-                    <div class="stat-label">Search Speed</div>
+                    <div class="stat-value">~500B</div>
+                    <div class="stat-label">Index Size</div>
                 </div>
                 <div class="stat">
-                    <div class="stat-value">MCP</div>
-                    <div class="stat-label">Protocol</div>
+                    <div class="stat-value">6</div>
+                    <div class="stat-label">MCP Tools</div>
                 </div>
             </div>
         </div>
@@ -129,18 +129,8 @@
                             <path d="M12 6v6l4 2"/>
                         </svg>
                     </div>
-                    <h3>LLM-Powered Analysis</h3>
-                    <p>Uses Claude via OpenRouter to analyze site structure and extract content. Automatic 5-mode discovery: GitHub → Sitemap → Navigation → Crawl → WebDriver.</p>
-                </article>
-                <article class="feature-card">
-                    <div class="feature-icon">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="11" cy="11" r="8"/>
-                            <path d="m21 21-4.35-4.35"/>
-                        </svg>
-                    </div>
-                    <h3>Full-Text Search</h3>
-                    <p>Fast keyword-based search with intelligent scoring. Title matches, term frequency, and code block detection for < 200ms response time.</p>
+                    <h3>LLM-Powered Scraping</h3>
+                    <p>7-step pipeline with LLM-assisted scope analysis, CSS selector detection, and automatic SPA support via Selenium.</p>
                 </article>
                 <article class="feature-card">
                     <div class="feature-icon">
@@ -150,17 +140,18 @@
                             <line x1="12" y1="17" x2="12" y2="21"/>
                         </svg>
                     </div>
-                    <h3>MCP Native</h3>
-                    <p>First-class integration with Claude and any MCP-compatible AI. Expose docs as tools your assistant can use natively.</p>
+                    <h3>Multi-IDE Support</h3>
+                    <p>Native integration with Windsurf, Cursor, Claude Code, and Antigravity. Each IDE gets docs injected in its own format.</p>
                 </article>
                 <article class="feature-card">
                     <div class="feature-icon">
                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="m21 21-4.35-4.35"/>
                         </svg>
                     </div>
-                    <h3>Auto-Refresh</h3>
-                    <p>Keep documentation up-to-date with configurable refresh intervals. Never reference outdated API docs again.</p>
+                    <h3>Compact Index</h3>
+                    <p>~500 byte always-on index per doc set. The AI agent sees the full file tree and reads individual docs on-demand.</p>
                 </article>
                 <article class="feature-card">
                     <div class="feature-icon">
@@ -169,7 +160,16 @@
                         </svg>
                     </div>
                     <h3>Local First</h3>
-                    <p>All data stored locally. No external API calls, no privacy concerns. Your docs stay on your machine.</p>
+                    <p>Docs stored globally in AppData, shared across projects. No cloud dependency. Your docs stay on your machine.</p>
+                </article>
+                <article class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                        </svg>
+                    </div>
+                    <h3>SPA Detection</h3>
+                    <p>Automatic detection of client-side rendered sites. Seamless Selenium fallback for React, Angular, and Next.js docs.</p>
                 </article>
                 <article class="feature-card">
                     <div class="feature-icon">
@@ -178,8 +178,8 @@
                             <polyline points="8 6 2 12 8 18"/>
                         </svg>
                     </div>
-                    <h3>Code Examples</h3>
-                    <p>Specialized extraction for code blocks with syntax highlighting preservation. Find examples by language or pattern.</p>
+                    <h3>Cross-Page Dedup</h3>
+                    <p>Automatic removal of repeated UI artifacts across pages. Clean markdown output ready for AI consumption.</p>
                 </article>
             </div>
         </div>
@@ -188,18 +188,18 @@
     <section id="how-it-works" class="how-it-works">
         <div class="container">
             <div class="section-header">
-                <h2>Three Steps to AI-Ready Documentation</h2>
+                <h2>Three Steps to Always-On Documentation</h2>
             </div>
             <div class="steps">
                 <div class="step">
                     <div class="step-number">1</div>
                     <div class="step-content">
-                        <h3>Configure & Scrape</h3>
-                        <p>Add AnyDocsMCP to your MCP config, point it at a docs URL, and let it crawl.</p>
+                        <h3>Scrape</h3>
+                        <p>Ask your AI agent to scrape a docs site. It returns a CLI command that runs the 7-step pipeline.</p>
                         <div class="code-block">
-                            <code>scrape_documentation(
+                            <code>scrape_docs(
   url="https://docs.example.com",
-  name="my-docs"
+  name="example-docs"
 )</code>
                         </div>
                     </div>
@@ -207,12 +207,12 @@
                 <div class="step">
                     <div class="step-number">2</div>
                     <div class="step-content">
-                        <h3>Search & Query</h3>
-                        <p>Use semantic search to find relevant sections, code examples, or specific topics.</p>
+                        <h3>Inject</h3>
+                        <p>Add the docs to your project. Files are copied and a compact index is injected as an always-on IDE rule.</p>
                         <div class="code-block">
-                            <code>search(
-  query="authentication setup",
-  docs="my-docs"
+                            <code>add_docs_to_project(
+  name="example-docs",
+  project_root="/my/project"
 )</code>
                         </div>
                     </div>
@@ -220,12 +220,12 @@
                 <div class="step">
                     <div class="step-number">3</div>
                     <div class="step-content">
-                        <h3>AI Integration</h3>
-                        <p>Your AI assistant now has instant access to accurate, up-to-date documentation context.</p>
+                        <h3>Use</h3>
+                        <p>The AI agent now sees the doc index in every conversation and reads individual files on-demand. No extra prompting needed.</p>
                         <div class="code-block">
-                            <code>// AI automatically retrieves
-// relevant docs when needed
-"How do I configure OAuth?"</code>
+                            <code>// Agent sees ~500 byte index
+// Reads individual files as needed
+"How do I configure auth?"</code>
                         </div>
                     </div>
                 </div>
@@ -233,64 +233,43 @@
         </div>
     </section>
 
-    <section id="examples" class="examples">
+    <section id="ide-support" class="examples">
         <div class="container">
             <div class="section-header">
-                <h2>Works With Your Favorite Frameworks</h2>
-                <p>Pre-verified compatibility with 49 popular documentation sites</p>
+                <h2>Works With Your IDE</h2>
+                <p>Native integration with 4 AI coding agents</p>
             </div>
             <div class="examples-grid">
                 <div class="example-card">
-                    <div class="example-icon">🔷</div>
-                    <h4>React</h4>
-                    <p>react.dev</p>
+                    <div class="example-icon">&#x1F30A;</div>
+                    <h4>Windsurf</h4>
+                    <p>.windsurf/rules/</p>
                 </div>
                 <div class="example-card">
-                    <div class="example-icon">⚡</div>
-                    <h4>Next.js</h4>
-                    <p>nextjs.org/docs</p>
+                    <div class="example-icon">&#x1F4DD;</div>
+                    <h4>Cursor</h4>
+                    <p>.cursor/rules/</p>
                 </div>
                 <div class="example-card">
-                    <div class="example-icon">🟢</div>
-                    <h4>Vue</h4>
-                    <p>vuejs.org</p>
+                    <div class="example-icon">&#x1F916;</div>
+                    <h4>Claude Code</h4>
+                    <p>CLAUDE.md</p>
                 </div>
                 <div class="example-card">
-                    <div class="example-icon">🔺</div>
-                    <h4>Svelte</h4>
-                    <p>svelte.dev</p>
-                </div>
-                <div class="example-card">
-                    <div class="example-icon">🐍</div>
-                    <h4>Python</h4>
-                    <p>docs.python.org</p>
-                </div>
-                <div class="example-card">
-                    <div class="example-icon">🦀</div>
-                    <h4>Rust</h4>
-                    <p>doc.rust-lang.org</p>
-                </div>
-                <div class="example-card">
-                    <div class="example-icon">📘</div>
-                    <h4>TypeScript</h4>
-                    <p>typescriptlang.org</p>
-                </div>
-                <div class="example-card">
-                    <div class="example-icon">🔧</div>
-                    <h4>Tailwind</h4>
-                    <p>tailwindcss.com</p>
-                </div>
-                <div class="example-card">
-                    <div class="example-icon">⚡</div>
-                    <h4>HyperApp</h4>
-                    <p>@jorgebucaran</p>
-                </div>
-                <div class="example-card">
-                    <div class="example-icon">🐳</div>
-                    <h4>Docker</h4>
-                    <p>docs.docker.com</p>
+                    <div class="example-icon">&#x1F680;</div>
+                    <h4>Antigravity</h4>
+                    <p>.agent/rules/</p>
                 </div>
             </div>
+        </div>
+    </section>
+
+    <section class="inspired-by" style="padding: 3rem 0; text-align: center; opacity: 0.8;">
+        <div class="container">
+            <p style="font-size: 0.95rem; color: var(--text-secondary); max-width: 640px; margin: 0 auto; line-height: 1.7;">
+                Inspired by <a href="https://github.com/gaojude/next-agents-md" target="_blank" rel="noopener noreferrer" style="color: var(--accent);">@gaojude/next-agents-md</a> and Vercel's research on <a href="https://vercel.com/blog/agents-md-outperforms-skills-in-our-agent-evals" target="_blank" rel="noopener noreferrer" style="color: var(--accent);">retrieval-led reasoning</a>.<br>
+                A compressed docs index in <code style="background: rgba(255,255,255,0.08); padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.9em;">AGENTS.md</code> achieved 100% pass rate vs 79% for skills. AnyDocsMCP applies this pattern to any documentation site.
+            </p>
         </div>
     </section>
 

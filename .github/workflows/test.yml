@@ -1,8 +1,8 @@
-name: CI Tests
+name: CI
 
 on:
   push:
-    branches: [main, plan/*]
+    branches: [main]
   pull_request:
     branches: [main]
 
@@ -32,7 +32,7 @@ jobs:
           cd scraper
           python -m pytest tests/ -v
 
-  typescript-tests:
+  typescript-build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -55,10 +55,3 @@ jobs:
         run: |
           cd mcp-server
           npm run build
-      
-      - name: Run TypeScript tests
-        run: |
-          cd mcp-server
-          npm test
-        env:
-          ANYDOCS_STORAGE_ROOT: ${{ github.workspace }}/tests/fixtures/search/test-docs

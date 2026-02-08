@@ -1,1 +1,0 @@
-# AnyDocsMCP Scraper Package
