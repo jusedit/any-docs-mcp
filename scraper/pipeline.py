@@ -10,6 +10,7 @@ Two-pass crawl strategy:
   Pass 2: Re-crawl all pages with improved selectors
   Post:   Cross-page dedup removes any remaining repeated UI blocks
 """
+import re
 import shutil
 import sys
 import time
@@ -91,7 +92,12 @@ class Pipeline:
         frontier = [r for r in frontier if analysis.scope_rules.url_matches(r.url)]
         print(f"  → Scope filter: {before} → {len(frontier)} URLs", file=sys.stderr)
         print(f"  → Content selector: {analysis.selector_spec.content_selector}", file=sys.stderr)
-        print(f"  → Prune selectors: {len(analysis.selector_spec.prune_selectors)}\n", file=sys.stderr)
+        print(f"  → Prune selectors: {len(analysis.selector_spec.prune_selectors)}", file=sys.stderr)
+
+        # Locale/version dedup — keep only start URL's locale
+        frontier = self._filter_locale_duplicates(frontier, self.config.start_url)
+
+        print(file=sys.stderr)
 
         # Save analysis
         analysis_path = self.output_dir / "llm-analysis.json"
@@ -143,7 +149,12 @@ class Pipeline:
         # --- FR4c: Full crawl with refined selectors ---
         # Clean up sample crawl output
         if raw_dir.exists():
-            shutil.rmtree(raw_dir)
+            try:
+                shutil.rmtree(raw_dir)
+            except OSError:
+                # Windows: retry with ignore_errors if file handles are still open
+                time.sleep(0.5)
+                shutil.rmtree(raw_dir, ignore_errors=True)
             raw_dir.mkdir(parents=True, exist_ok=True)
 
         manifest = self._crawl_with_quality_check(
@@ -173,6 +184,68 @@ class Pipeline:
         print(f"{'='*60}\n", file=sys.stderr)
 
         return agents_path
+
+    def _filter_locale_duplicates(self, frontier: List, start_url: str) -> List:
+        """Remove locale/version duplicates from frontier.
+
+        Detects multi-locale sites (e.g., /en/stable/, /ja/6.0/, /ko/6.0/)
+        and keeps only URLs matching the start URL's locale prefix.
+        """
+        if len(frontier) < 10:
+            return frontier
+
+        parsed_start = urlparse(start_url)
+        start_path = parsed_start.path.rstrip("/")
+
+        # Common locale patterns: /en/, /ja/, /ko/, /zh-hans/, /pt-br/, /en-us/, etc.
+        locale_re = re.compile(
+            r"^/([a-z]{2}(?:-[a-z]{2,8})?)/",
+            re.IGNORECASE,
+        )
+
+        # Detect locale prefix of start URL
+        start_locale_match = locale_re.match(start_path)
+        if not start_locale_match:
+            return frontier
+
+        start_locale = start_locale_match.group(1).lower()
+
+        # Count how many distinct locales appear in frontier
+        locale_counts: dict = {}
+        for r in frontier:
+            path = urlparse(r.url).path
+            m = locale_re.match(path)
+            if m:
+                loc = m.group(1).lower()
+                locale_counts[loc] = locale_counts.get(loc, 0) + 1
+
+        # Only filter if there are multiple locales with significant counts
+        significant_locales = [loc for loc, cnt in locale_counts.items() if cnt >= 3]
+        if len(significant_locales) < 2:
+            return frontier
+
+        # Keep only URLs matching start locale (or URLs without a locale prefix)
+        before = len(frontier)
+        filtered = []
+        for r in frontier:
+            path = urlparse(r.url).path
+            m = locale_re.match(path)
+            if m:
+                loc = m.group(1).lower()
+                if loc == start_locale:
+                    filtered.append(r)
+            else:
+                filtered.append(r)
+
+        if len(filtered) < before:
+            removed_locales = [loc for loc in significant_locales if loc != start_locale]
+            print(
+                f"  → Locale dedup: {before} → {len(filtered)} URLs "
+                f"(kept '{start_locale}', removed {removed_locales})",
+                file=sys.stderr,
+            )
+
+        return filtered
 
     def _read_sample_md(self, raw_dir: Path, max_files: int = 3) -> List[str]:
         """Read a few sample markdown files for LLM refinement."""

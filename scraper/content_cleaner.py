@@ -54,9 +54,20 @@ UI_ARTIFACT_PATTERNS = [
     r"\[Edit on GitHub\]\([^)]*\)",
     r"\[View source\]\([^)]*\)",
     r"Was this page helpful\?",
+    r"Was this helpful\?",
     r"\[Yes\]\([^)]*\)\s*\[No\]\([^)]*\)",
     r"We use cookies", r"Cookie Policy", r"Accept cookies", r"Cookie consent",
+    r"Accept all cookies?", r"Manage cookies",
     r"On this page", r"Table of Contents",
+    r"Skip to [Mm]ain [Cc]ontent", r"Skip to content",
+    r"Report an issue", r"\[Report an issue\]\([^)]*\)",
+    r"Give feedback", r"Send feedback",
+    r"Subscribe\.?$", r"Newsletter\.?$",
+    r"Sign in\.?$", r"Log in\.?$", r"Sign up\.?$",
+    r"Download this Manual",
+    r"Copyright ©.*$", r"Copyright Â©.*$",
+    r"MIT License\.?$",
+    r"^supported\.$", r"^Send$",
     r"Home\s*>\s*[^\n]+", r"\[Home\]\([^)]*\)\s*>",
     r"Version:\s*\[\d+\.\d+\]", r"Select version",
     r"Copy as Markdown", r"Open Markdown",
@@ -71,6 +82,10 @@ UI_ARTIFACT_PATTERNS = [
     r"^\d+\s+minutes?\s*$",
     r"^\[\d+\]\([^)]*\)\s*$",
     r"^\[Â« Back[^\]]*\]\([^)]*\)",
+    r"^Menu$",
+    r"^\[.+ on X\]\([^)]*\)\[.+ on .+\]\([^)]*\).*$",
+    r"\[\]\([^)]*\)",
+    r"^\s*or\s*$",
 ]
 
 MOJIBAKE_FIXES = [
@@ -81,7 +96,15 @@ MOJIBAKE_FIXES = [
     ("\u00c3\u00a4", "\u00e4"), ("\u00c3\u00a5", "\u00e5"),
     ("\u00c3\u00a7", "\u00e7"), ("\u00c3\u00b1", "\u00f1"),
     ("\u00c3\u00b6", "\u00f6"), ("\u00c3\u00bc", "\u00fc"),
+    ("Â©", "©"), ("Â®", "®"), ("Â»", "»"), ("Â«", "«"),
 ]
+
+MOJIBAKE_EMOJI_RE = re.compile(
+    r"[\xc3\xc2][\x80-\xbf][\xc2-\xc3]?[\x80-\xbf]?"
+    r"|ðŸ[^\s]{0,8}"
+    r"|â[^\s]{0,4}"
+    r"|Ã[^\s]{0,2}"
+)
 
 SMART_QUOTE_FIXES = [
     ("\u2019", "'"), ("\u2018", "'"),
@@ -103,6 +126,7 @@ class ContentCleaner:
         content = self._fix_code_block_languages(content)
         content = self._remove_ui_artifacts(content)
         content = self._fix_encoding(content)
+        content = self._strip_footer(content)
         content = self._clean_empty_code_blocks(content)
         content = self._deduplicate_content(content)
         content = self._normalize_whitespace(content)
@@ -239,6 +263,50 @@ class ContentCleaner:
             content = content.replace(old, new)
         for old, new in SMART_QUOTE_FIXES:
             content = content.replace(old, new)
+        content = MOJIBAKE_EMOJI_RE.sub("", content)
+        return content
+
+    def _strip_footer(self, content: str) -> str:
+        """Remove footer residue from the end of content.
+
+        Detects common footer patterns: social links, copyright notices,
+        feedback widgets, newsletter signups, and strips them.
+        """
+        lines = content.split("\n")
+        if len(lines) < 5:
+            return content
+
+        footer_patterns = [
+            re.compile(r"copyright", re.IGNORECASE),
+            re.compile(r"MIT License", re.IGNORECASE),
+            re.compile(r"^\[.+ on (X|GitHub|Discord|Twitter|BlueSky|LinkedIn)\]", re.IGNORECASE),
+            re.compile(r"^(Was this helpful|Give feedback|Send feedback)", re.IGNORECASE),
+            re.compile(r"^(Subscribe|Newsletter|Sign up for)", re.IGNORECASE),
+            re.compile(r"^Menu$"),
+            re.compile(r"^supported\.$"),
+            re.compile(r"^Send$"),
+        ]
+
+        # Scan from the end, count consecutive footer-like lines
+        cut_idx = len(lines)
+        blank_run = 0
+        for i in range(len(lines) - 1, max(len(lines) - 30, 0), -1):
+            s = lines[i].strip()
+            if not s:
+                blank_run += 1
+                continue
+            is_footer = any(p.search(s) for p in footer_patterns)
+            if is_footer:
+                cut_idx = i
+                blank_run = 0
+            elif blank_run <= 2 and cut_idx < len(lines):
+                # Allow up to 2 blank lines between footer fragments
+                continue
+            else:
+                break
+
+        if cut_idx < len(lines):
+            return "\n".join(lines[:cut_idx])
         return content
 
     def _remove_permalink_anchors(self, content: str) -> str:

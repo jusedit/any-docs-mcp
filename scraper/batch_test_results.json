@@ -1,0 +1,226 @@
+{
+  "python3": {
+    "status": "success",
+    "pages": 25,
+    "agents_md_bytes": 566,
+    "elapsed_s": 34.0,
+    "error": null
+  },
+  "nodejs": {
+    "status": "success",
+    "pages": 258,
+    "agents_md_bytes": 3778,
+    "elapsed_s": 217.3,
+    "error": null
+  },
+  "typescript": {
+    "status": "success",
+    "pages": 302,
+    "agents_md_bytes": 6642,
+    "elapsed_s": 90.8,
+    "error": null
+  },
+  "java-se": {
+    "status": "success",
+    "pages": 24,
+    "agents_md_bytes": 722,
+    "elapsed_s": 330.5,
+    "error": null
+  },
+  "rust-book": {
+    "status": "success",
+    "pages": 104,
+    "agents_md_bytes": 3102,
+    "elapsed_s": 66.3,
+    "error": null
+  },
+  "golang": {
+    "status": "success",
+    "pages": 85,
+    "agents_md_bytes": 1327,
+    "elapsed_s": 49.4,
+    "error": null
+  },
+  "git": {
+    "status": "success",
+    "pages": 90,
+    "agents_md_bytes": 1511,
+    "elapsed_s": 49.1,
+    "error": null
+  },
+  "swagger": {
+    "status": "success",
+    "pages": 33,
+    "agents_md_bytes": 888,
+    "elapsed_s": 43.9,
+    "error": null
+  },
+  "grpc": {
+    "status": "success",
+    "pages": 87,
+    "agents_md_bytes": 1690,
+    "elapsed_s": 49.8,
+    "error": null
+  },
+  "webpack": {
+    "status": "success",
+    "pages": 153,
+    "agents_md_bytes": 3010,
+    "elapsed_s": 102.3,
+    "error": null
+  },
+  "eslint": {
+    "status": "success",
+    "pages": 422,
+    "agents_md_bytes": 8810,
+    "elapsed_s": 159.8,
+    "error": null
+  },
+  "vite": {
+    "status": "success",
+    "pages": 41,
+    "agents_md_bytes": 882,
+    "elapsed_s": 357.9,
+    "error": null
+  },
+  "tailwind": {
+    "status": "success",
+    "pages": 192,
+    "agents_md_bytes": 3478,
+    "elapsed_s": 106.0,
+    "error": null
+  },
+  "react": {
+    "status": "success",
+    "pages": 187,
+    "agents_md_bytes": 4084,
+    "elapsed_s": 150.6,
+    "error": null
+  },
+  "nextjs": {
+    "status": "success",
+    "pages": 421,
+    "agents_md_bytes": 8732,
+    "elapsed_s": 766.6,
+    "error": null
+  },
+  "vuejs": {
+    "status": "success",
+    "pages": 103,
+    "agents_md_bytes": 1870,
+    "elapsed_s": 71.7,
+    "error": null
+  },
+  "nuxt": {
+    "status": "success",
+    "pages": 268,
+    "agents_md_bytes": 4854,
+    "elapsed_s": 1880.3,
+    "error": null
+  },
+  "angular": {
+    "status": "success",
+    "pages": 1512,
+    "agents_md_bytes": 30358,
+    "elapsed_s": 276.1,
+    "error": null
+  },
+  "svelte": {
+    "status": "success",
+    "pages": 187,
+    "agents_md_bytes": 3112,
+    "elapsed_s": 133.0,
+    "error": null
+  },
+  "sveltekit": {
+    "status": "success",
+    "pages": 187,
+    "agents_md_bytes": 3119,
+    "elapsed_s": 102.2,
+    "error": null
+  },
+  "hyperapp": {
+    "status": "success",
+    "pages": 59,
+    "agents_md_bytes": 1672,
+    "elapsed_s": 187.3,
+    "error": null
+  },
+  "flask": {
+    "status": "success",
+    "pages": 25,
+    "agents_md_bytes": 480,
+    "elapsed_s": 76.3,
+    "error": null
+  },
+  "fastapi": {
+    "status": "success",
+    "pages": 1301,
+    "agents_md_bytes": 24726,
+    "elapsed_s": 1376.4,
+    "error": null
+  },
+  "rails": {
+    "status": "success",
+    "pages": 75,
+    "agents_md_bytes": 1911,
+    "elapsed_s": 173.7,
+    "error": null
+  },
+  "laravel": {
+    "status": "success",
+    "pages": 127,
+    "agents_md_bytes": 1771,
+    "elapsed_s": 159.1,
+    "error": null
+  },
+  "spring-boot": {
+    "status": "success",
+    "pages": 366,
+    "agents_md_bytes": 9051,
+    "elapsed_s": 562.6,
+    "error": null
+  },
+  "postgresql": {
+    "status": "success",
+    "pages": 1182,
+    "agents_md_bytes": 24468,
+    "elapsed_s": 121.6,
+    "error": null
+  },
+  "mysql": {
+    "status": "success",
+    "pages": 1871,
+    "agents_md_bytes": 54311,
+    "elapsed_s": 2632.4,
+    "error": null
+  },
+  "sqlite": {
+    "status": "success",
+    "pages": 130,
+    "agents_md_bytes": 1732,
+    "elapsed_s": 106.2,
+    "error": null
+  },
+  "mongodb": {
+    "status": "success",
+    "pages": 149,
+    "agents_md_bytes": 4690,
+    "elapsed_s": 534.6,
+    "error": null
+  },
+  "elasticsearch": {
+    "status": "success",
+    "pages": 5,
+    "agents_md_bytes": 408,
+    "elapsed_s": 53.2,
+    "error": null
+  },
+  "kafka": {
+    "status": "success",
+    "pages": 80,
+    "agents_md_bytes": 1841,
+    "elapsed_s": 185.8,
+    "error": null
+  }
+}

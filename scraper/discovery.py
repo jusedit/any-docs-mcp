@@ -39,6 +39,8 @@ SKIP_EXTENSIONS = frozenset({
     ".mp4", ".mp3", ".webm", ".webp", ".avif",
 })
 
+MAX_SITEMAP_URLS = 5000
+
 STANDARD_SITEMAP_PATHS = [
     "/sitemap.xml",
     "/sitemap_index.xml",
@@ -72,10 +74,21 @@ class DiscoveryWorker:
         """
         parsed = urlparse(start_url)
         base_url = f"{parsed.scheme}://{parsed.netloc}"
+        start_path = parsed.path.rstrip("/") or ""
 
         # 1. Sitemap URLs
         sitemap_urls = self._discover_sitemap_urls(base_url)
         print(f"  [discovery] Sitemap URLs found: {len(sitemap_urls)}", file=sys.stderr)
+
+        # 1b. Pre-filter sitemap URLs by start_url path prefix
+        if start_path and start_path != "/":
+            before_filter = len(sitemap_urls)
+            sitemap_urls = [
+                u for u in sitemap_urls
+                if urlparse(u["url"]).path.rstrip("/").startswith(start_path)
+            ]
+            if before_filter != len(sitemap_urls):
+                print(f"  [discovery] Path pre-filter ({start_path}): {before_filter} → {len(sitemap_urls)}", file=sys.stderr)
 
         # 2. Quick-sample BFS
         start_html, sample_links = self._quick_sample(start_url, max_pages=max_sample_pages)
@@ -145,11 +158,13 @@ class DiscoveryWorker:
 
         return locations
 
-    def _parse_sitemap(self, sitemap_url: str, depth: int = 0) -> List[Dict[str, str]]:
-        if depth > 3:
+    def _parse_sitemap(self, sitemap_url: str, depth: int = 0, _count: list = None) -> List[Dict[str, str]]:
+        if _count is None:
+            _count = [0]
+        if depth > 3 or _count[0] >= MAX_SITEMAP_URLS:
             return []
         try:
-            resp = self.session.get(sitemap_url, timeout=self.timeout)
+            resp = self.session.get(sitemap_url, timeout=30)
             resp.raise_for_status()
             content = resp.content
             if sitemap_url.endswith(".gz") or "gzip" in resp.headers.get("content-type", ""):
@@ -164,18 +179,24 @@ class DiscoveryWorker:
 
         # Sitemap index?
         for sm in root.findall(".//ns:sitemap", ns):
+            if _count[0] >= MAX_SITEMAP_URLS:
+                break
             loc = sm.find("ns:loc", ns)
             if loc is not None and loc.text:
-                results.extend(self._parse_sitemap(loc.text.strip(), depth + 1))
+                results.extend(self._parse_sitemap(loc.text.strip(), depth + 1, _count))
 
         # Regular URL entries
         for url_el in root.findall(".//ns:url", ns):
+            if _count[0] >= MAX_SITEMAP_URLS:
+                print(f"  [discovery] Sitemap cap reached ({MAX_SITEMAP_URLS} URLs)", file=sys.stderr)
+                break
             loc = url_el.find("ns:loc", ns)
             if loc is not None and loc.text:
                 raw = loc.text.strip()
                 path = urlparse(raw).path.strip("/")
                 title = path.replace("/", " > ").replace("-", " ").title() if path else "Index"
                 results.append({"url": raw, "title": title})
+                _count[0] += 1
 
         return results
 
